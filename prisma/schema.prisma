@@ -29,11 +29,12 @@ model Business {
   user                 User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessFormSettings BusinessFormSettings[]
   forms                Form[]
+
+  @@index([userId], map: "Business_userId_fkey")
 }
 
 model Form {
   id                   Int                    @id @default(autoincrement())
-  businessId           Int
   name                 String
   description          String?
   createdBy            String
@@ -43,111 +44,119 @@ model Form {
   type                 FormTypes
   allowAnonymous       Boolean                @default(true)
   status               FormStatus             @default(DRAFT)
-  business             Business               @relation(fields: [businessId], references: [id])
-  userFormResponses    UserFormResponse[]
-  formSettings         FormSettings[]
+  businessId           Int
   businessFormSettings BusinessFormSettings[]
+  business             Business               @relation(fields: [businessId], references: [id])
+  formSettings         FormSettings[]
   questions            Question[]
+  userFormResponses    UserFormResponse[]
+
+  @@index([businessId], map: "Form_businessId_fkey")
 }
 
 model UserFormResponse {
   id                    Int                    @id @default(autoincrement())
   formId                Int
-  form                  Form                   @relation(fields: [formId], references: [id], onDelete: Cascade)
   userId                Int?
-  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   guest                 Json?
   formResponseQuestions FormResponseQuestion[]
+  form                  Form                   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([formId], map: "UserFormResponse_formId_fkey")
+  @@index([userId], map: "UserFormResponse_userId_fkey")
 }
 
 model FormResponseQuestion {
   id                 Int              @id @default(autoincrement())
   userFormResponseId Int
-  formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
   questionId         Int
-  question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerOptionId     Int?
-  answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   selectedAnswerText String?          @db.Text
   ratingValue        Int?
+  answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
+  question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
+
+  @@index([answerOptionId], map: "FormResponseQuestion_answerOptionId_fkey")
+  @@index([questionId], map: "FormResponseQuestion_questionId_fkey")
+  @@index([userFormResponseId], map: "FormResponseQuestion_userFormResponseId_fkey")
 }
 
 model SettingTypes {
   id           Int            @id @default(autoincrement())
-  name         String
+  name         String         @unique
   description  String
   defaultValue Json?
   settings     FormSettings[]
-
-  @@unique([name])
 }
 
 model FormSettings {
   id                 Int           @id @default(autoincrement())
   formId             Int
-  form               Form          @relation(fields: [formId], references: [id], onDelete: Cascade)
   key                String
   value              Json
-  formSettingTypes   SettingTypes? @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
   formSettingTypesId Int?
+  form               Form          @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formSettingTypes   SettingTypes? @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
 
   @@unique([formId, key])
+  @@index([formSettingTypesId], map: "FormSettings_formSettingTypesId_fkey")
 }
 
 model BusinessFormSettings {
   id         Int      @id @default(autoincrement())
   businessId Int
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   formId     Int
-  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   key        String
   value      Json
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, formId, key])
+  @@index([formId], map: "BusinessFormSettings_formId_fkey")
 }
 
 model Question {
-  id                    Int                    @id @default(autoincrement())
-  headline              String
-  questionType          QuestionType
-  form                  Form                   @relation(fields: [formId], references: [id])
-  // settings                QuestionConfiguration  @relation(fields: [questionConfigurationId], references: [id])
-  answerOptions         AnswerOption[]
-  questionOnMedia       QuestionOnMedia[]
-  formResponseQuestions FormResponseQuestion[]
-  formId                Int
-  index                 Int
-
-  settings                        BusinessQuestionConfiguration? @relation(fields: [businessQuestionConfigurationId], references: [id])
+  id                              Int                            @id @default(autoincrement())
+  headline                        String
+  questionType                    QuestionType
+  formId                          Int
+  index                           Int
   businessQuestionConfigurationId Int?
+  answerOptions                   AnswerOption[]
+  formResponseQuestions           FormResponseQuestion[]
+  settings                        BusinessQuestionConfiguration? @relation(fields: [businessQuestionConfigurationId], references: [id])
+  form                            Form                           @relation(fields: [formId], references: [id])
+  questionOnMedia                 QuestionOnMedia[]
+
+  @@index([businessQuestionConfigurationId], map: "Question_businessQuestionConfigurationId_fkey")
+  @@index([formId], map: "Question_formId_fkey")
 }
 
 model QuestionConfiguration {
   id       Int    @id @default(autoincrement())
-  // questionId Int?
-  // question   Question[]
-  key      String
+  key      String @unique
   settings Json
-
-  @@unique([key])
 }
 
 model BusinessQuestionConfiguration {
   id         Int        @id @default(autoincrement())
-  questionId Int?
-  question   Question[]
+  questionId Int?       @unique
   key        String
   settings   Json
-
-  @@unique([questionId])
+  question   Question[]
 }
 
 model QuestionOnMedia {
   id         Int       @id @default(autoincrement())
-  media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
   mediaId    Int
   questionId Int?
+  media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId], map: "QuestionOnMedia_mediaId_fkey")
+  @@index([questionId], map: "QuestionOnMedia_questionId_fkey")
 }
 
 model AnswerOption {
@@ -156,21 +165,25 @@ model AnswerOption {
   label                 String?
   isActive              Boolean                @default(true)
   sortOrder             Int?
-  isCorrect             Boolean?
   description           String?
-  question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
   formResponseId        Int?
+  question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerOptionOnMedia   AnswerOptionOnMedia[]
   formResponseQuestions FormResponseQuestion[]
+
+  @@index([questionId], map: "AnswerOption_questionId_fkey")
 }
 
 model AnswerOptionOnMedia {
   id             Int           @id @default(autoincrement())
-  media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   mediaId        Int
-  answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   answerOptionId Int?
   index          Int?
+  answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
+  media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([answerOptionId], map: "AnswerOptionOnMedia_answerOptionId_fkey")
+  @@index([mediaId], map: "AnswerOptionOnMedia_mediaId_fkey")
 }
 
 model Media {
@@ -180,8 +193,8 @@ model Media {
   mimeType            String
   size                Int
   createdAt           DateTime              @default(now())
-  questionOnMedia     QuestionOnMedia[]
   answerOptionOnMedia AnswerOptionOnMedia[]
+  questionOnMedia     QuestionOnMedia[]
 }
 
 enum FormStatus {
@@ -195,12 +208,6 @@ enum Role {
   CUSTOMER
 }
 
-enum FeedbackStatus {
-  PENDING
-  RESOLVED
-  IN_PROGRESS
-}
-
 enum QuestionType {
   SINGLE_CHOICE
   MULTI_CHOICE
@@ -209,66 +216,7 @@ enum QuestionType {
   PICTURE_SELECTION
 }
 
-enum NameType {
-  E_Commerce
-  Sales
-  Marketing
-  Other
-}
-
 enum FormTypes {
   Survey
   Feedback
 }
-
-// model FeedbackForm {
-//   id                      Int                      @id @default(autoincrement())
-//   userId                  Int?
-//   createdAt               DateTime                 @default(now())
-//   updatedAt               DateTime                 @updatedAt
-//   isTemplate              Boolean                  @default(false)
-//   title                   String
-//   description             String?
-//   feedbackFormOnQuestions FeedbackFormOnQuestion[]
-//   feedbackOnMedia         FeedbackOnMedia[]
-//   formResponses           FormResponse[]
-//   businessFeedbackForms   BusinessFeedbackForm[]
-//   user                    User?                    @relation(fields: [userId], references: [id])
-// }
-
-// model BusinessFeedbackForm {
-//   businessId     Int
-//   feedbackFormId Int
-//   business       Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-//   feedbackForm   FeedbackForm @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
-
-//   @@id([businessId, feedbackFormId])
-// }
-
-// model FormResponse {
-//   id             Int            @id @default(autoincrement())
-//   userId         Int
-//   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   form           FeedbackForm   @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
-//   feedbackFormId Int
-//   answers        AnswerOption[]
-//   textAnswers    String?
-//   ratingValue    Int?
-//   status         FeedbackStatus @default(PENDING)
-// }
-
-// model FeedbackFormOnQuestion {
-//   id             Int          @id @default(autoincrement())
-//   feedbackForm   FeedbackForm @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
-//   question       Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-//   feedbackFormId Int
-//   questionId     Int
-// }
-
-// model FeedbackOnMedia {
-//   id             Int          @id @default(autoincrement())
-//   media          Media        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-//   feedback       FeedbackForm @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
-//   mediaId        Int
-//   feedbackFormId Int
-// }

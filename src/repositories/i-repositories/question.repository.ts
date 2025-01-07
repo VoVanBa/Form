@@ -25,4 +25,5 @@ export interface QuestionRepository {
     sortOrder: number,
   );
   getBusinessQuestionConfigurationByQuestionId(questionId: number);
+  updateQuestionSetting(questionId: number, settings, any)
 }

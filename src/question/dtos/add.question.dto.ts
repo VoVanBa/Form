@@ -23,8 +23,6 @@ export class AddQuestionDto {
   @IsOptional()
   imageId?: number;
 
-  sortOrder: number;
-
   questionId?: number;
 
   key: string;

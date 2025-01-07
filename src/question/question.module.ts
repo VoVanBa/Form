@@ -6,6 +6,7 @@ import { PrismaService } from 'src/config/prisma.service';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaFormRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
+import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 
 @Module({
   controllers: [QuestionController],
@@ -16,6 +17,7 @@ import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository'
     PrismaQuestionRepository,
     PrismaFormRepository,
     PrismaMediaRepository,
+    PrismaAnswerOptionRepository
   ],
 })
 export class QuestionModule {}

@@ -24,6 +24,18 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
+  async updateQuestionSetting(
+    questionId: number,
+    settings: any,
+  ): Promise<any> {
+    return this.prismaService.businessQuestionConfiguration.update({
+      where: { questionId: questionId },
+      data: {
+        settings:settings
+      },
+    });
+  }
+
   async getBusinessQuestionConfigurationByQuestionId(questionId: number) {
     return this.prismaService.businessQuestionConfiguration.findUnique({
       where: { questionId: questionId },

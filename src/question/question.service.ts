@@ -15,6 +15,7 @@ import { PrismaFormRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { defaultQuestionSettings } from 'src/config/default.question.settings';
+import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 
 @Injectable()
 export class QuestionService {
@@ -24,7 +25,8 @@ export class QuestionService {
     private prismaQuestionRepository: PrismaQuestionRepository,
     private prismaFormRepository: PrismaFormRepository,
     private prismaMediaRepository: PrismaMediaRepository,
-  ) {}
+    private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
+  ) { }
 
   // async deleteOptionAnwser(
   //   questionId: number,
@@ -80,16 +82,10 @@ export class QuestionService {
         await this.prismaQuestionRepository.deleteQuestionById(questionId);
         handler = this.getHandlerForQuestionType(questionType);
       } else {
-        const { settings } = updateQuestionDto;
-        await this.prismaQuestionRepository.updateQuestion(
-          questionId,
-          updateQuestionDto,
-        );
 
-        // await this.prismaQuestionRepository.updateQuestionSettings(
-        //   questionId,
-        //   settings,
-        // );
+        await this.updateQuestion(questionId, updateQuestionDto)
+
+
         return question;
       }
     } else {
@@ -134,6 +130,8 @@ export class QuestionService {
     if (imageId && !questionOnMedia) {
       await this.updateQuestionImage(questionId, imageId);
     }
+
+    await this.prismaQuestionRepository.updateQuestionSetting(questionId, updateQuestionDto.settings)
 
     // await this.updateAnswerOptions(questionId, answerOptions);
 
@@ -200,19 +198,6 @@ export class QuestionService {
     );
   }
 
-  // private async updateAnswerOptionImages(
-  //   answerOptionId: number,
-  //   imageIds: number[],
-  // ) {
-  //   await Promise.all(
-  //     imageIds.map(async (mediaId) => {
-  //       await this.prisma.answerOptionOnMedia.updateMany({
-  //         where: { mediaId },
-  //         data: { answerOptionId },
-  //       });
-  //     }),
-  //   );
-  // }
 
   private async updateAnswerOptionImages(
     answerOptionId: number,
@@ -245,19 +230,13 @@ export class QuestionService {
   private async handleRating(formId: number, addQuestionDto: AddQuestionDto) {
     const { imageId } = addQuestionDto;
 
-    // const defaultConfig = DefaultQuestionSettings.getDefaultSettings(
-    //   addQuestionDto.questionType,
-    // );
+  
 
-    // const question = await this.prismaQuestionRepository.createQuestion(
-    //   defaultConfig,
-    //   formId,
-    //   addQuestionDto,
-    // );
+     const question = await this.createQuestion(formId,addQuestionDto)
 
-    // if (imageId) {
-    //   await this.updateQuestionImage(question.id, imageId);
-    // }
+    if (imageId) {
+      await this.updateQuestionImage(question.id, imageId);
+    }
 
     // return question;
   }
@@ -272,16 +251,8 @@ export class QuestionService {
     formId: number,
     addQuestionDto: AddQuestionDto,
   ) {
-    // const defaultConfig = DefaultQuestionSettings.getDefaultSettings(
-    //   addQuestionDto.questionType,
-    // );
-    const index =
-      await this.prismaQuestionRepository.getQuestionCountInForm(formId);
-    const question = await this.prismaQuestionRepository.createQuestion(
-      formId,
-      addQuestionDto,
-      index + 1,
-    );
+
+    return await this.createQuestion(formId, addQuestionDto);
   }
 
   private async handlePictureSelectionQuestion(
@@ -307,13 +278,6 @@ export class QuestionService {
 
     const finalQuestionType = questionTypeOverride || questionType;
 
-    // const defaultConfig =
-    //   await this.prismaQuestionRepository.getSettingByQuestionType(
-    //     addQuestionDto.key,
-    //   );
-
-    // console.log(defaultConfig, 'default ');
-
     const finalSettings = addQuestionDto.settings;
 
     console.log(finalSettings, 'finalSettings ');
@@ -321,12 +285,6 @@ export class QuestionService {
     const index =
       await this.prismaQuestionRepository.getQuestionCountInForm(formId);
 
-    // ------------------đang làm--------------
-
-    // const setting = await this.prismaQuestionRepository.updateQuestionSettings(
-    //   null,
-    //   addQuestionDto.setting,
-    // );
     const question = await this.prismaQuestionRepository.createQuestion(
       formId,
       addQuestionDto,
@@ -345,34 +303,35 @@ export class QuestionService {
     }
 
     // Tạo các tùy chọn trả lời
-    // if (answerOptions) {
-    //   await this.createAnswerOptions(question.id, answerOptions);
-    // }
+    if (answerOptions) {
+      await this.createAnswerOptions(question.id, answerOptions);
+    }
 
     return question;
   }
 
-  // Tách logic tạo các tùy chọn trả lời
   private async createAnswerOptions(
     questionId: number,
     answerOptions: AddAnswerOptionDto[],
   ) {
+    
+    const index = await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(questionId);
+  
     await Promise.all(
-      answerOptions.map(async (option) => {
-        const createdOption = await this.prismaService.answerOption.create({
-          data: {
-            questionId,
-            label: option.label,
-            isActive: option.isActive,
-            sortOrder: option.sortOrder,
-            isCorrect: option.isCorrect,
-            description: option.description,
-          },
-        });
-
+      answerOptions.map(async (option, idx) => {
+        
+        const newIndex = index + idx + 1;  
+  
+        // Tạo AnswerOption mới cho câu hỏi với thứ tự đã tính toán
+        const createdOption = await this.prismaAnswerOptionRepository.createAnswerOptions(
+          questionId,
+          option,
+          newIndex,  // Gửi index mới
+        );
+  
+        // Kiểm tra và xử lý ảnh nếu có
         if (option.imageIds && option.imageIds.length > 0) {
           await this.updateAnswerOptionImages(
-            // this.prismaService,
             createdOption.id,
             option.imageIds,
           );
@@ -380,6 +339,8 @@ export class QuestionService {
       }),
     );
   }
+  
+
 
   async uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any> {
     const uploadResults = await Promise.all(

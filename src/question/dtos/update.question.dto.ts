@@ -16,9 +16,6 @@ export class UpdateQuestionDto {
   @IsOptional()
   headline?: string;
 
-  @IsBoolean()
-  required: boolean;
-
   questionId: number;
 
   @IsString()
@@ -27,10 +24,6 @@ export class UpdateQuestionDto {
   @IsArray()
   @IsOptional()
   answerOptions?: string[];
-
-  @IsInt()
-  @IsOptional()
-  sortOrder?: number;
 
   @IsInt()
   @IsOptional()

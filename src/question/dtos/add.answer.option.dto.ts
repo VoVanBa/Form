@@ -22,10 +22,6 @@ export class AddAnswerOptionDto {
   isActive?: boolean;
 
   @IsOptional()
-  @IsInt()
-  sortOrder?: number;
-
-  @IsOptional()
   @IsBoolean()
   isCorrect?: boolean;
 
