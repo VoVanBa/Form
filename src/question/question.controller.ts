@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UploadedFiles,
   UseGuards,
@@ -46,7 +47,7 @@ export class QuestionController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/questions-type/setting')
   async getSettingByQuestionType(
-    @Param('questionType') questionType: QuestionType,
+    @Query('questionType') questionType: QuestionType,
   ) {
     return this.questionService.getSettingByQuestionType(questionType);
   }
@@ -155,15 +156,12 @@ export class QuestionController {
     // );
   }
 
-  @Delete('question/:questionId/business/:businessId')
+  @Delete('question/:questionId/form/:formId')
   async deleteQuestionById(
     @Param('questionId') questionId: number,
-    @Param('businessId') businessId: number,
+    @Param('formId') formId: number,
   ) {
-    return await this.questionService.deleteQuestionById(
-      questionId,
-      businessId,
-    );
+    return await this.questionService.deleteQuestionById(questionId, formId);
   }
 
   @Delete('media/:mediaId')

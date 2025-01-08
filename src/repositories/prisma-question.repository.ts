@@ -4,7 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
 import { AddQuestionDto } from '../question/dtos/add.question.dto';
 import { QuestionRepository } from './i-repositories/question.repository';
-import { Question } from '@prisma/client';
+import { Question, QuestionType } from '@prisma/client';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 
 @Injectable()
@@ -24,14 +24,11 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
-  async updateQuestionSetting(
-    questionId: number,
-    settings: any,
-  ): Promise<any> {
+  async updateQuestionSetting(questionId: number, settings: any): Promise<any> {
     return this.prismaService.businessQuestionConfiguration.update({
       where: { questionId: questionId },
       data: {
-        settings:settings
+        settings: settings,
       },
     });
   }
@@ -69,7 +66,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return count;
   }
 
-  async getSettingByQuestionType(questionType: string): Promise<any> {
+  async getSettingByQuestionType(questionType: QuestionType): Promise<any> {
     return this.prismaService.questionConfiguration.findFirst({
       where: { key: questionType },
     });
@@ -108,9 +105,9 @@ export class PrismaQuestionRepository implements QuestionRepository {
 
     return question;
   }
-  getQuestionOnMediaById(mediaId: number): Promise<any> {
+  getQuestionOnMediaById(questionId: number): Promise<any> {
     return this.prismaService.questionOnMedia.findFirst({
-      where: { mediaId: mediaId },
+      where: { questionId: questionId },
     });
   }
   getQuessionById(questionId: number): Promise<any> {

@@ -21,34 +21,14 @@ export class UpdateQuestionDto {
   @IsString()
   questionType: QuestionType;
 
-  @IsArray()
-  @IsOptional()
-  answerOptions?: string[];
-
   @IsInt()
   @IsOptional()
   imageId?: number;
 
-  @IsString()
-  @IsOptional()
-  scaleType?: string;
-
-  @IsInt()
-  @IsOptional()
-  range?: number;
-
-  @IsString()
-  @IsOptional()
-  lowerLabel?: string;
-
-  @IsString()
-  @IsOptional()
-  upperLabel?: string;
-
   settings: any;
 
-  // @IsOptional()
-  // @ValidateNested({ each: true })
-  // @Type(() => AddAnswerOptionDto)
-  // answerOptions?: AddAnswerOptionDto[];
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => AddAnswerOptionDto)
+  answerOptions?: AddAnswerOptionDto[];
 }

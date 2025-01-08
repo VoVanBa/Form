@@ -23,6 +23,20 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
+  async createQuestionOnMedia(data: { mediaId: number; questionId: number }) {
+    return this.prisma.questionOnMedia.create({
+      data,
+    });
+  }
+
+  async createAnswerOptionOnMedia(
+    data: { mediaId: number; answerOptionId: number | null }[],
+  ) {
+    return this.prisma.answerOptionOnMedia.createMany({
+      data,
+    });
+  }
+
   async getMediaById(id: number): Promise<Media | null> {
     return this.prisma.media.findUnique({
       where: { id },

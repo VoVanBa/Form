@@ -13,7 +13,7 @@ export const defaultQuestionSettings = [
   {
     key: 'MULTI_CHOICE',
     settings: {
-      maxSelections: 3,
+      maxSelections: 3 ,
       minSelections: 1,
       require: true,
     },

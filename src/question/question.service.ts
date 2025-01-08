@@ -26,7 +26,7 @@ export class QuestionService {
     private prismaFormRepository: PrismaFormRepository,
     private prismaMediaRepository: PrismaMediaRepository,
     private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
-  ) { }
+  ) {}
 
   // async deleteOptionAnwser(
   //   questionId: number,
@@ -82,9 +82,7 @@ export class QuestionService {
         await this.prismaQuestionRepository.deleteQuestionById(questionId);
         handler = this.getHandlerForQuestionType(questionType);
       } else {
-
-        await this.updateQuestion(questionId, updateQuestionDto)
-
+        await this.updateQuestion(questionId, updateQuestionDto);
 
         return question;
       }
@@ -114,63 +112,103 @@ export class QuestionService {
     }
 
     let questionOnMedia;
+    // ------------danglam---
+    const { answerOptions, imageId } = updateQuestionDto;
     if (updateQuestionDto.imageId) {
       questionOnMedia =
         await this.prismaQuestionRepository.getQuestionOnMediaById(
-          updateQuestionDto.imageId,
+          updateQuestionDto.questionId,
         );
+      if (imageId && !questionOnMedia.imageId) {
+        await this.updateQuestionImage(questionId, imageId);
+      }
     }
-
-    const { answerOptions, imageId } = updateQuestionDto;
 
     const updatedQuestion = await this.prismaQuestionRepository.updateQuestion(
       questionId,
       updateQuestionDto,
     );
-    if (imageId && !questionOnMedia) {
-      await this.updateQuestionImage(questionId, imageId);
-    }
 
-    await this.prismaQuestionRepository.updateQuestionSetting(questionId, updateQuestionDto.settings)
+    await this.prismaQuestionRepository.updateQuestionSetting(
+      questionId,
+      updateQuestionDto.settings,
+    );
 
-    // await this.updateAnswerOptions(questionId, answerOptions);
+    await this.updateAnswerOptions(questionId, updateQuestionDto);
 
     return updatedQuestion;
   }
 
-  // private async updateQuestionImage(questionId: number, imageId: number) {
-  //   const existingImage =
-  //     await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId);
+  private async updateAnswerOptions(
+    questionId: number,
+    updateQuestionDto: UpdateQuestionDto,
+  ) {
+    const answerOptionsId: number[] = [];
 
-  //   // prisma.questionOnMedia.findFirst({
-  //   //   where: { mediaId: imageId, questionId: null },
-  //   // });
+    console.log(answerOptionsId, '12345654');
+    if (updateQuestionDto.answerOptions) {
+      await Promise.all(
+        updateQuestionDto.answerOptions.map(async (option) => {
+          if (option.answerOptionId) {
+            // Cập nhật answer option nếu đã tồn tại
+            await this.prismaService.answerOption.update({
+              where: { id: option.answerOptionId },
+              data: {
+                label: option.label,
+                isActive: option.isActive,
+                isCorrect: option.isCorrect,
+                description: option.description,
+              },
+            });
 
-  //   if (!existingImage) {
-  //     throw new BadRequestException(
-  //       'Image not found or already associated with another question',
-  //     );
-  //   }
+            answerOptionsId.push(option.answerOptionId);
 
-  //   await this.prismaMediaRepository.updateQuestionOnMedia(
-  //     questionId,
-  //     existingImage.id,
-  //   );
+            // Cập nhật hình ảnh nếu có
+            if (option.imageIds && option.imageIds.length > 0) {
+              await this.updateAnswerOptionImages(
+                option.answerOptionId,
+                option.imageIds,
+              );
+            }
+          } else {
+            // Lấy chỉ số hiện tại và tạo mới answer option
+            const index =
+              await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+                questionId,
+              );
+            const createdOption =
+              await this.prismaAnswerOptionRepository.createAnswerOptions(
+                questionId,
+                option,
+                index,
+              );
 
-  //   // questionOnMedia.update({
-  //   //   where: { id: existingImage.id },
-  //   //   data: { questionId },
-  //   // });
-  // }
+            answerOptionsId.push(createdOption.id);
+
+            // Cập nhật hình ảnh nếu có
+            if (option.imageIds && option.imageIds.length > 0) {
+              await this.updateAnswerOptionImages(
+                createdOption.id,
+                option.imageIds,
+              );
+            }
+          }
+        }),
+      );
+
+      // Xóa các answer option không còn tồn tại
+      await this.deleteRemovedAnswerOptions(questionId, answerOptionsId);
+    }
+  }
 
   private async deleteRemovedAnswerOptions(
-    tx: Prisma.TransactionClient,
     questionId: number,
     answerOptionsId: number[],
   ) {
-    const answerOptionsInDb = await tx.answerOption.findMany({
-      where: { questionId: questionId },
-    });
+    const answerOptionsInDb =
+      await this.prismaAnswerOptionRepository.findanswerOptionsByQuestionId(
+        questionId,
+      );
     const answerOptionsIdInDbMap = answerOptionsInDb.map((option) => option.id);
 
     const idsToDelete = answerOptionsIdInDbMap.filter(
@@ -178,7 +216,15 @@ export class QuestionService {
     );
 
     if (idsToDelete.length > 0) {
-      await tx.answerOption.deleteMany({ where: { id: { in: idsToDelete } } });
+      await Promise.all(
+        idsToDelete.map((index) =>
+          this.prismaAnswerOptionRepository.deleteAnserOption(index),
+        ),
+      );
+
+      // await this.prisma.answerOption.deleteMany({
+      //   where: { id: { in: idsToDelete } },
+      // });
     }
   }
 
@@ -186,7 +232,7 @@ export class QuestionService {
     const existingImage =
       await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId);
 
-    if (!existingImage) {
+    if (existingImage) {
       throw new BadRequestException(
         'Image not found or already associated with another question',
       );
@@ -197,7 +243,6 @@ export class QuestionService {
       existingImage.id,
     );
   }
-
 
   private async updateAnswerOptionImages(
     answerOptionId: number,
@@ -230,9 +275,7 @@ export class QuestionService {
   private async handleRating(formId: number, addQuestionDto: AddQuestionDto) {
     const { imageId } = addQuestionDto;
 
-  
-
-     const question = await this.createQuestion(formId,addQuestionDto)
+    const question = await this.createQuestion(formId, addQuestionDto);
 
     if (imageId) {
       await this.updateQuestionImage(question.id, imageId);
@@ -251,7 +294,6 @@ export class QuestionService {
     formId: number,
     addQuestionDto: AddQuestionDto,
   ) {
-
     return await this.createQuestion(formId, addQuestionDto);
   }
 
@@ -259,14 +301,7 @@ export class QuestionService {
     formId: number,
     addQuestionDto: AddQuestionDto,
   ) {
-    // const defaultConfig = DefaultQuestionSettings.getDefaultSettings(
-    //   addQuestionDto.questionType,
-    // );
-    // const question = await this.prismaQuestionRepository.createQuestion(
-    //   defaultConfig,
-    //   formId,
-    //   addQuestionDto,
-    // );
+    await this.createQuestion(formId, addQuestionDto);
   }
 
   private async createQuestion(
@@ -314,21 +349,23 @@ export class QuestionService {
     questionId: number,
     answerOptions: AddAnswerOptionDto[],
   ) {
-    
-    const index = await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(questionId);
-  
+    const index =
+      await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+        questionId,
+      );
+
     await Promise.all(
       answerOptions.map(async (option, idx) => {
-        
-        const newIndex = index + idx + 1;  
-  
+        const newIndex = index + idx + 1;
+
         // Tạo AnswerOption mới cho câu hỏi với thứ tự đã tính toán
-        const createdOption = await this.prismaAnswerOptionRepository.createAnswerOptions(
-          questionId,
-          option,
-          newIndex,  // Gửi index mới
-        );
-  
+        const createdOption =
+          await this.prismaAnswerOptionRepository.createAnswerOptions(
+            questionId,
+            option,
+            newIndex, // Gửi index mới
+          );
+
         // Kiểm tra và xử lý ảnh nếu có
         if (option.imageIds && option.imageIds.length > 0) {
           await this.updateAnswerOptionImages(
@@ -339,8 +376,6 @@ export class QuestionService {
       }),
     );
   }
-  
-
 
   async uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any> {
     const uploadResults = await Promise.all(
@@ -348,15 +383,12 @@ export class QuestionService {
     );
     const mediaPromises = uploadResults.map((result, index) => {
       const file = files[index];
-      return this.prismaService.media.create({
-        data: {
-          url: result.secure_url,
-          fileName: file.originalname,
-          mimeType: file.mimetype,
-          size: file.size,
-          createdAt: new Date(),
-        },
-      });
+      return this.prismaMediaRepository.createMedia(
+        result.secure_url,
+        file.originalname,
+        file.mimetype,
+        file.size,
+      );
     });
     const media = await Promise.all(mediaPromises);
     const mediaIds = media.map((m) => m.id);
@@ -365,26 +397,26 @@ export class QuestionService {
       mediaId,
       answerOptionId: null,
     }));
-    const saveAnserOption =
-      await this.prismaService.answerOptionOnMedia.createMany({
-        data: answerOptionOnMediaData,
-      });
+
+    // await this.prismaService.answerOptionOnMedia.createMany({
+    //   data: answerOptionOnMediaData,
+    // });
+
+    await this.prismaMediaRepository.createAnswerOptionOnMedia(
+      answerOptionOnMediaData,
+    );
 
     return mediaIds;
   }
   async uploadImage(image: Express.Multer.File): Promise<number> {
     const result = await this.uploadImageToCloudinary(image);
 
-    const media = await this.prismaService.media.create({
-      data: {
-        url: result.secure_url,
-        fileName: image.originalname,
-        mimeType: image.mimetype,
-        size: image.size,
-        createdAt: new Date(),
-      },
-    });
-
+    const media = await this.prismaMediaRepository.createMedia(
+      result.secure_url,
+      image.originalname,
+      image.mimetype,
+      image.size,
+    );
     const mediaId = media.id;
 
     const questionOnMediaData = {
@@ -392,15 +424,16 @@ export class QuestionService {
       questionId: null,
     };
 
-    await this.prismaService.questionOnMedia.create({
-      data: {
-        media: {
-          connect: { id: mediaId },
-        },
-      },
-    });
+    await this.prismaMediaRepository.createQuestionOnMedia(questionOnMediaData);
 
-    // Trả về mediaId
+    // await this.prismaService.questionOnMedia.create({
+    //   data: {
+    //     media: {
+    //       connect: { id: mediaId },
+    //     },
+    //   },
+    // });
+
     return mediaId;
   }
 
@@ -420,11 +453,7 @@ export class QuestionService {
     });
   }
   async deleteMediaById(mediaId: number) {
-    const media = await this.prismaService.media.delete({
-      where: {
-        id: mediaId,
-      },
-    });
+    return await this.prismaMediaRepository.deleteMedia(mediaId);
   }
 
   async deleteQuestionById(questionId: number, formId: number) {
