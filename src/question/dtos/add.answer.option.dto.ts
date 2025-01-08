@@ -30,5 +30,5 @@ export class AddAnswerOptionDto {
   description?: string;
 
   @IsOptional()
-  imageIds?: number[];
+  imageIds?: number;
 }

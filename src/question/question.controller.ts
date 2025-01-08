@@ -30,11 +30,8 @@ export class QuestionController {
   constructor(private questionService: QuestionService) {}
   // --------------question----------------
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get(':surveyId/questions/:businessId')
-  async getAllQuestions(
-    @Param('surveyId') surveyId: number,
-    @Param('formId') formId: number,
-  ) {
+  @Get(':formId')
+  async getAllQuestions(@Param('formId') formId: number) {
     return this.questionService.getAllQuestion(formId);
   }
 
@@ -142,18 +139,18 @@ export class QuestionController {
   }
 
   @Delete(
-    'question/:questionId/answer-options/:optionAnwerId/business/:businessId',
+    'question/:questionId/answer-options/:optionAnwerId/surveyFeedBack/:surveyFeedBackId',
   )
   async deleteOptionAnwser(
     @Param('questionId') questionId: number,
     @Param('optionAnwerId') optionAnwerId: number,
-    @Param('businessId') businessId: number,
+    @Param('surveyFeedBackId') surveyFeedBackId: number,
   ) {
-    // return await this.questionService.deleteOptionAnwser(
-    //   questionId,
-    //   optionAnwerId,
-    //   businessId,
-    // );
+    return await this.questionService.deleteOptionAnwser(
+      questionId,
+      optionAnwerId,
+      surveyFeedBackId,
+    );
   }
 
   @Delete('question/:questionId/form/:formId')

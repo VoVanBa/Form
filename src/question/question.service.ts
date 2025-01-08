@@ -28,32 +28,32 @@ export class QuestionService {
     private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
   ) {}
 
-  // async deleteOptionAnwser(
-  //   questionId: number,
-  //   optionAnwerId: number,
-  //   businessId: number,
-  // ) {
-  //   const question = await this.prismaService.questionBusiness.findFirst({
-  //     where: {
-  //       questionId: questionId,
-  //       businessId: businessId,
-  //     },
-  //   });
-  //   if (!question) {
-  //     throw new Error('question not found');
-  //   }
-  //   const answerOption = await this.prismaService.answerOption.delete({
-  //     where: {
-  //       questionId: question.id,
-  //       id: optionAnwerId,
-  //     },
-  //   });
+  async deleteOptionAnwser(
+    questionId: number,
+    optionAnwerId: number,
+    surveyFeedBackId: number,
+  ) {
+    const form = await this.prismaFormRepository.getFormById(surveyFeedBackId);
+    if (!form) {
+      throw new Error('surveyFeedBack not found');
+    }
+    const question =
+      await this.prismaQuestionRepository.getQuessionById(questionId);
+    if (!question) {
+      throw new Error('question not found');
+    }
+    const answerOption = await this.prismaService.answerOption.delete({
+      where: {
+        questionId: question.id,
+        id: optionAnwerId,
+      },
+    });
 
-  //   return answerOption;
-  // }
+    return answerOption;
+  }
 
   async getAllQuestion(formId: number) {
-    this.prismaQuestionRepository.findAllQuestion(formId);
+    return this.prismaQuestionRepository.findAllQuestion(formId);
   }
 
   async addAndUpdateQuestion(
@@ -111,16 +111,23 @@ export class QuestionService {
       throw new BadRequestException('Question not found');
     }
 
-    let questionOnMedia;
-    // ------------danglam---
     const { answerOptions, imageId } = updateQuestionDto;
     if (updateQuestionDto.imageId) {
-      questionOnMedia =
-        await this.prismaQuestionRepository.getQuestionOnMediaById(
+      const questionOnMedia =
+        await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
           updateQuestionDto.questionId,
         );
-      if (imageId && !questionOnMedia.imageId) {
+      console.log(questionOnMedia, '12356');
+      if (imageId && imageId != questionOnMedia.mediaId) {
         await this.updateQuestionImage(questionId, imageId);
+
+        const questionOnMediaId =
+          await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
+            questionId,
+          );
+        await this.prismaMediaRepository.deleteMediaById(
+          questionOnMediaId.mediaId,
+        );
       }
     }
 
@@ -156,7 +163,6 @@ export class QuestionService {
               data: {
                 label: option.label,
                 isActive: option.isActive,
-                isCorrect: option.isCorrect,
                 description: option.description,
               },
             });
@@ -164,7 +170,7 @@ export class QuestionService {
             answerOptionsId.push(option.answerOptionId);
 
             // Cập nhật hình ảnh nếu có
-            if (option.imageIds && option.imageIds.length > 0) {
+            if (option.imageIds > 0) {
               await this.updateAnswerOptionImages(
                 option.answerOptionId,
                 option.imageIds,
@@ -176,6 +182,7 @@ export class QuestionService {
               await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
                 questionId,
               );
+
             const createdOption =
               await this.prismaAnswerOptionRepository.createAnswerOptions(
                 questionId,
@@ -185,8 +192,12 @@ export class QuestionService {
 
             answerOptionsId.push(createdOption.id);
 
-            // Cập nhật hình ảnh nếu có
-            if (option.imageIds && option.imageIds.length > 0) {
+            if (option.imageIds) {
+              const curentImageIds =
+                await this.prismaMediaRepository.getAnswerOptionByAnswerOptionId(
+                  createdOption.id,
+                );
+
               await this.updateAnswerOptionImages(
                 createdOption.id,
                 option.imageIds,
@@ -232,7 +243,7 @@ export class QuestionService {
     const existingImage =
       await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId);
 
-    if (existingImage) {
+    if (!existingImage) {
       throw new BadRequestException(
         'Image not found or already associated with another question',
       );
@@ -246,15 +257,11 @@ export class QuestionService {
 
   private async updateAnswerOptionImages(
     answerOptionId: number,
-    imageIds: number[],
+    imageIds: number,
   ) {
-    await Promise.all(
-      imageIds.map(async (mediaId) => {
-        await this.prismaMediaRepository.updateAnswerOptionOnMedia(
-          mediaId,
-          answerOptionId,
-        );
-      }),
+    await this.prismaMediaRepository.updateAnswerOptionOnMedia(
+      imageIds,
+      answerOptionId,
     );
   }
 
@@ -281,7 +288,7 @@ export class QuestionService {
       await this.updateQuestionImage(question.id, imageId);
     }
 
-    // return question;
+    return question;
   }
 
   private async handleInputText(
@@ -367,7 +374,7 @@ export class QuestionService {
           );
 
         // Kiểm tra và xử lý ảnh nếu có
-        if (option.imageIds && option.imageIds.length > 0) {
+        if (option.imageIds) {
           await this.updateAnswerOptionImages(
             createdOption.id,
             option.imageIds,
@@ -453,7 +460,7 @@ export class QuestionService {
     });
   }
   async deleteMediaById(mediaId: number) {
-    return await this.prismaMediaRepository.deleteMedia(mediaId);
+    return await this.prismaMediaRepository.deleteMediaById(mediaId);
   }
 
   async deleteQuestionById(questionId: number, formId: number) {

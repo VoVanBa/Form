@@ -51,12 +51,9 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async updateQuestionOnMedia(
-    questionId: number,
-    questionOnMediaId,
-  ): Promise<any> {
+  async updateQuestionOnMedia(questionId: number, mediaId: number) {
     return this.prisma.questionOnMedia.update({
-      where: { id: questionOnMediaId },
+      where: { id: mediaId },
       data: {
         questionId,
       },
@@ -70,7 +67,7 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async deleteMedia(id: number): Promise<void> {
+  async deleteMediaById(id: number): Promise<void> {
     await this.prisma.media.delete({
       where: { id },
     });
@@ -83,5 +80,19 @@ export class PrismaMediaRepository implements IMediaRepository {
         answerOptionId,
       },
     });
+  }
+
+  getQuestionOnMediaByQuestionId(questionId: number) {
+    const media = this.prisma.questionOnMedia.findFirst({
+      where: { questionId: questionId },
+    });
+    return media;
+  }
+
+  getAnswerOptionByAnswerOptionId(answerOptionId: number) {
+    const media = this.prisma.answerOptionOnMedia.findFirst({
+      where: { answerOptionId: answerOptionId },
+    });
+    return media;
   }
 }

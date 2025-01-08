@@ -30,7 +30,7 @@ model Business {
   businessFormSettings BusinessFormSettings[]
   forms                Form[]
 
-  @@index([userId], map: "Business_userId_fkey")
+@@index([userId], map: "Business_userId_fkey")
 }
 
 model Form {
@@ -78,7 +78,7 @@ model FormResponseQuestion {
   question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
 
-  @@index([answerOptionId], map: "FormResponseQuestion_answerOptionId_fkey")
+@@index([answerOptionId], map: "FormResponseQuestion_answerOptionId_fkey")
   @@index([questionId], map: "FormResponseQuestion_questionId_fkey")
   @@index([userFormResponseId], map: "FormResponseQuestion_userFormResponseId_fkey")
 }
@@ -114,7 +114,7 @@ model BusinessFormSettings {
   form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, formId, key])
-  @@index([formId], map: "BusinessFormSettings_formId_fkey")
+@index([formId], map: "BusinessFormSettings_formId_fkey")
 }
 
 model Question {
@@ -131,7 +131,7 @@ model Question {
   questionOnMedia                 QuestionOnMedia[]
 
   @@index([businessQuestionConfigurationId], map: "Question_businessQuestionConfigurationId_fkey")
-  @@index([formId], map: "Question_formId_fkey")
+@@index([formId], map: "Question_formId_fkey")
 }
 
 model QuestionConfiguration {

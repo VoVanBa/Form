@@ -105,19 +105,28 @@ export class PrismaQuestionRepository implements QuestionRepository {
 
     return question;
   }
-  getQuestionOnMediaById(questionId: number): Promise<any> {
-    return this.prismaService.questionOnMedia.findFirst({
-      where: { questionId: questionId },
-    });
-  }
+
   getQuessionById(questionId: number): Promise<any> {
     return this.prismaService.question.findUnique({
       where: { id: questionId },
     });
   }
-  async findAllQuestion(formId: number): Promise<Question[]> {
+  async findAllQuestion(formId: number) {
     return await this.prismaService.question.findMany({
       where: { formId },
+      select: {
+        id: true,
+        headline: true,
+        questionType: true,
+        index: true,
+        answerOptions: {
+          include: {
+            answerOptionOnMedia: true,
+          },
+        },
+        questionOnMedia: true,
+      },
+      orderBy: { index: 'asc' },
     });
   }
   async uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any> {

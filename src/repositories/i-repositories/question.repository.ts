@@ -9,7 +9,6 @@ export interface QuestionRepository {
   handleQuestionOrderUp(questionId: number): Promise<any>;
   handleQuestionOrderDown(questionId: number): Promise<any>;
   getQuessionById(questionId: number): Promise<any>;
-  getQuestionOnMediaById(mediaId: number): Promise<any>;
   updateQuestion(questionId: number, data: UpdateQuestionDto): Promise<any>;
   createQuestionSettings(
     questionId: number,
