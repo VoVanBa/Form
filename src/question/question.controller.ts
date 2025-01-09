@@ -166,14 +166,20 @@ export class QuestionController {
     return await this.questionService.deleteMediaById(mediaId);
   }
 
-  @Put('question/:id/up')
-  async handleQuestionUp(@Param('id') questionId: number) {
-    // return this.questionService.handleQuestionOrderUp(questionId);
+  @Put('question/:id/form/:formId/up')
+  async handleQuestionUp(
+    @Param('id') questionId: number,
+    @Param('formId') formId: number,
+  ) {
+    return this.questionService.handleQuestionOrderUp(questionId, formId);
   }
 
-  @Put('question/:id/down')
-  async handleQuestionDown(@Param('id') questionId: number) {
-    // return this.questionService.handleQuestionOrderDown(questionId);
+  @Put('question/:id/form/:formId/down')
+  async handleQuestionDown(
+    @Param('id') questionId: number,
+    @Param('formId') formId: number,
+  ) {
+    return this.questionService.handleQuestionOrderDown(questionId, formId);
   }
 
   // @Post(':surveyId/questions')

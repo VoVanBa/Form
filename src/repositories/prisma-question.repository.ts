@@ -1,7 +1,7 @@
+import { PrismaService } from './../config/prisma.service';
 // src/modules/repositories/prisma-question.repository.ts
 
 import { Inject, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/config/prisma.service';
 import { AddQuestionDto } from '../question/dtos/add.question.dto';
 import { QuestionRepository } from './i-repositories/question.repository';
 import { Question, QuestionType } from '@prisma/client';
@@ -59,11 +59,13 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return businessConfig;
   }
 
-  async getQuestionCountInForm(formId: number): Promise<number> {
-    const count = await this.prismaService.question.count({
-      where: { formId: formId },
+  async getMaxQuestionIndex(formId: number) {
+    const maxIndex = await this.prismaService.question.aggregate({
+      where: { formId },
+      _max: { index: true },
     });
-    return count;
+    const newIndex = (maxIndex._max.index ?? 0) + 1;
+    return newIndex;
   }
 
   async getSettingByQuestionType(questionType: QuestionType): Promise<any> {
@@ -106,7 +108,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return question;
   }
 
-  getQuessionById(questionId: number): Promise<any> {
+  getQuessionById(questionId: number) {
     return this.prismaService.question.findUnique({
       where: { id: questionId },
     });
@@ -152,7 +154,22 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
-  async handleQuestionOrderUp(questionId: number): Promise<any> {}
+  async findQuestionBySortOrder(sortOrder: number) {
+    return await this.prismaService.question.findFirst({
+      where: {
+        index: sortOrder,
+      },
+    });
+  }
 
-  async handleQuestionOrderDown(questionId: number): Promise<any> {}
+  async updateIndexQuestion(questionId: number, index: number) {
+    const currQuestion = await this.prismaService.question.update({
+      where: {
+        id: questionId,
+      },
+      data: {
+        index: index,
+      },
+    });
+  }
 }

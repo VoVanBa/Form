@@ -232,10 +232,6 @@ export class QuestionService {
           this.prismaAnswerOptionRepository.deleteAnserOption(index),
         ),
       );
-
-      // await this.prisma.answerOption.deleteMany({
-      //   where: { id: { in: idsToDelete } },
-      // });
     }
   }
 
@@ -325,12 +321,12 @@ export class QuestionService {
     console.log(finalSettings, 'finalSettings ');
 
     const index =
-      await this.prismaQuestionRepository.getQuestionCountInForm(formId);
+      await this.prismaQuestionRepository.getMaxQuestionIndex(formId);
 
     const question = await this.prismaQuestionRepository.createQuestion(
       formId,
       addQuestionDto,
-      index + 1,
+      index,
     );
 
     await this.prismaQuestionRepository.createQuestionSettings(
@@ -486,96 +482,80 @@ export class QuestionService {
       await this.prismaQuestionRepository.getSettingByQuestionType(type);
     return setting;
   }
+  async handleQuestionOrderUp(questionId: number, formId: number) {
+    const surveyFeedBack = await this.prismaFormRepository.getFormById(formId);
 
-  // async handleQuestionOrderUp(questionId: number) {
-  //   const question = await this.prismaService.surveyOnQuestion.findFirst({
-  //     where: {
-  //       id: questionId,
-  //     },
-  //   });
+    if (!surveyFeedBack) {
+      throw new NotFoundException('surveyFeedBack not found');
+    }
 
-  //   if (!question) {
-  //     throw new NotFoundException('Question not found');
-  //   }
+    const questions = await this.getAllQuestion(formId);
 
-  //   const order = question.sortOrder;
-  //   if (order === 0) {
-  //     return;
-  //   }
+    // Tìm câu hỏi cần di chuyển trong mảng
+    const questionIndex = questions.findIndex((q) => q.id === questionId);
+    if (questionIndex === -1) {
+      throw new NotFoundException('Question not found');
+    }
 
-  //   const prevQuestion = await this.prismaService.surveyOnQuestion.findFirst({
-  //     where: {
-  //       sortOrder: order - 1,
-  //       formId: question.formId,
-  //     },
-  //   });
+    const question = questions[questionIndex];
+    const prevQuestion = questions[questionIndex - 1];
 
-  //   if (!prevQuestion) {
-  //     throw new NotFoundException('Previous question not found');
-  //   }
+    // Kiểm tra xem câu hỏi có thể di chuyển lên được không (câu hỏi đầu tiên không thể di chuyển)
+    if (!prevQuestion) {
+      return { message: 'This question is already at the top' };
+    }
 
-  //   await this.prismaService.surveyOnQuestion.update({
-  //     where: {
-  //       id: prevQuestion.id,
-  //     },
-  //     data: {
-  //       sortOrder: order,
-  //     },
-  //   });
+    // Hoán đổi index giữa câu hỏi hiện tại và câu hỏi phía trên
+    await this.prismaQuestionRepository.updateIndexQuestion(
+      prevQuestion.id,
+      question.index,
+    );
 
-  //   const currQuestion = await this.prismaService.surveyOnQuestion.update({
-  //     where: {
-  //       id: question.id,
-  //     },
-  //     data: {
-  //       sortOrder: order - 1,
-  //     },
-  //   });
+    await this.prismaQuestionRepository.updateIndexQuestion(
+      question.id,
+      prevQuestion.index,
+    );
 
-  //   return currQuestion;
-  // }
-  // async handleQuestionOrderDown(questionId: number) {
-  //   const question = await this.prismaService.surveyOnQuestion.findFirst({
-  //     where: {
-  //       id: questionId,
-  //     },
-  //   });
+    return { message: 'Question moved up successfully' };
+  }
 
-  //   if (!question) {
-  //     throw new NotFoundException('Question not found');
-  //   }
+  async handleQuestionOrderDown(questionId: number, formId: number) {
+    const surveyFeedBack = await this.prismaFormRepository.getFormById(formId);
 
-  //   const order = question.sortOrder;
+    if (!surveyFeedBack) {
+      throw new NotFoundException('surveyFeedBack not found');
+    }
 
-  //   const nextQuestion = await this.prismaService.surveyOnQuestion.findFirst({
-  //     where: {
-  //       sortOrder: order + 1,
-  //       formId: question.formId,
-  //     },
-  //   });
+    // Lấy tất cả câu hỏi trong form và sắp xếp theo index
 
-  //   if (!nextQuestion) {
-  //     throw new NotFoundException('Previous question not found');
-  //   }
+    const questions = await this.getAllQuestion(formId);
 
-  //   await this.prismaService.surveyOnQuestion.update({
-  //     where: {
-  //       id: nextQuestion.id,
-  //     },
-  //     data: {
-  //       sortOrder: order,
-  //     },
-  //   });
+    // Tìm câu hỏi cần di chuyển trong mảng
+    const questionIndex = questions.findIndex((q) => q.id === questionId);
+    if (questionIndex === -1) {
+      throw new NotFoundException('Question not found');
+    }
 
-  //   const currQuestion = await this.prismaService.surveyOnQuestion.update({
-  //     where: {
-  //       id: question.id,
-  //     },
-  //     data: {
-  //       sortOrder: order + 1,
-  //     },
-  //   });
+    const question = questions[questionIndex];
+    const nextQuestion = questions[questionIndex + 1];
 
-  //   return currQuestion;
-  // }
+    // Kiểm tra xem câu hỏi có thể di chuyển xuống được không (câu hỏi cuối cùng không thể di chuyển)
+    if (!nextQuestion) {
+      return { message: 'This question is already at the bottom' };
+    }
+
+    // Hoán đổi index giữa câu hỏi hiện tại và câu hỏi phía dưới
+
+    await this.prismaQuestionRepository.updateIndexQuestion(
+      nextQuestion.id,
+      question.index,
+    );
+
+    await this.prismaQuestionRepository.updateIndexQuestion(
+      question.id,
+      nextQuestion.index,
+    );
+
+    return { message: 'Question moved down successfully' };
+  }
 }

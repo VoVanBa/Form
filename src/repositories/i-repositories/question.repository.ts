@@ -6,9 +6,8 @@ export interface QuestionRepository {
   uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any>;
   uploadImage(image: Express.Multer.File): Promise<number>;
   deleteQuestionById(questionId: number): Promise<void>;
-  handleQuestionOrderUp(questionId: number): Promise<any>;
-  handleQuestionOrderDown(questionId: number): Promise<any>;
-  getQuessionById(questionId: number): Promise<any>;
+  findQuestionBySortOrder(questionId: number): Promise<any>;
+  getQuessionById(questionId: number);
   updateQuestion(questionId: number, data: UpdateQuestionDto): Promise<any>;
   createQuestionSettings(
     questionId: number,
@@ -24,5 +23,6 @@ export interface QuestionRepository {
     sortOrder: number,
   );
   getBusinessQuestionConfigurationByQuestionId(questionId: number);
-  updateQuestionSetting(questionId: number, settings, any)
+  updateQuestionSetting(questionId: number, settings, any);
+  updateIndexQuestion(questionId: number, index: number);
 }
