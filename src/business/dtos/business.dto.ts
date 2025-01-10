@@ -8,5 +8,4 @@ export class CreateBusinessDto {
   @IsString()
   address?: string;
 
-  userId: number;
 }

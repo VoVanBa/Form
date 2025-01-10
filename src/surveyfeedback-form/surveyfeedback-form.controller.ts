@@ -8,9 +8,15 @@ export class SurveyFeedbackFormController {
     private readonly surveyFeedbackFormService: SurveyFeedackFormService,
   ) {}
 
-  @Post()
-  create(@Body() createSurveyFeedbackDto: CreatesurveyFeedbackDto) {
-    return this.surveyFeedbackFormService.createForm(createSurveyFeedbackDto);
+  @Post('business/:businessId')
+  create(
+    @Param('businessId') businessId: number,
+    @Body() createSurveyFeedbackDto: CreatesurveyFeedbackDto,
+  ) {
+    return this.surveyFeedbackFormService.createForm(
+      createSurveyFeedbackDto,
+      businessId,
+    );
   }
 
   @Get('business/:businessId')

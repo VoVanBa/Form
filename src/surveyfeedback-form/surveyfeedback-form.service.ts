@@ -6,8 +6,8 @@ import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 @Injectable()
 export class SurveyFeedackFormService {
   constructor(private formRepository: PrismasurveyFeedbackRepository) {}
-  async createForm(createFormDto: CreatesurveyFeedbackDto) {
-    return this.formRepository.createsurveyFeedback(createFormDto);
+  async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
+    return this.formRepository.createsurveyFeedback(createFormDto, businessId);
   }
   async getForms(businessId: number) {
     return this.formRepository.getAllsurveyFeedbacks(businessId);

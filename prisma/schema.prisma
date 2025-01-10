@@ -241,13 +241,13 @@ model User {
 }
 
 model Business {
-  id                     Int                              @id @default(autoincrement())
+  id                     Int                               @id @default(autoincrement())
   name                   String
   address                String
-  createdAt              DateTime                         @default(now())
-  updatedAt              DateTime                         @updatedAt
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
   userId                 Int
-  user                   User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessSurveySettings BusinessSurveyFeedbackSettings[]
   forms                  SurveyFeedback[]
 
@@ -271,7 +271,6 @@ model SurveyFeedback {
   formSettings           FormSettings[]
   questions              Question[]
   userFormResponses      UserFormResponse[]
-
 }
 
 model UserFormResponse {
@@ -282,7 +281,6 @@ model UserFormResponse {
   formResponseQuestions FormResponseQuestion[]
   form                  SurveyFeedback         @relation(fields: [formId], references: [id], onDelete: Cascade)
   user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
 }
 
 model FormResponseQuestion {
@@ -290,12 +288,11 @@ model FormResponseQuestion {
   userFormResponseId Int
   questionId         Int
   answerOptionId     Int?
-  answerText String?          @db.Text
+  answerText         String?          @db.Text
   ratingValue        Int?
   answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
-
 }
 
 model SettingTypes {
@@ -341,7 +338,6 @@ model Question {
   form                          SurveyFeedback                  @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia[]
   businessQuestionConfiguration BusinessQuestionConfiguration[]
-
 }
 
 model QuestionConfiguration {
@@ -366,22 +362,20 @@ model QuestionOnMedia {
   questionId Int?
   media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
 }
 
- model AnswerOption {
-   id                    Int                    @id @default(autoincrement())
-   questionId            Int
-   label                 String?
-   isActive              Boolean                @default(true)
-   sortOrder             Int?
-   description           String?
-   formResponseId        Int?
-   question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
-   answerOptionOnMedia   AnswerOptionOnMedia[]
-   formResponseQuestions FormResponseQuestion[]
-
- }
+model AnswerOption {
+  id                    Int                    @id @default(autoincrement())
+  questionId            Int
+  label                 String?
+  isActive              Boolean                @default(true)
+  sortOrder             Int?
+  description           String?
+  formResponseId        Int?
+  question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerOptionOnMedia   AnswerOptionOnMedia[]
+  formResponseQuestions FormResponseQuestion[]
+}
 
 model AnswerOptionOnMedia {
   id             Int           @id @default(autoincrement())
@@ -390,7 +384,6 @@ model AnswerOptionOnMedia {
   index          Int?
   answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
 }
 
 model Media {

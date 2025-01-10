@@ -9,9 +9,15 @@ export class PrismasurveyFeedbackRepository
   implements IsurveyFeedbackRepository
 {
   constructor(private readonly prisma: PrismaService) {}
-  async createsurveyFeedback(data: CreatesurveyFeedbackDto) {
+  async createsurveyFeedback(
+    data: CreatesurveyFeedbackDto,
+    businessId: number,
+  ) {
     return this.prisma.surveyFeedback.create({
-      data,
+      data: {
+        ...data,
+        businessId: businessId,
+      },
     });
   }
   async getsurveyFeedbackById(id: number) {
