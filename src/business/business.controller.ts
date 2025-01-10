@@ -31,7 +31,6 @@ export class BusinessController {
     const user = await this.userService.getUserByJwt(jwt);
     return this.businessService.create(createBusinessDto, user.id);
   }
-
   @Delete(':/businessId')
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)

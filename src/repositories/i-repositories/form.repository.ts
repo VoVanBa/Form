@@ -1,5 +1,5 @@
-import { CreatesurveyFeedbackDto } from 'src/forms/dtos/create.form.dto';
-import { UpdatesurveyFeedbackDto } from 'src/forms/dtos/update.form.dto';
+import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
+import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
 
 export interface IsurveyFeedbackRepository {
   createsurveyFeedback(data: CreatesurveyFeedbackDto);

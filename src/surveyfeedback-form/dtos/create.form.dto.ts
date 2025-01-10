@@ -7,5 +7,4 @@ export class CreatesurveyFeedbackDto {
   type: SurveyFeedbackType;
   allowAnonymous: boolean;
   status: FormStatus;
-  businessId: number;
 }
