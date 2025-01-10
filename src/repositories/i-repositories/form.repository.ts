@@ -1,11 +1,10 @@
-import { Form } from '@prisma/client';
-import { CreateFormDto } from 'src/forms/dtos/create.form.dto';
-import { UpdateFormDto } from 'src/forms/dtos/update.form.dto';
+import { CreatesurveyFeedbackDto } from 'src/forms/dtos/create.form.dto';
+import { UpdatesurveyFeedbackDto } from 'src/forms/dtos/update.form.dto';
 
-export interface IFormRepository {
-  createForm(data: CreateFormDto);
-  getFormById(id: number);
-  getAllForms(id: number);
-  updateForm(id: number, data: UpdateFormDto);
-  deleteForm(id: number);
+export interface IsurveyFeedbackRepository {
+  createsurveyFeedback(data: CreatesurveyFeedbackDto);
+  getsurveyFeedbackById(id: number);
+  getAllsurveyFeedbacks(id: number);
+  updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto);
+  deletesurveyFeedback(id: number);
 }

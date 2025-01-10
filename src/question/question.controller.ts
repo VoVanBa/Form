@@ -18,10 +18,8 @@ import {
 import { QuestionService } from './question.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/role-auth.guard';
-import { AddQuestionDto } from './dtos/add.question.dto';
 import { Roles } from 'src/auth/decorater/role.customize';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { UpdateFormDto } from 'src/forms/dtos/update.form.dto';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { QuestionType } from '@prisma/client';
 

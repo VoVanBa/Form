@@ -4,7 +4,7 @@ import { QuestionService } from './question.service';
 import { CloudinaryProvider } from 'src/config/cloudinary.provider';
 import { PrismaService } from 'src/config/prisma.service';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
-import { PrismaFormRepository } from 'src/repositories/prisma-form.repository';
+import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 
@@ -15,9 +15,9 @@ import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-opt
     QuestionService,
     CloudinaryProvider,
     PrismaQuestionRepository,
-    PrismaFormRepository,
+    PrismasurveyFeedbackRepository,
     PrismaMediaRepository,
-    PrismaAnswerOptionRepository
+    PrismaAnswerOptionRepository,
   ],
 })
 export class QuestionModule {}

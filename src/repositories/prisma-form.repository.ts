@@ -1,37 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
-import { CreateFormDto } from 'src/forms/dtos/create.form.dto';
-import { UpdateFormDto } from 'src/forms/dtos/update.form.dto';
-import { IFormRepository } from './i-repositories/form.repository';
+import { CreatesurveyFeedbackDto } from 'src/forms/dtos/create.form.dto';
+import { IsurveyFeedbackRepository } from './i-repositories/form.repository';
+import { UpdatesurveyFeedbackDto } from 'src/forms/dtos/update.form.dto';
 
 @Injectable()
-export class PrismaFormRepository implements IFormRepository {
+export class PrismasurveyFeedbackRepository
+  implements IsurveyFeedbackRepository
+{
   constructor(private readonly prisma: PrismaService) {}
-  async createForm(data: CreateFormDto) {
-    return this.prisma.SurveyFeedback.create({
+  async createsurveyFeedback(data: CreatesurveyFeedbackDto) {
+    return this.prisma.surveyFeedback.create({
       data,
     });
   }
-  async getFormById(id: number) {
-    return this.prisma.form.findUnique({
+  async getsurveyFeedbackById(id: number) {
+    return this.prisma.surveyFeedback.findUnique({
       where: { id },
     });
   }
-  async getAllForms(businessId: number) {
-    return this.prisma.form.findMany({
+  async getAllsurveyFeedbacks(businessId: number) {
+    return this.prisma.surveyFeedback.findMany({
       where: {
         businessId,
       },
     });
   }
-  async updateForm(id: number, data: UpdateFormDto) {
-    return this.prisma.form.update({
+  async updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto) {
+    return this.prisma.surveyFeedback.update({
       where: { id },
       data,
     });
   }
-  async deleteForm(id: number) {
-    return this.prisma.form.delete({
+  async deletesurveyFeedback(id: number) {
+    return this.prisma.surveyFeedback.delete({
       where: { id },
     });
   }

@@ -11,11 +11,11 @@ import { PrismaService } from 'src/config/prisma.service';
 import { Prisma, QuestionType } from '@prisma/client';
 import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
-import { PrismaFormRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { defaultQuestionSettings } from 'src/config/default.question.settings';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
+import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.repository';
 
 @Injectable()
 export class QuestionService {
@@ -23,7 +23,7 @@ export class QuestionService {
     private readonly prismaService: PrismaService,
     @Inject('CLOUDINARY') private readonly cloudinaryClient: typeof cloudinary,
     private prismaQuestionRepository: PrismaQuestionRepository,
-    private prismaFormRepository: PrismaFormRepository,
+    private prismaSurveuFeedBackRepository: PrismasurveyFeedbackRepository,
     private prismaMediaRepository: PrismaMediaRepository,
     private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
   ) {}
@@ -33,7 +33,10 @@ export class QuestionService {
     optionAnwerId: number,
     surveyFeedBackId: number,
   ) {
-    const form = await this.prismaFormRepository.getFormById(surveyFeedBackId);
+    const form =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(
+        surveyFeedBackId,
+      );
     if (!form) {
       throw new Error('surveyFeedBack not found');
     }
@@ -60,7 +63,8 @@ export class QuestionService {
     formId: number,
     updateQuestionDto: UpdateQuestionDto,
   ) {
-    const form = await this.prismaFormRepository.getFormById(formId);
+    const form =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
 
     if (!form) {
       throw new BadRequestException('form not found');
@@ -460,7 +464,8 @@ export class QuestionService {
   }
 
   async deleteQuestionById(questionId: number, formId: number) {
-    const form = await this.prismaFormRepository.getFormById(formId);
+    const form =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
     if (!form) {
       throw new NotFoundException('Form not found');
     }
@@ -483,7 +488,8 @@ export class QuestionService {
     return setting;
   }
   async handleQuestionOrderUp(questionId: number, formId: number) {
-    const surveyFeedBack = await this.prismaFormRepository.getFormById(formId);
+    const surveyFeedBack =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
 
     if (!surveyFeedBack) {
       throw new NotFoundException('surveyFeedBack not found');
@@ -520,7 +526,8 @@ export class QuestionService {
   }
 
   async handleQuestionOrderDown(questionId: number, formId: number) {
-    const surveyFeedBack = await this.prismaFormRepository.getFormById(formId);
+    const surveyFeedBack =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
 
     if (!surveyFeedBack) {
       throw new NotFoundException('surveyFeedBack not found');

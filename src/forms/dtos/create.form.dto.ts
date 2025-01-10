@@ -1,6 +1,6 @@
 import { FormStatus, SurveyFeedbackType } from '@prisma/client';
 
-export class CreateFormDto {
+export class CreatesurveyFeedbackDto {
   name: string;
   description?: string;
   createdBy: string;
