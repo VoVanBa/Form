@@ -161,92 +161,67 @@ export class ResponseService {
   //   }
   // }
 
-  // async saveGuestInfoAndResponsesNotAllowAnonymous(
-  //   saveResponsesDto: SaveResponsesDto,
-  //   userId: number,
-  //   businessId: number,
-  // ) {
-  //   const { surveyResponseId, guestInfo, responses } = saveResponsesDto;
-  //   const guestInfoJson = JSON.stringify(guestInfo);
+  async saveGuestInfoAndResponsesNotAllowAnonymous(
+    saveResponsesDto: SaveResponsesDto,
+    userId: number,
+    businessId: number,
+  ) {
+    const { surveyResponseId, guestInfo, responses } = saveResponsesDto;
+    const guestInfoJson = JSON.stringify(guestInfo);
 
-  //   if (!surveyResponseId) {
-  //     throw new BadRequestException('Invalid survey response id');
-  //   }
+    if (!surveyResponseId) {
+      throw new BadRequestException('Invalid survey response id');
+    }
 
-  //   const existingSurvey = await this.prisma.businessSurvey.findFirst({
-  //     where: {
-  //       surveyId: surveyResponseId,
-  //       businessId,
-  //     },
-  //   });
+    const survey = await this.prisma.survey.findFirst({
+      where: {
+        id: existingSurvey.surveyId,
+      },
+    });
 
-  //   if (!existingSurvey) {
-  //     throw new BadRequestException('Survey not found for this business');
-  //   }
+    const allowAnonymous = survey.allowAnonymous;
 
-  //   const survey = await this.prisma.survey.findFirst({
-  //     where: {
-  //       id: existingSurvey.surveyId,
-  //     },
-  //   });
+    if (!allowAnonymous && (!guestInfo.name || !guestInfo.email)) {
+      throw new BadRequestException('Guest name and email are required');
+    }
 
-  //   const allowAnonymous = survey.allowAnonymous;
+    const userSurveyResponse = await this.prisma.userSurveyResponse.create({
+      data: {
+        surveyId: surveyResponseId,
+        userId,
+        guest: guestInfoJson,
+      },
+    });
 
-  //   if (!allowAnonymous && (!guestInfo.name || !guestInfo.email)) {
-  //     throw new BadRequestException('Guest name and email are required');
-  //   }
+    for (const response of responses) {
+      const { questionId, answerOptionId, selectedAnswerText, ratingValue } =
+        response;
 
-  //   const userSurveyResponse = await this.prisma.userSurveyResponse.create({
-  //     data: {
-  //       surveyId: surveyResponseId,
-  //       userId,
-  //       guest: guestInfoJson,
-  //     },
-  //   });
-
-  //   for (const response of responses) {
-  //     const { questionId, answerOptionId, selectedAnswerText, ratingValue } =
-  //       response;
-
-  //     if (Array.isArray(answerOptionId)) {
-  //       for (const optionId of answerOptionId) {
-  //         const surveyResponseQuestion =
-  //           await this.prisma.surveyResponseQuestion.create({
-  //             data: {
-  //               userSurveyResponseId: userSurveyResponse.id,
-  //               questionId,
-  //               answerOptionId: optionId,
-  //               selectedAnswerText,
-  //             },
-  //           });
-
-  //         await this.prisma.businessSurveyResponseQuestion.create({
-  //           data: {
-  //             businessId: businessId,
-  //             surveyResponseQuestionId: surveyResponseQuestion.id,
-  //           },
-  //         });
-  //       }
-  //     } else {
-  //       const surveyResponseQuestion =
-  //         await this.prisma.surveyResponseQuestion.create({
-  //           data: {
-  //             userSurveyResponseId: userSurveyResponse.id,
-  //             questionId,
-  //             answerOptionId: answerOptionId ? answerOptionId[0] : null,
-  //             selectedAnswerText,
-  //           },
-  //         });
-
-  //       await this.prisma.businessSurveyResponseQuestion.create({
-  //         data: {
-  //           businessId: businessId,
-  //           surveyResponseQuestionId: surveyResponseQuestion.id,
-  //         },
-  //       });
-  //     }
-  //   }
-  // }
+      if (Array.isArray(answerOptionId)) {
+        for (const optionId of answerOptionId) {
+          const surveyResponseQuestion =
+            await this.prisma.formResponseQuestion.create({
+              data: {
+                userFormResponseId: userSurveyResponse.id,
+                questionId,
+                answerOptionId: optionId,
+                selectedAnswerText,
+              },
+            });
+        }
+      } else {
+        const surveyResponseQuestion =
+          await this.prisma.formResponseQuestion.create({
+            data: {
+              userFormResponseId: userSurveyResponse.id,
+              questionId,
+              answerOptionId: answerOptionId ? answerOptionId[0] : null,
+              selectedAnswerText,
+            },
+          });
+      }
+    }
+  }
 
   // async userResponseBySurveyId(surveyId: number, businessId) {
   //   const existingSurveyBusiness = await this.prisma.businessSurvey.findFirst({
