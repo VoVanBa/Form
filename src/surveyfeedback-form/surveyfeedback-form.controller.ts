@@ -1,14 +1,24 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
+import { FormStatus } from '@prisma/client';
 
-@Controller('surveyfeedback-form')
+@Controller('form')
 export class SurveyFeedbackFormController {
   constructor(
     private readonly surveyFeedbackFormService: SurveyFeedackFormService,
   ) {}
 
-  @Post('business/:businessId')
+  @Post(':businessId')
   create(
     @Param('businessId') businessId: number,
     @Body() createSurveyFeedbackDto: CreatesurveyFeedbackDto,
@@ -24,8 +34,37 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getForms(businessId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: number) {
-    return this.surveyFeedbackFormService.getFormById(id);
+  @Get(':id/business/:businessId')
+  findOne(@Param('id') id: number, @Param('businessId') businessId: number) {
+    return this.surveyFeedbackFormService.getFormById(id, businessId);
   }
+
+  @Put(':formId/businessId/:businessId/status')
+  updateStatus(
+    @Query('status') status: FormStatus,
+    @Param('formId') formId: number,
+    @Param('businessId') businessId: number,
+  ) {
+    return this.surveyFeedbackFormService.updateStatus(
+      status,
+      formId,
+      businessId,
+    );
+  }
+
+  @Delete(':formId')
+  deleteForm(@Param('formId') formId: number) {
+    return this.surveyFeedbackFormService.deleteForm(formId);
+  }
+
+  // @Put(':id/allow-anonymous')
+  // async updateSurveyallowAnonymous(
+  //   @Param('id') surveyId: number,
+  //   @Body('allowAnonymous') allowAnonymous: boolean,
+  // ) {
+  //   return this.surveyService.updateSurveyallowAnonymous(
+  //     surveyId,
+  //     allowAnonymous,
+  //   );
+  // }
 }

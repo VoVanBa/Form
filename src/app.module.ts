@@ -12,6 +12,7 @@ import { ResponseModule } from './response/response.module';
 import { BusinessModule } from './business/business.module';
 import { QuestionModule } from './question/question.module';
 import { FeedbackResponseModule } from './feedback-response/feedback-response.module';
+import { SurveyFeedbackFormModule } from './surveyfeedback-form/surveyfeedback-form.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { FeedbackResponseModule } from './feedback-response/feedback-response.mo
     BusinessModule,
     QuestionModule,
     FeedbackResponseModule,
+    SurveyFeedbackFormModule
   ],
   controllers: [AppController],
   providers: [

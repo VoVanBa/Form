@@ -5,4 +5,5 @@ export interface IBusinessRepository {
   create(data: CreateBusinessDto, userId: number);
   // updateBusiness(id: string, business: Business): Promise<Business | null>;
   // deleteBusiness(id: string): Promise<boolean>;
+  getbusinessbyId(businesId: number);
 }

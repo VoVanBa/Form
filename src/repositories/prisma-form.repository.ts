@@ -3,6 +3,7 @@ import { PrismaService } from 'src/config/prisma.service';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/form.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
+import { FormStatus } from '@prisma/client';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -41,6 +42,16 @@ export class PrismasurveyFeedbackRepository
   async deletesurveyFeedback(id: number) {
     return this.prisma.surveyFeedback.delete({
       where: { id },
+    });
+  }
+  async updateStatus(status: FormStatus, formId: number) {
+    return this.prisma.surveyFeedback.update({
+      where: {
+        id: formId,
+      },
+      data: {
+        status: status,
+      },
     });
   }
 }
