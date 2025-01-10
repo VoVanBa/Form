@@ -161,67 +161,67 @@ export class ResponseService {
   //   }
   // }
 
-  async saveGuestInfoAndResponsesNotAllowAnonymous(
-    saveResponsesDto: SaveResponsesDto,
-    userId: number,
-    businessId: number,
-  ) {
-    const { surveyResponseId, guestInfo, responses } = saveResponsesDto;
-    const guestInfoJson = JSON.stringify(guestInfo);
+  // async saveGuestInfoAndResponsesNotAllowAnonymous(
+  //   saveResponsesDto: SaveResponsesDto,
+  //   userId: number,
+  //   businessId: number,
+  // ) {
+  //   const { surveyResponseId, guestInfo, responses } = saveResponsesDto;
+  //   const guestInfoJson = JSON.stringify(guestInfo);
 
-    if (!surveyResponseId) {
-      throw new BadRequestException('Invalid survey response id');
-    }
+  //   if (!surveyResponseId) {
+  //     throw new BadRequestException('Invalid survey response id');
+  //   }
 
-    const survey = await this.prisma.survey.findFirst({
-      where: {
-        id: existingSurvey.surveyId,
-      },
-    });
+  //   const survey = await this.prisma.survey.findFirst({
+  //     where: {
+  //       id: existingSurvey.surveyId,
+  //     },
+  //   });
 
-    const allowAnonymous = survey.allowAnonymous;
+  //   const allowAnonymous = survey.allowAnonymous;
 
-    if (!allowAnonymous && (!guestInfo.name || !guestInfo.email)) {
-      throw new BadRequestException('Guest name and email are required');
-    }
+  //   if (!allowAnonymous && (!guestInfo.name || !guestInfo.email)) {
+  //     throw new BadRequestException('Guest name and email are required');
+  //   }
 
-    const userSurveyResponse = await this.prisma.userSurveyResponse.create({
-      data: {
-        surveyId: surveyResponseId,
-        userId,
-        guest: guestInfoJson,
-      },
-    });
+  //   const userSurveyResponse = await this.prisma.userSurveyResponse.create({
+  //     data: {
+  //       surveyId: surveyResponseId,
+  //       userId,
+  //       guest: guestInfoJson,
+  //     },
+  //   });
 
-    for (const response of responses) {
-      const { questionId, answerOptionId, selectedAnswerText, ratingValue } =
-        response;
+  //   for (const response of responses) {
+  //     const { questionId, answerOptionId, selectedAnswerText, ratingValue } =
+  //       response;
 
-      if (Array.isArray(answerOptionId)) {
-        for (const optionId of answerOptionId) {
-          const surveyResponseQuestion =
-            await this.prisma.formResponseQuestion.create({
-              data: {
-                userFormResponseId: userSurveyResponse.id,
-                questionId,
-                answerOptionId: optionId,
-                selectedAnswerText,
-              },
-            });
-        }
-      } else {
-        const surveyResponseQuestion =
-          await this.prisma.formResponseQuestion.create({
-            data: {
-              userFormResponseId: userSurveyResponse.id,
-              questionId,
-              answerOptionId: answerOptionId ? answerOptionId[0] : null,
-              selectedAnswerText,
-            },
-          });
-      }
-    }
-  }
+  //     if (Array.isArray(answerOptionId)) {
+  //       for (const optionId of answerOptionId) {
+  //         const surveyResponseQuestion =
+  //           await this.prisma.formResponseQuestion.create({
+  //             data: {
+  //               userFormResponseId: userSurveyResponse.id,
+  //               questionId,
+  //               answerOptionId: optionId,
+  //               selectedAnswerText,
+  //             },
+  //           });
+  //       }
+  //     } else {
+  //       const surveyResponseQuestion =
+  //         await this.prisma.formResponseQuestion.create({
+  //           data: {
+  //             userFormResponseId: userSurveyResponse.id,
+  //             questionId,
+  //             answerOptionId: answerOptionId ? answerOptionId[0] : null,
+  //             selectedAnswerText,
+  //           },
+  //         });
+  //     }
+  //   }
+  // }
 
   // async userResponseBySurveyId(surveyId: number, businessId) {
   //   const existingSurveyBusiness = await this.prisma.businessSurvey.findFirst({

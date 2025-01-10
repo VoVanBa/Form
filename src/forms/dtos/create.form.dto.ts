@@ -1,11 +1,11 @@
-import { FormStatus, FormTypes } from '@prisma/client';
+import { FormStatus, SurveyFeedbackType } from '@prisma/client';
 
 export class CreateFormDto {
   name: string;
   description?: string;
   createdBy: string;
-  type: FormTypes; // Tạo Enum nếu cần
+  type: SurveyFeedbackType;
   allowAnonymous: boolean;
-  status: FormStatus; // Tạo Enum nếu cần
+  status: FormStatus;
   businessId: number;
 }

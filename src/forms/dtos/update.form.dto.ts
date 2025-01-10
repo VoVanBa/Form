@@ -1,9 +1,9 @@
-import { FormStatus, FormTypes } from '@prisma/client';
+import { FormStatus, SurveyFeedbackType } from '@prisma/client';
 
 export class UpdateFormDto {
   name?: string;
   description?: string;
-  type?: FormTypes; // Use the enum type directly
+  type?: SurveyFeedbackType;
   allowAnonymous?: boolean;
-  status?: FormStatus; // Use the enum type directly
+  status?: FormStatus;
 }

@@ -272,7 +272,6 @@ model SurveyFeedback {
   questions              Question[]
   userFormResponses      UserFormResponse[]
 
-  @@index([businessId], map: "SurveyFeedback_businessId_fkey")
 }
 
 model UserFormResponse {
@@ -284,8 +283,6 @@ model UserFormResponse {
   form                  SurveyFeedback         @relation(fields: [formId], references: [id], onDelete: Cascade)
   user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([formId], map: "UserFormResponse_formId_fkey")
-  @@index([userId], map: "UserFormResponse_userId_fkey")
 }
 
 model FormResponseQuestion {
@@ -293,15 +290,12 @@ model FormResponseQuestion {
   userFormResponseId Int
   questionId         Int
   answerOptionId     Int?
-  selectedAnswerText String?          @db.Text
+  answerText String?          @db.Text
   ratingValue        Int?
   answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
 
-  @@index([answerOptionId], map: "FormResponseQuestion_answerOptionId_fkey")
-  @@index([questionId], map: "FormResponseQuestion_questionId_fkey")
-  @@index([userFormResponseId], map: "FormResponseQuestion_userFormResponseId_fkey")
 }
 
 model SettingTypes {
@@ -322,7 +316,6 @@ model FormSettings {
   formSettingTypes   SettingTypes?  @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
 
   @@unique([formId, key])
-  @@index([formSettingTypesId], map: "FormSettings_formSettingTypesId_fkey")
 }
 
 model BusinessSurveyFeedbackSettings {
@@ -335,7 +328,6 @@ model BusinessSurveyFeedbackSettings {
   form       SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, formId, key])
-  @@index([formId], map: "BusinessSurveyFeedbackSettings_formId_fkey")
 }
 
 model Question {
@@ -350,7 +342,6 @@ model Question {
   questionOnMedia               QuestionOnMedia[]
   businessQuestionConfiguration BusinessQuestionConfiguration[]
 
-  @@index([formId], map: "Question_formId_fkey")
 }
 
 model QuestionConfiguration {
@@ -376,24 +367,21 @@ model QuestionOnMedia {
   media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([mediaId], map: "QuestionOnMedia_mediaId_fkey")
-  @@index([questionId], map: "QuestionOnMedia_questionId_fkey")
 }
 
-model AnswerOption {
-  id                    Int                    @id @default(autoincrement())
-  questionId            Int
-  choiceText            String?
-  isActive              Boolean                @default(true)
-  sortOrder             Int?
-  description           String?
-  formResponseId        Int?
-  question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answerOptionOnMedia   AnswerOptionOnMedia[]
-  formResponseQuestions FormResponseQuestion[]
+ model AnswerOption {
+   id                    Int                    @id @default(autoincrement())
+   questionId            Int
+   label                 String?
+   isActive              Boolean                @default(true)
+   sortOrder             Int?
+   description           String?
+   formResponseId        Int?
+   question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
+   answerOptionOnMedia   AnswerOptionOnMedia[]
+   formResponseQuestions FormResponseQuestion[]
 
-  @@index([questionId], map: "AnswerOption_questionId_fkey")
-}
+ }
 
 model AnswerOptionOnMedia {
   id             Int           @id @default(autoincrement())
@@ -403,8 +391,6 @@ model AnswerOptionOnMedia {
   answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-  @@index([answerOptionId], map: "AnswerOptionOnMedia_answerOptionId_fkey")
-  @@index([mediaId], map: "AnswerOptionOnMedia_mediaId_fkey")
 }
 
 model Media {

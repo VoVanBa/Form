@@ -100,7 +100,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
         // businessQuestionConfigurationId: settingId,
       },
       include: {
-        settings: true,
+        // settings: true,
         form: true,
       },
     });
