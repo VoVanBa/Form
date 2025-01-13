@@ -14,19 +14,38 @@ export class PrismaResponseQuestionRepository {
   //     },
   //   });
   // }
-  async create(data: CreateResponseOnQuestionDto, userResponseId: number) {
+  async create(
+    data: CreateResponseOnQuestionDto,
+    userResponseId: number,
+  ) {
     return this.prisma.responseOnQuestion.create({
       data: {
+        ...data,
         useronResponseId: userResponseId,
-        question: {
-          connect: { id: data.questionId },
-        },
-        answerOptionId: data.answerOptionId, // Đảm bảo nếu không có, sẽ là null
-        answerText: data.answerText, // Đảm bảo nếu không có, sẽ là null
-        ratingValue: data.ratingValue, // Đảm bảo nếu không có, sẽ là null
       },
     });
   }
+
+  // async createResponseOnQuestion(
+  //   data: CreateResponseOnQuestionDto,
+  //   userResponseId: number,
+  //   questionId: number,
+  // ) {
+  //   // Chuyển đổi CreateResponseOnQuestionDto thành đối tượng cần lưu trữ
+  //   const responseData = data.responses.map(response => ({
+  //     useronResponseId: userResponseId,
+  //     questionId,
+  //     answerOptionId: response.answerOptionId,
+  //     answerText: response.answerText,
+  //     ratingValue: response.ratingValue,
+  //   }));
+
+  //   // Lưu nhiều bản ghi câu trả lời cùng lúc
+  //   return this.prisma.responseOnQuestion.createMany({
+  //     data: responseData,
+  //   });
+  // }
+
 
   //   async findAll(): Promise<ResponseQuestion[]> {
   //     return this.prisma.responseQuestion.findMany();

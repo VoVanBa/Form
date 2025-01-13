@@ -3,6 +3,7 @@ import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.rep
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
+import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 
 @Injectable()
 export class ResponseSurveyService {
@@ -10,14 +11,15 @@ export class ResponseSurveyService {
     private formRepository: PrismasurveyFeedbackRepository,
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
+    private questionRepository: PrismaQuestionRepository,
   ) {}
   async saveGuestInfoAndResponsesAllowAnonymous(
     businessId: number,
     formId: number,
     createResponse: CreateResponseOnQuestionDto,
   ) {
-    const { guestInfo, responses } = createResponse;
-    const guestInfoJson = JSON.stringify(guestInfo);
+    const { guestData, responses } = createResponse;
+
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
@@ -25,26 +27,40 @@ export class ResponseSurveyService {
     }
 
     const allowAnonymous = existingForm.allowAnonymous;
-    if (!allowAnonymous && (!guestInfo.name || !guestInfo.email)) {
+    if (!allowAnonymous && (!guestData?.name || !guestData?.email)) {
       throw new BadRequestException('Guest name and email are required');
     }
+
+    // Save guest information
     const userSurveyResponse = await this.userResponseRepository.create(
       existingForm.id,
-      guestInfoJson,
+      guestData,
     );
+
     for (const response of responses) {
-      const { answerOptionId } = response;
-      if (Array.isArray(answerOptionId)) {
-        for (const optionId of answerOptionId) {
-          const surveyResponseQuestion =
-            await this.responseQuestionRepository.create(
-              createResponse,
-              userSurveyResponse.id,
-            );
-        }
-      } else {
+      const { questionId, answerOptionId, ratingValue, answerText } = response;
+
+      const question =
+        await this.questionRepository.getQuessionById(questionId);
+      if (!question) {
+        throw new BadRequestException(
+          `Question with id ${questionId} not found`,
+        );
+      }
+
+      // Handle both single and multiple answer options
+      const answerOptions = Array.isArray(answerOptionId)
+        ? answerOptionId
+        : [answerOptionId];
+
+      for (const optionId of answerOptions) {
         await this.responseQuestionRepository.create(
-          createResponse,
+          {
+            questionId, // This is part of ResponseDto, not CreateResponseOnQuestionDto
+            answerOptionId: optionId,
+            answerText,
+            ratingValue,
+          },
           userSurveyResponse.id,
         );
       }

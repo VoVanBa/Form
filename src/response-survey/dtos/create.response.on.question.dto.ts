@@ -5,26 +5,26 @@ import {
   IsNotEmpty,
   Max,
   Min,
+  IsObject,
+  IsArray,
 } from 'class-validator';
 import { GuestInfoDto } from './guest.info.dto';
 import { UserResponseDto } from './user.response.dto';
+import { ResponseDto } from './response.dto';
 
 export class CreateResponseOnQuestionDto {
-  questionId: number;
-
-  answerOptionId?: number;
-
-  @IsString()
-  @IsOptional()
-  answerText?: string;
-
   @IsInt()
-  @IsOptional()
-  ratingValue?: number;
+  formId: number;
 
   @IsOptional()
-  guestInfo?: GuestInfoDto;
+  @IsInt()
+  userId?: number;
 
   @IsOptional()
-  responses?: UserResponseDto[];
+  @IsObject()
+  guestData?: GuestInfoDto;
+
+  @IsArray()
+  @IsOptional()
+  responses: ResponseDto[];
 }
