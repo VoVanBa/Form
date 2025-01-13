@@ -3,7 +3,7 @@ import { PrismaService } from 'src/config/prisma.service';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/form.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
-import { FormStatus } from '@prisma/client';
+import { FormStatus, SurveyFeedback } from '@prisma/client';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -51,6 +51,17 @@ export class PrismasurveyFeedbackRepository
       },
       data: {
         status: status,
+      },
+    });
+  }
+
+  async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
+    return await this.prisma.surveyFeedback.update({
+      where: {
+        id: surveyId,
+      },
+      data: {
+        allowAnonymous: active,
       },
     });
   }

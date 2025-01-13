@@ -8,5 +8,6 @@ export interface IsurveyFeedbackRepository {
   getAllsurveyFeedbacks(id: number);
   updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto);
   deletesurveyFeedback(id: number);
-  updateStatus(status: FormStatus,formId:number);
+  updateStatus(status: FormStatus, formId: number);
+  updateSurveyallowAnonymous(surveyId: number, active: boolean);
 }

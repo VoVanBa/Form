@@ -26,11 +26,11 @@ export class PrismaBusinessRepository implements IBusinessRepository {
     });
   }
 
-  async getbusinessbyId(businessId:number){
+  async getbusinessbyId(businessId: number) {
     return this.prisma.business.findFirst({
-      where:{
-        id:businessId
-      }
-    })
+      where: {
+        id: businessId,
+      },
+    });
   }
 }

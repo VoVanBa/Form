@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
-import { SaveResponsesDto } from './dtos/save.responses.dto';
 
 @Injectable()
 export class ResponseService {

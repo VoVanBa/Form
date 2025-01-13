@@ -4,6 +4,7 @@ import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { PrismaService } from 'src/config/prisma.service';
 import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
+import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 
 @Module({
   controllers: [SurveyFeedbackFormController],
@@ -11,7 +12,8 @@ import { PrismaBusinessRepository } from 'src/repositories/prims-business.reposi
     SurveyFeedackFormService,
     PrismaService,
     PrismasurveyFeedbackRepository,
-    PrismaBusinessRepository
+    PrismaBusinessRepository,
+    PrismaFormSettingRepository,
   ],
 })
 export class SurveyFeedbackFormModule {}

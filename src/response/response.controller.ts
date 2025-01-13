@@ -12,7 +12,6 @@ import { ResponseService } from './response.service';
 import { RolesGuard } from 'src/auth/role-auth.guard';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UsersService } from 'src/users/users.service';
-import { SaveResponsesDto } from './dtos/save.responses.dto';
 import { Roles } from 'src/auth/decorater/role.customize';
 
 @Controller('response')

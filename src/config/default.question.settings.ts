@@ -1,19 +1,14 @@
-import { PrismaClient } from '@prisma/client';
-
 export const defaultQuestionSettings = [
   {
     key: 'SINGLE_CHOICE',
     settings: {
-      allowOther: false,
-      randomizeOptions: false,
-      maxSelections: 1,
       require: true,
     },
   },
   {
     key: 'MULTI_CHOICE',
     settings: {
-      maxSelections: 3 ,
+      maxSelections: 3,
       minSelections: 1,
       require: true,
     },
@@ -21,7 +16,6 @@ export const defaultQuestionSettings = [
   {
     key: 'INPUT_TEXT',
     settings: {
-      maxLength: 500,
       require: true,
     },
   },
@@ -41,7 +35,6 @@ export const defaultQuestionSettings = [
   {
     key: 'PICTURE_SELECTION',
     settings: {
-      maxSelections: 1,
       require: true,
     },
   },

@@ -229,25 +229,25 @@ datasource db {
 }
 
 model User {
-  id              Int                @id @default(autoincrement())
-  username        String             @unique
-  email           String             @unique
-  password        String
-  refreshToken    String             @db.VarChar(1024)
-  role            Role
-  googleId        String?            @unique
-  businesses      Business[]
-  surveyResponses UserFormResponse[]
+  id            Int              @id @default(autoincrement())
+  username      String           @unique
+  email         String           @unique
+  password      String
+  refreshToken  String           @db.VarChar(1024)
+  role          Role
+  googleId      String?          @unique
+  businesses    Business[]
+  formResponses UserOnResponse[]
 }
 
 model Business {
-  id                     Int                               @id @default(autoincrement())
+  id                     Int                              @id @default(autoincrement())
   name                   String
   address                String
-  createdAt              DateTime                          @default(now())
-  updatedAt              DateTime                          @updatedAt
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
   userId                 Int
-  user                   User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessSurveySettings BusinessSurveyFeedbackSettings[]
   forms                  SurveyFeedback[]
 
@@ -255,74 +255,73 @@ model Business {
 }
 
 model SurveyFeedback {
-  id                     Int                              @id @default(autoincrement())
-  name                   String
-  description            String?
-  createdBy              String
-  createdAt              DateTime                         @default(now())
-  updatedAt              DateTime                         @updatedAt
-  isOpen                 Boolean                          @default(true)
-  type                   SurveyFeedbackType
-  allowAnonymous         Boolean                          @default(true)
-  status                 FormStatus                       @default(DRAFT)
-  businessId             Int
-  businessSurveySettings BusinessSurveyFeedbackSettings[]
-  business               Business                         @relation(fields: [businessId], references: [id])
-  formSettings           FormSettings[]
-  questions              Question[]
-  userFormResponses      UserFormResponse[]
+  id                Int                              @id @default(autoincrement())
+  name              String
+  description       String?
+  createdBy         String
+  createdAt         DateTime                         @default(now())
+  updatedAt         DateTime                         @updatedAt
+  isOpen            Boolean                          @default(true)
+  type              SurveyFeedbackType
+  allowAnonymous    Boolean                          @default(true)
+  status            FormStatus                       @default(DRAFT)
+  businessId        Int
+  businessSettings  BusinessSurveyFeedbackSettings[]
+  business          Business                         @relation(fields: [businessId], references: [id])
+  questions         Question[]
+  userFormResponses UserOnResponse[]
 }
 
-model UserFormResponse {
-  id                    Int                    @id @default(autoincrement())
-  formId                Int
-  userId                Int?
-  guest                 Json?
-  formResponseQuestions FormResponseQuestion[]
-  form                  SurveyFeedback         @relation(fields: [formId], references: [id], onDelete: Cascade)
-  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+model UserOnResponse {
+  id                  Int                  @id @default(autoincrement())
+  formId              Int
+  userId              Int?
+  guest               Json?
+  responseOnQuestions ResponseOnQuestion[]
+  form                SurveyFeedback       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user                User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model FormResponseQuestion {
-  id                 Int              @id @default(autoincrement())
-  userFormResponseId Int
-  questionId         Int
-  answerOptionId     Int?
-  answerText         String?          @db.Text
-  ratingValue        Int?
-  answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
-  question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
+model ResponseOnQuestion {
+  id               Int             @id @default(autoincrement())
+  useronResponseId Int
+  questionId       Int
+  answerOptionId   Int?
+  answerText       String?         @db.Text
+  ratingValue      Int?
+  answerOption     AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userResponse     UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
 }
 
 model SettingTypes {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique
-  description  String
-  defaultValue Json?
-  settings     FormSettings[]
+  id          Int            @id @default(autoincrement())
+  name        String         @unique
+  description String
+  settings    FormSettings[]
 }
 
 model FormSettings {
-  id                 Int            @id @default(autoincrement())
-  formId             Int
-  key                String
-  value              Json
-  formSettingTypesId Int?
-  form               SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
-  formSettingTypes   SettingTypes?  @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
-
-  @@unique([formId, key])
+  id                             Int                              @id @default(autoincrement())
+  key                            String                           @unique
+  value                          Json
+  label                          String?
+  description                    String?
+  formSettingTypesId             Int?
+  formSettingTypes               SettingTypes?                    @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
+  BusinessSurveyFeedbackSettings BusinessSurveyFeedbackSettings[]
 }
 
 model BusinessSurveyFeedbackSettings {
-  id         Int            @id @default(autoincrement())
-  businessId Int
-  formId     Int
-  key        String
-  value      Json
-  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  form       SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id            Int            @id @default(autoincrement())
+  businessId    Int
+  formId        Int
+  key           String
+  value         Json
+  formSettingId Int
+  formSetting   FormSettings   @relation(fields: [formSettingId], references: [id], onDelete: Cascade)
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  form          SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, formId, key])
 }
@@ -334,7 +333,7 @@ model Question {
   formId                        Int
   index                         Int
   answerOptions                 AnswerOption[]
-  formResponseQuestions         FormResponseQuestion[]
+  responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                  @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia[]
   businessQuestionConfiguration BusinessQuestionConfiguration[]
@@ -365,16 +364,16 @@ model QuestionOnMedia {
 }
 
 model AnswerOption {
-  id                    Int                    @id @default(autoincrement())
-  questionId            Int
-  label                 String?
-  isActive              Boolean                @default(true)
-  sortOrder             Int?
-  description           String?
-  formResponseId        Int?
-  question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answerOptionOnMedia   AnswerOptionOnMedia[]
-  formResponseQuestions FormResponseQuestion[]
+  id                  Int                   @id @default(autoincrement())
+  questionId          Int
+  label               String?
+  isActive            Boolean               @default(true)
+  sortOrder           Int?
+  description         String?
+  formResponseId      Int?
+  question            Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerOptionOnMedia AnswerOptionOnMedia[]
+  responseOnQuestions ResponseOnQuestion[]
 }
 
 model AnswerOptionOnMedia {

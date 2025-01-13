@@ -57,14 +57,44 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.deleteForm(formId);
   }
 
-  // @Put(':id/allow-anonymous')
-  // async updateSurveyallowAnonymous(
-  //   @Param('id') surveyId: number,
-  //   @Body('allowAnonymous') allowAnonymous: boolean,
-  // ) {
-  //   return this.surveyService.updateSurveyallowAnonymous(
-  //     surveyId,
-  //     allowAnonymous,
-  //   );
-  // }
+  @Put(':id/allow-anonymous')
+  async updateSurveyallowAnonymous(
+    @Param('id') surveyId: number,
+    @Body('allowAnonymous') allowAnonymous: boolean,
+  ) {
+    return this.surveyFeedbackFormService.updateSurveyallowAnonymous(
+      surveyId,
+      allowAnonymous,
+    );
+  }
+
+  @Put(':formId/business/:businessId/setting')
+  async updateFormSettings(
+    @Param('formId') formId: number,
+    @Param('businessId') businessId: number,
+    @Body()
+    body: {
+      settings: {
+        key: string;
+        value: any;
+      }[];
+    },
+  ) {
+    await this.surveyFeedbackFormService.updateFormSettings(
+      formId,
+      businessId,
+      body.settings,
+    );
+    return { message: 'Survey settings updated successfully' };
+  }
+  @Get(':formId/business/:businessId/setting')
+  async getSettingTypeWithBusinessSettings(
+    @Param('formId') formId: number,
+    @Param('businessId') businessId: number,
+  ) {
+    return this.surveyFeedbackFormService.getSettingTypeWithBusinessSettings(
+      businessId,
+      formId,
+    );
+  }
 }
