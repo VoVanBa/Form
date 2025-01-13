@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
 import { CreateResponseOnQuestionDto } from 'src/response-survey/dtos/create.response.on.question.dto';
+import { ResponseDto } from 'src/response-survey/dtos/response.dto';
 
 @Injectable()
 export class PrismaResponseQuestionRepository {
@@ -15,13 +16,19 @@ export class PrismaResponseQuestionRepository {
   //   });
   // }
   async create(
-    data: CreateResponseOnQuestionDto,
+    questionId: number,
+    answerOptionId: number,
     userResponseId: number,
+    answerText: string,
+    ratingValue: number,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
-        ...data,
-        useronResponseId: userResponseId,
+        useronResponseId: userResponseId, // Chắc chắn kiểu là number
+        questionId: questionId, // Chắc chắn kiểu là number
+        answerOptionId: answerOptionId, // Chắc chắn kiểu là number[] hoặc null
+        answerText: answerText, // Chắc chắn kiểu là string hoặc null
+        ratingValue: ratingValue, // Chắc chắn kiểu là number hoặc null
       },
     });
   }
@@ -45,7 +52,6 @@ export class PrismaResponseQuestionRepository {
   //     data: responseData,
   //   });
   // }
-
 
   //   async findAll(): Promise<ResponseQuestion[]> {
   //     return this.prisma.responseQuestion.findMany();

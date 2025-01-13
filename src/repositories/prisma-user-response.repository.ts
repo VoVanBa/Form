@@ -5,11 +5,12 @@ import { PrismaService } from 'src/config/prisma.service';
 export class PrismaUserResponseRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(formId: number, guest: any) {
+  async create(formId: number, guest: any, userId: number) {
     return this.prisma.userOnResponse.create({
       data: {
         formId,
         guest,
+        userId,
       },
     });
   }

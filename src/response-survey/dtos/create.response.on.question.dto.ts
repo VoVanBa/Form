@@ -13,13 +13,6 @@ import { UserResponseDto } from './user.response.dto';
 import { ResponseDto } from './response.dto';
 
 export class CreateResponseOnQuestionDto {
-  @IsInt()
-  formId: number;
-
-  @IsOptional()
-  @IsInt()
-  userId?: number;
-
   @IsOptional()
   @IsObject()
   guestData?: GuestInfoDto;

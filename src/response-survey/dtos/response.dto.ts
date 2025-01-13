@@ -1,11 +1,17 @@
-import { IsInt, IsOptional, IsArray, IsObject, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsArray,
+  IsObject,
+  IsString,
+} from 'class-validator';
 export class ResponseDto {
   @IsInt()
   questionId: number;
 
   @IsOptional()
   @IsInt()
-  answerOptionId?: number;
+  answerOptionId?: number[];
 
   @IsOptional()
   @IsString()
