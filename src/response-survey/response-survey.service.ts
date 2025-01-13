@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.repository';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
-import { PrismaResponseQuestionRepository } from 'src/repositories/Prisma-response-question.repository';
+import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 
 @Injectable()

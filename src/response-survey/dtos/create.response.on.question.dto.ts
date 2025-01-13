@@ -12,8 +12,6 @@ import { UserResponseDto } from './user.response.dto';
 export class CreateResponseOnQuestionDto {
   questionId: number;
 
-  @IsInt()
-  @IsOptional()
   answerOptionId?: number;
 
   @IsString()
@@ -24,6 +22,9 @@ export class CreateResponseOnQuestionDto {
   @IsOptional()
   ratingValue?: number;
 
+  @IsOptional()
   guestInfo?: GuestInfoDto;
+
+  @IsOptional()
   responses?: UserResponseDto[];
 }

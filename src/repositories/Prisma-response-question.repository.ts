@@ -6,11 +6,24 @@ import { CreateResponseOnQuestionDto } from 'src/response-survey/dtos/create.res
 export class PrismaResponseQuestionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // async create(data: CreateResponseOnQuestionDto, userResponseId: number) {
+  //   return this.prisma.responseOnQuestion.create({
+  //     data: {
+  //       ...data,
+  //       useronResponseId: userResponseId,
+  //     },
+  //   });
+  // }
   async create(data: CreateResponseOnQuestionDto, userResponseId: number) {
     return this.prisma.responseOnQuestion.create({
       data: {
-        ...data,
         useronResponseId: userResponseId,
+        question: {
+          connect: { id: data.questionId },
+        },
+        answerOptionId: data.answerOptionId, // Đảm bảo nếu không có, sẽ là null
+        answerText: data.answerText, // Đảm bảo nếu không có, sẽ là null
+        ratingValue: data.ratingValue, // Đảm bảo nếu không có, sẽ là null
       },
     });
   }
