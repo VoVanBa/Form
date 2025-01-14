@@ -13,6 +13,7 @@ export interface QuestionRepository {
     questionId: number,
     settings: any,
     key: string,
+    formId: number,
   ): Promise<any>;
   getSettingByQuestionType(questionType: string): Promise<any>;
   createDefaultQuestionConfigByAdmin(key: any, settings: any): Promise<any>;
@@ -22,7 +23,10 @@ export interface QuestionRepository {
     // settingId: number,
     sortOrder: number,
   );
-  getBusinessQuestionConfigurationByQuestionId(questionId: number);
-  updateQuestionSetting(questionId: number, settings, any);
+  getBusinessQuestionConfigurationByQuestionId(
+    questionId: number,
+    formId: number,
+  );
+  updateQuestionSetting(questionId: number, settings: any, formId: number);
   updateIndexQuestion(questionId: number, index: number);
 }

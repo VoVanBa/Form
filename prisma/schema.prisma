@@ -1,224 +1,3 @@
-// generator client {
-//   provider = "prisma-client-js"
-// }
-
-// datasource db {
-//   provider = "mysql"
-//   url      = env("DATABASE_URL")
-// }
-
-// model User {
-//   id              Int                @id @default(autoincrement())
-//   username        String             @unique
-//   email           String             @unique
-//   password        String
-//   refreshToken    String             @db.VarChar(1024)
-//   role            Role
-//   googleId        String?            @unique
-//   businesses      Business[]
-//   surveyResponses UserFormResponse[]
-// }
-
-// model Business {
-//   id                   Int                    @id @default(autoincrement())
-//   name                 String
-//   address              String
-//   createdAt            DateTime               @default(now())
-//   updatedAt            DateTime               @updatedAt
-//   userId               Int?
-//   user                 User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   businessFormSettings BusinessFormSettings[]
-//   forms                SurveyFeedback[]
-
-//   @@index([userId], map: "Business_userId_fkey")
-// }
-
-// model SurveyFeedback {
-//   id                   Int                    @id @default(autoincrement())
-//   name                 String
-//   description          String?
-//   createdBy            String
-//   createdAt            DateTime               @default(now())
-//   updatedAt            DateTime               @updatedAt
-//   isOpen               Boolean                @default(true)
-//   type                 FormTypes
-//   allowAnonymous       Boolean                @default(true)
-//   status               FormStatus             @default(DRAFT)
-//   businessId           Int
-//   businessFormSettings BusinessFormSettings[]
-//   business             Business               @relation(fields: [businessId], references: [id])
-//   formSettings         FormSettings[]
-//   questions            Question[]
-//   userFormResponses    UserFormResponse[]
-
-//   @@index([businessId], map: "Form_businessId_fkey")
-// }
-
-// model UserFormResponse {
-//   id                    Int                    @id @default(autoincrement())
-//   formId                Int
-//   userId                Int?
-//   guest                 Json?
-//   formResponseQuestions FormResponseQuestion[]
-//   form                  SurveyFeedback         @relation(fields: [formId], references: [id], onDelete: Cascade)
-//   user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-//   @@index([formId], map: "UserFormResponse_formId_fkey")
-//   @@index([userId], map: "UserFormResponse_userId_fkey")
-// }
-
-// model FormResponseQuestion {
-//   id                 Int              @id @default(autoincrement())
-//   userFormResponseId Int
-//   questionId         Int
-//   answerOptionId     Int?
-//   selectedAnswerText String?          @db.Text
-//   ratingValue        Int?
-//   answerOption       AnswerOption?    @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
-//   question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
-//   formResponse       UserFormResponse @relation(fields: [userFormResponseId], references: [id], onDelete: Cascade)
-
-//   @@index([answerOptionId], map: "FormResponseQuestion_answerOptionId_fkey")
-//   @@index([questionId], map: "FormResponseQuestion_questionId_fkey")
-//   @@index([userFormResponseId], map: "FormResponseQuestion_userFormResponseId_fkey")
-// }
-
-// model SettingTypes {
-//   id           Int            @id @default(autoincrement())
-//   name         String         @unique
-//   description  String
-//   defaultValue Json?
-//   settings     FormSettings[]
-// }
-
-// model FormSettings {
-//   id                 Int            @id @default(autoincrement())
-//   formId             Int
-//   key                String
-//   value              Json
-//   formSettingTypesId Int?
-//   form               SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
-//   formSettingTypes   SettingTypes?  @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
-
-//   @@unique([formId, key])
-//   @@index([formSettingTypesId], map: "FormSettings_formSettingTypesId_fkey")
-// }
-
-// model BusinessFormSettings {
-//   id         Int            @id @default(autoincrement())
-//   businessId Int
-//   formId     Int
-//   key        String
-//   value      Json
-//   business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-//   form       SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
-
-//   @@unique([businessId, formId, key])
-//   @@index([formId], map: "BusinessFormSettings_formId_fkey")
-// }
-
-// model Question {
-//   id                            Int                             @id @default(autoincrement())
-//   headline                      String
-//   questionType                  QuestionType
-//   formId                        Int
-//   index                         Int
-//   answerOptions                 AnswerOption[]
-//   formResponseQuestions         FormResponseQuestion[]
-//   form                          SurveyFeedback                  @relation(fields: [formId], references: [id])
-//   questionOnMedia               QuestionOnMedia[]
-//   businessQuestionConfiguration BusinessQuestionConfiguration[]
-
-//   @@index([formId], map: "Question_formId_fkey")
-// }
-
-// model QuestionConfiguration {
-//   id       Int    @id @default(autoincrement())
-//   key      String @unique
-//   settings Json
-// }
-
-// model BusinessQuestionConfiguration {
-//   id         Int      @id @default(autoincrement())
-//   questionId Int      @unique
-//   key        String
-//   settings   Json
-//   question   Question @relation(fields: [questionId], references: [id])
-// }
-
-// model QuestionOnMedia {
-//   id         Int       @id @default(autoincrement())
-//   mediaId    Int
-//   questionId Int?
-//   media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-//   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-//   @@index([mediaId], map: "QuestionOnMedia_mediaId_fkey")
-//   @@index([questionId], map: "QuestionOnMedia_questionId_fkey")
-// }
-
-// model AnswerOption {
-//   id                    Int                    @id @default(autoincrement())
-//   questionId            Int
-//   label                 String?
-//   isActive              Boolean                @default(true)
-//   sortOrder             Int?
-//   description           String?
-//   formResponseId        Int?
-//   question              Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
-//   answerOptionOnMedia   AnswerOptionOnMedia[]
-//   formResponseQuestions FormResponseQuestion[]
-
-//   @@index([questionId], map: "AnswerOption_questionId_fkey")
-// }
-
-// model AnswerOptionOnMedia {
-//   id             Int           @id @default(autoincrement())
-//   mediaId        Int
-//   answerOptionId Int?
-//   index          Int?
-//   answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
-//   media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-
-//   @@index([answerOptionId], map: "AnswerOptionOnMedia_answerOptionId_fkey")
-//   @@index([mediaId], map: "AnswerOptionOnMedia_mediaId_fkey")
-// }
-
-// model Media {
-//   id                  Int                   @id @default(autoincrement())
-//   url                 String
-//   fileName            String
-//   mimeType            String
-//   size                Int
-//   createdAt           DateTime              @default(now())
-//   answerOptionOnMedia AnswerOptionOnMedia[]
-//   questionOnMedia     QuestionOnMedia[]
-// }
-
-// enum FormStatus {
-//   DRAFT
-//   PUBLISHED
-//   COMPLETED
-// }
-
-// enum Role {
-//   ADMIN
-//   CUSTOMER
-// }
-
-// enum QuestionType {
-//   SINGLE_CHOICE
-//   MULTI_CHOICE
-//   INPUT_TEXT
-//   RATING_SCALE
-//   PICTURE_SELECTION
-// }
-
-// enum FormTypes {
-//   Survey
-//   Feedback
-// }
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -270,6 +49,8 @@ model SurveyFeedback {
   business          Business                         @relation(fields: [businessId], references: [id])
   questions         Question[]
   userFormResponses UserOnResponse[]
+  configurations    BusinessQuestionConfiguration[]
+  responses         ResponseOnQuestion[]
 }
 
 model UserOnResponse {
@@ -286,12 +67,14 @@ model ResponseOnQuestion {
   id               Int             @id @default(autoincrement())
   useronResponseId Int
   questionId       Int
+  formId           Int
   answerOptionId   Int?
   answerText       String?         @db.Text
   ratingValue      Int?
   answerOption     AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userResponse     UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
+  form             SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model SettingTypes {
@@ -332,6 +115,7 @@ model Question {
   questionType                  QuestionType
   formId                        Int
   index                         Int
+  isDeleted                     Boolean                         @default(false)
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                  @relation(fields: [formId], references: [id])
@@ -346,13 +130,15 @@ model QuestionConfiguration {
 }
 
 model BusinessQuestionConfiguration {
-  id         Int      @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   questionId Int
+  formId     Int
   key        String
   settings   Json
-  question   Question @relation(fields: [questionId], references: [id])
+  question   Question       @relation(fields: [questionId], references: [id])
+  form       SurveyFeedback @relation(fields: [formId], references: [id])
 
-  @@unique([questionId])
+  @@unique([questionId, formId])
 }
 
 model QuestionOnMedia {
@@ -370,7 +156,7 @@ model AnswerOption {
   isActive            Boolean               @default(true)
   sortOrder           Int?
   description         String?
-  formResponseId      Int?
+  //formResponseId      Int?
   question            Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerOptionOnMedia AnswerOptionOnMedia[]
   responseOnQuestions ResponseOnQuestion[]

@@ -41,34 +41,29 @@ CREATE TABLE `SurveyFeedback` (
     `status` ENUM('DRAFT', 'PUBLISHED', 'COMPLETED') NOT NULL DEFAULT 'DRAFT',
     `businessId` INTEGER NOT NULL,
 
-    INDEX `SurveyFeedback_businessId_fkey`(`businessId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `UserFormResponse` (
+CREATE TABLE `UserOnResponse` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `formId` INTEGER NOT NULL,
     `userId` INTEGER NULL,
     `guest` JSON NULL,
 
-    INDEX `UserFormResponse_formId_fkey`(`formId`),
-    INDEX `UserFormResponse_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `FormResponseQuestion` (
+CREATE TABLE `ResponseOnQuestion` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `userFormResponseId` INTEGER NOT NULL,
+    `useronResponseId` INTEGER NOT NULL,
     `questionId` INTEGER NOT NULL,
+    `formId` INTEGER NOT NULL,
     `answerOptionId` INTEGER NULL,
     `answerText` TEXT NULL,
     `ratingValue` INTEGER NULL,
 
-    INDEX `FormResponseQuestion_answerOptionId_fkey`(`answerOptionId`),
-    INDEX `FormResponseQuestion_questionId_fkey`(`questionId`),
-    INDEX `FormResponseQuestion_userFormResponseId_fkey`(`userFormResponseId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -77,7 +72,6 @@ CREATE TABLE `SettingTypes` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `description` VARCHAR(191) NOT NULL,
-    `defaultValue` JSON NULL,
 
     UNIQUE INDEX `SettingTypes_name_key`(`name`),
     PRIMARY KEY (`id`)
@@ -86,13 +80,13 @@ CREATE TABLE `SettingTypes` (
 -- CreateTable
 CREATE TABLE `FormSettings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `formId` INTEGER NOT NULL,
     `key` VARCHAR(191) NOT NULL,
     `value` JSON NOT NULL,
+    `label` VARCHAR(191) NULL,
+    `description` VARCHAR(191) NULL,
     `formSettingTypesId` INTEGER NULL,
 
-    INDEX `FormSettings_formSettingTypesId_fkey`(`formSettingTypesId`),
-    UNIQUE INDEX `FormSettings_formId_key_key`(`formId`, `key`),
+    UNIQUE INDEX `FormSettings_key_key`(`key`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -103,8 +97,8 @@ CREATE TABLE `BusinessSurveyFeedbackSettings` (
     `formId` INTEGER NOT NULL,
     `key` VARCHAR(191) NOT NULL,
     `value` JSON NOT NULL,
+    `formSettingId` INTEGER NOT NULL,
 
-    INDEX `BusinessSurveyFeedbackSettings_formId_fkey`(`formId`),
     UNIQUE INDEX `BusinessSurveyFeedbackSettings_businessId_formId_key_key`(`businessId`, `formId`, `key`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -117,7 +111,6 @@ CREATE TABLE `Question` (
     `formId` INTEGER NOT NULL,
     `index` INTEGER NOT NULL,
 
-    INDEX `Question_formId_fkey`(`formId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -135,10 +128,11 @@ CREATE TABLE `QuestionConfiguration` (
 CREATE TABLE `BusinessQuestionConfiguration` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `questionId` INTEGER NOT NULL,
+    `formId` INTEGER NOT NULL,
     `key` VARCHAR(191) NOT NULL,
     `settings` JSON NOT NULL,
 
-    UNIQUE INDEX `BusinessQuestionConfiguration_questionId_key`(`questionId`),
+    UNIQUE INDEX `BusinessQuestionConfiguration_questionId_formId_key`(`questionId`, `formId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -148,8 +142,6 @@ CREATE TABLE `QuestionOnMedia` (
     `mediaId` INTEGER NOT NULL,
     `questionId` INTEGER NULL,
 
-    INDEX `QuestionOnMedia_mediaId_fkey`(`mediaId`),
-    INDEX `QuestionOnMedia_questionId_fkey`(`questionId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -163,7 +155,6 @@ CREATE TABLE `AnswerOption` (
     `description` VARCHAR(191) NULL,
     `formResponseId` INTEGER NULL,
 
-    INDEX `AnswerOption_questionId_fkey`(`questionId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -174,8 +165,6 @@ CREATE TABLE `AnswerOptionOnMedia` (
     `answerOptionId` INTEGER NULL,
     `index` INTEGER NULL,
 
-    INDEX `AnswerOptionOnMedia_answerOptionId_fkey`(`answerOptionId`),
-    INDEX `AnswerOptionOnMedia_mediaId_fkey`(`mediaId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -198,25 +187,28 @@ ALTER TABLE `Business` ADD CONSTRAINT `Business_userId_fkey` FOREIGN KEY (`userI
 ALTER TABLE `SurveyFeedback` ADD CONSTRAINT `SurveyFeedback_businessId_fkey` FOREIGN KEY (`businessId`) REFERENCES `Business`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `UserFormResponse` ADD CONSTRAINT `UserFormResponse_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `UserOnResponse` ADD CONSTRAINT `UserOnResponse_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `UserFormResponse` ADD CONSTRAINT `UserFormResponse_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `UserOnResponse` ADD CONSTRAINT `UserOnResponse_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FormResponseQuestion` ADD CONSTRAINT `FormResponseQuestion_answerOptionId_fkey` FOREIGN KEY (`answerOptionId`) REFERENCES `AnswerOption`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_answerOptionId_fkey` FOREIGN KEY (`answerOptionId`) REFERENCES `AnswerOption`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FormResponseQuestion` ADD CONSTRAINT `FormResponseQuestion_questionId_fkey` FOREIGN KEY (`questionId`) REFERENCES `Question`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_questionId_fkey` FOREIGN KEY (`questionId`) REFERENCES `Question`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FormResponseQuestion` ADD CONSTRAINT `FormResponseQuestion_userFormResponseId_fkey` FOREIGN KEY (`userFormResponseId`) REFERENCES `UserFormResponse`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_useronResponseId_fkey` FOREIGN KEY (`useronResponseId`) REFERENCES `UserOnResponse`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FormSettings` ADD CONSTRAINT `FormSettings_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `FormSettings` ADD CONSTRAINT `FormSettings_formSettingTypesId_fkey` FOREIGN KEY (`formSettingTypesId`) REFERENCES `SettingTypes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `BusinessSurveyFeedbackSettings` ADD CONSTRAINT `BusinessSurveyFeedbackSettings_formSettingId_fkey` FOREIGN KEY (`formSettingId`) REFERENCES `FormSettings`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `BusinessSurveyFeedbackSettings` ADD CONSTRAINT `BusinessSurveyFeedbackSettings_businessId_fkey` FOREIGN KEY (`businessId`) REFERENCES `Business`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -229,6 +221,9 @@ ALTER TABLE `Question` ADD CONSTRAINT `Question_formId_fkey` FOREIGN KEY (`formI
 
 -- AddForeignKey
 ALTER TABLE `BusinessQuestionConfiguration` ADD CONSTRAINT `BusinessQuestionConfiguration_questionId_fkey` FOREIGN KEY (`questionId`) REFERENCES `Question`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `BusinessQuestionConfiguration` ADD CONSTRAINT `BusinessQuestionConfiguration_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `QuestionOnMedia` ADD CONSTRAINT `QuestionOnMedia_mediaId_fkey` FOREIGN KEY (`mediaId`) REFERENCES `Media`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

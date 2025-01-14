@@ -1,3 +1,4 @@
+import { QuestionType } from '@prisma/client';
 import {
   IsInt,
   IsOptional,
@@ -8,6 +9,8 @@ import {
 export class ResponseDto {
   @IsInt()
   questionId: number;
+
+  questionType: QuestionType;
 
   @IsOptional()
   @IsInt()

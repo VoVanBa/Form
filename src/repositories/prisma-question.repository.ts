@@ -24,18 +24,35 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
-  async updateQuestionSetting(questionId: number, settings: any): Promise<any> {
+  async updateQuestionSetting(
+    questionId: number,
+    settings: any,
+    formId: number,
+  ): Promise<any> {
     return this.prismaService.businessQuestionConfiguration.update({
-      where: { questionId: questionId },
+      where: {
+        questionId_formId: {
+          questionId: questionId,
+          formId: formId,
+        },
+      },
       data: {
         settings: settings,
       },
     });
   }
 
-  async getBusinessQuestionConfigurationByQuestionId(questionId: number) {
+  async getBusinessQuestionConfigurationByQuestionId(
+    questionId: number,
+    formId: number,
+  ) {
     return this.prismaService.businessQuestionConfiguration.findUnique({
-      where: { questionId: questionId },
+      where: {
+        questionId_formId: {
+          questionId: questionId,
+          formId: formId,
+        },
+      },
     });
   }
 
@@ -43,6 +60,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     questionId: number,
     settings: any,
     key: string,
+    formId: number,
   ): Promise<any> {
     const businessConfig =
       await this.prismaService.businessQuestionConfiguration.create({
@@ -50,6 +68,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
           questionId: questionId,
           key: key,
           settings: settings,
+          formId: formId,
         },
         include: {
           question: true,
@@ -71,6 +90,14 @@ export class PrismaQuestionRepository implements QuestionRepository {
   async getSettingByQuestionType(questionType: QuestionType): Promise<any> {
     return this.prismaService.questionConfiguration.findFirst({
       where: { key: questionType },
+    });
+  }
+
+  async getSettingByFormId(formId: number): Promise<any> {
+    return this.prismaService.businessQuestionConfiguration.findMany({
+      where: {
+        formId: formId,
+      },
     });
   }
 
@@ -149,8 +176,9 @@ export class PrismaQuestionRepository implements QuestionRepository {
   }
 
   async deleteQuestionById(questionId: number): Promise<void> {
-    await this.prismaService.question.delete({
+    await this.prismaService.question.update({
       where: { id: questionId },
+      data: { isDeleted: true },
     });
   }
 

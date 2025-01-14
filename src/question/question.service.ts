@@ -143,6 +143,7 @@ export class QuestionService {
     await this.prismaQuestionRepository.updateQuestionSetting(
       questionId,
       updateQuestionDto.settings,
+      updateQuestionDto.formId,
     );
 
     await this.updateAnswerOptions(questionId, updateQuestionDto);
@@ -337,6 +338,7 @@ export class QuestionService {
       question.id,
       finalSettings,
       addQuestionDto.key,
+      formId,
     );
 
     // Cập nhật hình ảnh nếu cần

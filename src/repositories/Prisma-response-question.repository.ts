@@ -21,6 +21,7 @@ export class PrismaResponseQuestionRepository {
     userResponseId: number,
     answerText: string,
     ratingValue: number,
+    formId: number,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -29,6 +30,7 @@ export class PrismaResponseQuestionRepository {
         answerOptionId: answerOptionId, // Chắc chắn kiểu là number[] hoặc null
         answerText: answerText, // Chắc chắn kiểu là string hoặc null
         ratingValue: ratingValue, // Chắc chắn kiểu là number hoặc null
+        formId,
       },
     });
   }
