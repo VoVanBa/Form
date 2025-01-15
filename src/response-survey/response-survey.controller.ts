@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { Roles } from 'src/auth/decorater/role.customize';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { ResponseSurveyService } from './response-survey.service';
@@ -38,5 +38,10 @@ export class ResponseSurveyController {
         response,
       );
     return result;
+  }
+
+  @Get(':formId/get-ratio')
+  async getRatioSurveyResponse(@Param('formId') formId: number) {
+    return this.responseService.getDetailedSurveyResponses(formId);
   }
 }

@@ -190,16 +190,17 @@ export class ResponseSurveyService {
               `Question ID ${response.questionId} requires a rating value.`,
             );
           }
-          // Chỉ kiểm tra giá trị của range
+
           if (
-            response.ratingValue &&
-            response.ratingValue.toString() !== questionSettings.range &&
-            response.ratingValue < 0
+            response.ratingValue !== undefined &&
+            (response.ratingValue > parseFloat(questionSettings.range) ||
+              response.ratingValue <= 0)
           ) {
             errors.push(
-              `Question ID ${response.questionId} rating value must be ${questionSettings.range}.`,
+              `Question ID ${response.questionId}: Rating value must be between 0 and ${questionSettings.range}.`,
             );
           }
+
           break;
 
         default:
@@ -210,5 +211,99 @@ export class ResponseSurveyService {
     });
 
     return errors;
+  }
+
+  async getDetailedSurveyResponses(formId: number): Promise<any> {
+    const totalResponses =
+      await this.responseQuestionRepository.totalResponses(formId);
+
+    if (totalResponses === 0) {
+      throw new BadRequestException('No responses found');
+    }
+
+    const questions = await this.responseQuestionRepository.getAll(formId);
+
+    const detailedResponses = questions.map((question) => {
+      const responses = [];
+      let totalQuestionResponses = 0;
+
+      if (
+        question.questionType === 'SINGLE_CHOICE' ||
+        question.questionType === 'MULTI_CHOICE' ||
+        question.questionType === 'PICTURE_SELECTION'
+      ) {
+        question.answerOptions.forEach((option) => {
+          const count = question.responseOnQuestions.filter(
+            (response) => response.answerOptionId === option.id,
+          ).length;
+
+          totalQuestionResponses += count;
+          responses.push({
+            id: option.id,
+            label: option.label,
+            count,
+            percentage: (count / totalResponses) * 100,
+          });
+        });
+      } else if (question.questionType === 'RATING_SCALE') {
+        // Lấy mảng businessQuestionConfiguration
+        const configurations = question.businessQuestionConfiguration;
+
+        let range = 0; // Giá trị mặc định là 5 nếu không tìm thấy range
+
+        // -------------------lỗi-----------------
+        if (Array.isArray(configurations)) {
+          // Duyệt qua từng phần tử trong configurations để tìm range
+          const rangeSetting = configurations.find((config) => {
+            const settings = config.settings as any; // Ép kiểu JSON thành object
+            return settings?.range === 'range';
+          });
+
+          if (rangeSetting) {
+            const settings = rangeSetting.settings as any; // Ép kiểu JSON thành object
+            range = settings.range || 5; // Lấy giá trị range, nếu không có thì dùng mặc định
+          }
+        }
+
+        const ratingCounts = Array(range).fill(0);
+
+        question.responseOnQuestions.forEach((response) => {
+          if (
+            response.ratingValue &&
+            response.ratingValue >= 1 &&
+            response.ratingValue <= range
+          ) {
+            ratingCounts[response.ratingValue - 1]++;
+            totalQuestionResponses++;
+          }
+        });
+
+        for (let i = 0; i < range; i++) {
+          responses.push({
+            label: `Rating: ${i + 1}`,
+            count: ratingCounts[i],
+            percentage: (ratingCounts[i] / totalResponses) * 100,
+          });
+        }
+      } else if (question.questionType === 'INPUT_TEXT') {
+        const texts = question.responseOnQuestions
+          .filter((response) => response.answerText)
+          .map((response) => response.answerText);
+
+        responses.push(...texts.map((text) => ({ answerText: text })));
+      }
+
+      return {
+        questionId: question.id,
+        type: question.questionType,
+        headline: question.headline,
+        responses,
+      };
+    });
+
+    return {
+      totalResponses,
+      questions: detailedResponses,
+    };
   }
 }

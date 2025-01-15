@@ -7,14 +7,13 @@ import { ResponseDto } from 'src/response-survey/dtos/response.dto';
 export class PrismaResponseQuestionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // async create(data: CreateResponseOnQuestionDto, userResponseId: number) {
-  //   return this.prisma.responseOnQuestion.create({
-  //     data: {
-  //       ...data,
-  //       useronResponseId: userResponseId,
-  //     },
-  //   });
-  // }
+  async totalResponses(formId: number) {
+    return this.prisma.userOnResponse.count({
+      where: {
+        formId: formId,
+      },
+    });
+  }
   async create(
     questionId: number,
     answerOptionId: number,
@@ -25,12 +24,55 @@ export class PrismaResponseQuestionRepository {
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
-        useronResponseId: userResponseId, // Chắc chắn kiểu là number
-        questionId: questionId, // Chắc chắn kiểu là number
-        answerOptionId: answerOptionId, // Chắc chắn kiểu là number[] hoặc null
-        answerText: answerText, // Chắc chắn kiểu là string hoặc null
-        ratingValue: ratingValue, // Chắc chắn kiểu là number hoặc null
+        useronResponseId: userResponseId,
+        questionId: questionId,
+        answerOptionId: answerOptionId,
+        answerText: answerText,
+        ratingValue: ratingValue,
         formId,
+      },
+    });
+  }
+
+  async getGroupedResponsesByOption(formId: number) {
+    return this.prisma.responseOnQuestion.groupBy({
+      by: ['answerOptionId'],
+      where: { formId },
+      _count: {
+        answerOptionId: true,
+      },
+    });
+  }
+
+  async findDetailedResponses(formId: number) {
+    return this.prisma.responseOnQuestion.findMany({
+      where: { formId },
+      include: {
+        answerOption: {
+          include: {
+            answerOptionOnMedia: { include: { media: true } },
+          },
+        },
+        question: {
+          include: {
+            questionOnMedia: { include: { media: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async getAll(formId: number) {
+    return await this.prisma.question.findMany({
+      where: { formId },
+      include: {
+        answerOptions: true,
+        responseOnQuestions: true,
+        businessQuestionConfiguration: {
+          select: {
+            settings: true,
+          },
+        },
       },
     });
   }
