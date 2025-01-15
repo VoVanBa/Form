@@ -86,7 +86,7 @@ export class QuestionService {
         await this.prismaQuestionRepository.deleteQuestionById(questionId);
         handler = this.getHandlerForQuestionType(questionType);
       } else {
-        await this.updateQuestion(questionId, updateQuestionDto);
+        await this.updateQuestion(questionId, formId, updateQuestionDto);
 
         return question;
       }
@@ -105,6 +105,7 @@ export class QuestionService {
 
   private async updateQuestion(
     questionId: number,
+    formId: number,
     updateQuestionDto: UpdateQuestionDto,
   ) {
     const question = await this.prismaService.question.findFirst({
@@ -143,7 +144,7 @@ export class QuestionService {
     await this.prismaQuestionRepository.updateQuestionSetting(
       questionId,
       updateQuestionDto.settings,
-      updateQuestionDto.formId,
+      formId,
     );
 
     await this.updateAnswerOptions(questionId, updateQuestionDto);

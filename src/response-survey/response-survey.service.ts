@@ -6,6 +6,9 @@ import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { ResponseDto } from './dtos/response.dto';
 import { QuestionSetting } from './dtos/question.setting.dto';
+import { count } from 'console';
+import { SurveyResponse } from 'src/responses/user-responses.response';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ResponseSurveyService {
@@ -19,24 +22,21 @@ export class ResponseSurveyService {
     businessId: number,
     formId: number,
     createResponse: CreateResponseOnQuestionDto,
-    userId?: number, // userId is optional
+    userId?: number,
   ) {
     const { guestData, responses } = createResponse;
 
-    // Lấy form hiện tại
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException('Survey not found for this business');
     }
 
-    // Lấy cấu hình câu hỏi từ form
     const questionSettings =
       await this.questionRepository.getSettingByFormId(formId);
 
     console.log(questionSettings);
 
-    // Gọi validateResponses
     const validationErrors = await this.validateResponses(
       responses,
       questionSettings,
@@ -45,7 +45,6 @@ export class ResponseSurveyService {
       throw new BadRequestException(validationErrors);
     }
 
-    // Tạo phản hồi của người dùng
     const userSurveyResponse = await this.userResponseRepository.create(
       existingForm.id,
       guestData,
@@ -217,10 +216,6 @@ export class ResponseSurveyService {
     const totalResponses =
       await this.responseQuestionRepository.totalResponses(formId);
 
-    if (totalResponses === 0) {
-      throw new BadRequestException('No responses found');
-    }
-
     const questions = await this.responseQuestionRepository.getAll(formId);
 
     const detailedResponses = questions.map((question) => {
@@ -232,38 +227,41 @@ export class ResponseSurveyService {
         question.questionType === 'MULTI_CHOICE' ||
         question.questionType === 'PICTURE_SELECTION'
       ) {
+        const totalQuestion = question.responseOnQuestions.length;
+
         question.answerOptions.forEach((option) => {
           const count = question.responseOnQuestions.filter(
             (response) => response.answerOptionId === option.id,
           ).length;
 
-          totalQuestionResponses += count;
           responses.push({
             id: option.id,
             label: option.label,
             count,
-            percentage: (count / totalResponses) * 100,
+            percentage: ((count / totalQuestion) * 100).toFixed(2) || 0,
           });
         });
+        totalQuestionResponses = totalQuestion;
       } else if (question.questionType === 'RATING_SCALE') {
-        // Lấy mảng businessQuestionConfiguration
         const configurations = question.businessQuestionConfiguration;
+        console.log(configurations);
 
-        let range = 0; // Giá trị mặc định là 5 nếu không tìm thấy range
-
-        // -------------------lỗi-----------------
+        let range = 0;
         if (Array.isArray(configurations)) {
-          // Duyệt qua từng phần tử trong configurations để tìm range
           const rangeSetting = configurations.find((config) => {
-            const settings = config.settings as any; // Ép kiểu JSON thành object
-            return settings?.range === 'range';
+            const settings = config.settings as any;
+            return parseInt(settings.range);
           });
 
+          console.log(rangeSetting, 'rangeSetting');
+
           if (rangeSetting) {
-            const settings = rangeSetting.settings as any; // Ép kiểu JSON thành object
-            range = settings.range || 5; // Lấy giá trị range, nếu không có thì dùng mặc định
+            const settings = rangeSetting.settings as any;
+            range = parseInt(settings.range);
           }
         }
+
+        console.log(range, 'range');
 
         const ratingCounts = Array(range).fill(0);
 
@@ -280,9 +278,11 @@ export class ResponseSurveyService {
 
         for (let i = 0; i < range; i++) {
           responses.push({
-            label: `Rating: ${i + 1}`,
+            label: `${i + 1}`,
             count: ratingCounts[i],
-            percentage: (ratingCounts[i] / totalResponses) * 100,
+            percentage:
+              ((ratingCounts[i] / totalQuestionResponses) * 100).toFixed(2) ||
+              0,
           });
         }
       } else if (question.questionType === 'INPUT_TEXT') {
@@ -291,6 +291,7 @@ export class ResponseSurveyService {
           .map((response) => response.answerText);
 
         responses.push(...texts.map((text) => ({ answerText: text })));
+        totalQuestionResponses = responses.length;
       }
 
       return {
@@ -298,6 +299,7 @@ export class ResponseSurveyService {
         type: question.questionType,
         headline: question.headline,
         responses,
+        totalQuestionResponses,
       };
     });
 
@@ -305,5 +307,55 @@ export class ResponseSurveyService {
       totalResponses,
       questions: detailedResponses,
     };
+  }
+
+  async getUserResponse(formId: number) {
+    const form = await this.formRepository.getsurveyFeedbackById(formId);
+
+    if (!form) {
+      throw new BadRequestException('Survey not found');
+    }
+
+    const surveyResponseQuestions =
+      await this.userResponseRepository.getUserResponse(formId);
+
+    return surveyResponseQuestions;
+  }
+  async getDetailResponesFromUser(formId: number) {
+    const existingForm =
+      await this.formRepository.getsurveyFeedbackById(formId);
+    if (!existingForm) {
+      throw new BadRequestException('Survey not found for this business');
+    }
+    const userResponses =
+      await this.userResponseRepository.getDetailResponesFromUser(formId);
+    const formattedData = userResponses.map((userResponse) => ({
+      userId: userResponse.userId,
+      guest: {
+        name: (userResponse.guest as { name: string }).name, // Ép kiểu JSON thành kiểu có cấu trúc
+        address: (userResponse.guest as { address: string }).address,
+        phoneNumber: (userResponse.guest as { phoneNumber: string })
+          .phoneNumber,
+      },
+      responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
+        questionId: response.question.id,
+        headline: response.question.headline,
+        questionType: response.question.questionType,
+        answerText: response.answerText,
+        ratingValue: response.ratingValue,
+        answerOptions: response.question.answerOptions.map((option) => ({
+          answerOptionId: option.id,
+          value: option.label,
+        })),
+      })),
+    }));
+
+    return plainToInstance(
+      SurveyResponse,
+      { formId, userResponses: formattedData },
+      {
+        excludeExtraneousValues: true,
+      },
+    );
   }
 }

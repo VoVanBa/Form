@@ -44,4 +44,14 @@ export class ResponseSurveyController {
   async getRatioSurveyResponse(@Param('formId') formId: number) {
     return this.responseService.getDetailedSurveyResponses(formId);
   }
+
+  @Get(':formId')
+  async getUserResponse(@Param('formId') formId: number) {
+    return this.responseService.getUserResponse(formId);
+  }
+
+  @Get(':formId/detail')
+  async getDetailResponesFromUser(@Param('formId') formId: number) {
+    return this.responseService.getDetailResponesFromUser(formId);
+  }
 }

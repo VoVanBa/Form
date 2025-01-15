@@ -22,4 +22,31 @@ export class PrismaUserResponseRepository {
       },
     });
   }
+
+  async getUserResponse(formId: number) {
+    return this.prisma.userOnResponse.findMany({
+      where: {
+        formId: formId,
+      },
+    });
+  }
+
+  async getDetailResponesFromUser(formId: number) {
+    return this.prisma.userOnResponse.findMany({
+      where: {
+        formId: formId,
+      },
+      include: {
+        responseOnQuestions: {
+          include: {
+            question: {
+              include: {
+                answerOptions: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

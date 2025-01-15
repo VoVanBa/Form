@@ -11,7 +11,7 @@ import { AddAnswerOptionDto } from './add.answer.option.dto';
 import { Type } from 'class-transformer';
 
 export class UpdateQuestionDto {
-  formId: number;
+  // formId: number;
   @IsString()
   @IsOptional()
   headline?: string;

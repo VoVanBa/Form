@@ -6,8 +6,8 @@ import { PrismaBusinessRepository } from 'src/repositories/prims-business.reposi
 import { FormStatus } from '@prisma/client';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { plainToInstance } from 'class-transformer';
-import { SurveyFeedbackResponse } from 'src/surveyfeedback.response';
-import { FormSettingTypeResponse } from 'src/survey-feedback-setting-response';
+import { SurveyFeedbackResponse } from 'src/responses/surveyfeedback.response';
+import { FormSettingTypeResponse } from 'src/responses/survey-feedback-setting-response';
 
 @Injectable()
 export class SurveyFeedackFormService {
