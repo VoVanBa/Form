@@ -1,4 +1,5 @@
 // survey-feedback-response.ts
+import { User } from '@prisma/client';
 import { Expose, Type } from 'class-transformer';
 
 export class AnswerOptionResponse {
@@ -6,7 +7,7 @@ export class AnswerOptionResponse {
   answerOptionId: number;
 
   @Expose()
-  value: string;
+  lable: string;
 }
 
 export class QuestionResponse {
@@ -46,14 +47,26 @@ export class UserResponse {
   userId: number | null;
 
   @Expose()
+  username: string | null;
+
+  @Expose()
+  email: string | null;
+
+  @Expose()
   guest: GuestResponse;
+
+  @Expose()
+  user: User;
+
+  @Expose()
+  sentAt: Date;
 
   @Expose()
   @Type(() => QuestionResponse)
   responseOnQuestions: QuestionResponse[];
 }
 
-export class SurveyResponse {
+export class FormResponse {
   @Expose()
   formId: number;
 

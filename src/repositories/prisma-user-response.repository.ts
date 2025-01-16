@@ -37,6 +37,7 @@ export class PrismaUserResponseRepository {
         formId: formId,
       },
       include: {
+        user: true,
         responseOnQuestions: {
           include: {
             question: {

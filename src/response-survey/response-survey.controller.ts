@@ -1,31 +1,45 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { Roles } from 'src/auth/decorater/role.customize';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { ResponseSurveyService } from './response-survey.service';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/role-auth.guard';
+import { UsersService } from 'src/users/users.service';
 
 @Controller('response-survey')
 export class ResponseSurveyController {
-  constructor(private readonly responseService: ResponseSurveyService) {}
-  //   @Post('business/:businessId')
-  //   //   @Roles('CUSTOMER')
-  //   //   @UseGuards(JwtAuthGuard, RolesGuard)
-  //   async saveGuestInfoAndResponsesNotAllowAnonymous(
-  //     @Body() response: CreateResponseOnQuestionDto,
-  //     @Headers('authorization') jwt: string,
-  //     @Param('businessId', ParseIntPipe) businessId: number,
-  //   ): Promise<any> {
-  //     const user = await this.userService.getUserByJwt(jwt);
-  //     const result =
-  //       await this.responseService.saveGuestInfoAndResponsesNotAllowAnonymous(
-  //         response,
-  //         user.id,
-  //         businessId,
-  //       );
-  //     return result;
-  //   }
-  @Post('form/:formId/business/:businessId')
-  // @Roles('CUSTOMER')
-  //   @UseGuards(JwtAuthGuard, RolesGuard)
+  constructor(
+    private readonly responseService: ResponseSurveyService,
+    private userService: UsersService,
+  ) {}
+  @Post('form/:formId/business/:businessId/')
+  @Roles('CUSTOMER')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async saveGuestInfoAndResponsesNotAllowAnonymous(
+    @Body() response: CreateResponseOnQuestionDto,
+    @Headers('authorization') jwt: string,
+    @Param('businessId') businessId: number,
+    @Param('formId') formId: number,
+  ): Promise<any> {
+    const user = await this.userService.getUserByJwt(jwt);
+    const result =
+      await this.responseService.saveGuestInfoAndResponsesNotAllowAnonymous(
+        businessId,
+        formId,
+        response,
+        user.id,
+      );
+    return result;
+  }
+  @Post('form/:formId/business/:businessId/allowAnonymous')
   async saveGuestInfoAndResponsesAllowAnonymous(
     @Body() response: CreateResponseOnQuestionDto,
     @Param('businessId') businessId: number,

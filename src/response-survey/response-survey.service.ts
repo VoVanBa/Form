@@ -6,8 +6,7 @@ import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { ResponseDto } from './dtos/response.dto';
 import { QuestionSetting } from './dtos/question.setting.dto';
-import { count } from 'console';
-import { SurveyResponse } from 'src/responses/user-responses.response';
+import { FormResponse } from 'src/responses/user-responses.response';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
@@ -327,31 +326,52 @@ export class ResponseSurveyService {
     if (!existingForm) {
       throw new BadRequestException('Survey not found for this business');
     }
+
     const userResponses =
       await this.userResponseRepository.getDetailResponesFromUser(formId);
+
+    console.log(userResponses);
+
     const formattedData = userResponses.map((userResponse) => ({
-      userId: userResponse.userId,
-      guest: {
-        name: (userResponse.guest as { name: string }).name, // Ép kiểu JSON thành kiểu có cấu trúc
-        address: (userResponse.guest as { address: string }).address,
-        phoneNumber: (userResponse.guest as { phoneNumber: string })
-          .phoneNumber,
-      },
+      sentAt: userResponse.sentAt,
+      user:
+        userResponse.userId !== null && userResponse.user
+          ? {
+              name: userResponse.user.username || null,
+              email: userResponse.user.email || null,
+            }
+          : null,
+
+      guest:
+        userResponse.guest && typeof userResponse.guest === 'object'
+          ? {
+              name: (userResponse.guest as { name?: string }).name || '',
+              address:
+                (userResponse.guest as { address?: string }).address || '',
+              phoneNumber:
+                (userResponse.guest as { phoneNumber?: string }).phoneNumber ||
+                '',
+            }
+          : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
         questionId: response.question.id,
         headline: response.question.headline,
         questionType: response.question.questionType,
         answerText: response.answerText,
         ratingValue: response.ratingValue,
-        answerOptions: response.question.answerOptions.map((option) => ({
-          answerOptionId: option.id,
-          value: option.label,
-        })),
+        answerOptions: response.question.answerOptions
+          .filter((option) => option.id === response.answerOptionId)
+          .map((option) => ({
+            answerOptionId: option.id,
+            label: option.label,
+          })),
       })),
     }));
 
+    // console.log(userResponse.userId);
+
     return plainToInstance(
-      SurveyResponse,
+      FormResponse,
       { formId, userResponses: formattedData },
       {
         excludeExtraneousValues: true,
