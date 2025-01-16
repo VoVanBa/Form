@@ -23,7 +23,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { QuestionType } from '@prisma/client';
 
-@Controller('survey')
+@Controller('form')
 export class QuestionController {
   constructor(private questionService: QuestionService) {}
   // --------------question----------------

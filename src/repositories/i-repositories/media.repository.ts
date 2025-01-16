@@ -11,9 +11,12 @@ export interface IMediaRepository {
   updateMedia(id: number, media: Partial<Media>): Promise<Media>;
   deleteMediaById(id: number): Promise<void>;
   getQuestionOnMediaByMediaId(mediaId: number): Promise<QuestionOnMedia | null>;
-  updateQuestionOnMedia(questionId: number, mediaId: number)
+  updateQuestionOnMedia(questionId: number, mediaId: number);
   updateAnswerOptionOnMedia(
     mediaId: number,
     answerOptionId: number,
   ): Promise<any>;
+  getAnswerOptionByAnswerOptionId(answerOptionId: number);
+  getQuestionOnMediaByQuestionId(questionId: number);
+  updateQuestionOnMedia(questionId: number, mediaId: number);
 }

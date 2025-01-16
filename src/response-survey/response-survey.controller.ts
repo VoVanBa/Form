@@ -39,6 +39,7 @@ export class ResponseSurveyController {
       );
     return result;
   }
+
   @Post('form/:formId/business/:businessId/allowAnonymous')
   async saveGuestInfoAndResponsesAllowAnonymous(
     @Body() response: CreateResponseOnQuestionDto,

@@ -88,11 +88,11 @@ export class SurveyFeedbackFormController {
     return { message: 'Survey settings updated successfully' };
   }
   @Get(':formId/business/:businessId/setting')
-  async getSettingTypeWithBusinessSettings(
+  async getAllBusinessSettings(
     @Param('formId') formId: number,
     @Param('businessId') businessId: number,
   ) {
-    return this.surveyFeedbackFormService.getSettingTypeWithBusinessSettings(
+    return this.surveyFeedbackFormService.getAllBusinessSettings(
       businessId,
       formId,
     );

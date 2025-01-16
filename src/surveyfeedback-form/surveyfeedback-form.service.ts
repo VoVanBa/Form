@@ -141,15 +141,14 @@ export class SurveyFeedackFormService {
   //   );
   // }
 
-  async getSettingTypeWithBusinessSettings(
+  async getAllBusinessSettings(
     businessId: number,
     formId: number,
   ): Promise<FormSettingTypeResponse[]> {
-    const businessSettings =
-      await this.formSetting.getSettingTypeWithBusinessSettings(
-        businessId,
-        formId,
-      );
+    const businessSettings = await this.formSetting.getAllBusinessSettingTypes(
+      businessId,
+      formId,
+    );
 
     if (!Array.isArray(businessSettings) || businessSettings.length === 0) {
       throw new Error('No settings found');

@@ -140,7 +140,7 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
       },
     });
   }
-  async getSettingTypeWithBusinessSettings(businessId: number, formId: number) {
+  async getAllBusinessSettingTypes(businessId: number, formId: number) {
     const formSettingTypes = await this.prisma.settingTypes.findMany({
       include: {
         settings: {
@@ -161,5 +161,14 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
     });
 
     return formSettingTypes;
+  }
+
+  async getAllFormSettingBusiness(businessId: number, formId: number) {
+    return this.prisma.businessSurveyFeedbackSettings.findMany({
+      where: {
+        businessId: businessId,
+        formId: formId,
+      },
+    });
   }
 }

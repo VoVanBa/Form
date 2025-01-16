@@ -8,6 +8,8 @@ import { ResponseDto } from './dtos/response.dto';
 import { QuestionSetting } from './dtos/question.setting.dto';
 import { FormResponse } from 'src/responses/user-responses.response';
 import { plainToInstance } from 'class-transformer';
+import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
+import { FormSettingDto } from './dtos/form.setting.dto';
 
 @Injectable()
 export class ResponseSurveyService {
@@ -16,6 +18,7 @@ export class ResponseSurveyService {
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     private questionRepository: PrismaQuestionRepository,
+    private formSetting: PrismaFormSettingRepository,
   ) {}
   async saveGuestInfoAndResponses(
     businessId: number,
@@ -31,11 +34,33 @@ export class ResponseSurveyService {
       throw new BadRequestException('Survey not found for this business');
     }
 
+    const settings = await this.formSetting.getAllFormSettingBusiness(
+      businessId,
+      formId,
+    );
+    const transformedSettings: FormSettingDto[] = settings.map((setting) => ({
+      key: setting.key,
+      settings: {
+        enabled: (setting.value as any)?.enabled,
+        limit: (setting.value as any)?.limit,
+        date: (setting.value as any)?.date,
+        position: (setting.value as any)?.position,
+      },
+    }));
+    console.log(settings);
+
+    const validationFormErrors = await this.validateResponseOptions(
+      formId,
+      transformedSettings,
+    );
+    console.log(settings, 'transformedSettings');
+
+    if (validationFormErrors.length > 0) {
+      throw new BadRequestException(validationFormErrors);
+    }
+
     const questionSettings =
       await this.questionRepository.getSettingByFormId(formId);
-
-    console.log(questionSettings);
-
     const validationErrors = await this.validateResponses(
       responses,
       questionSettings,
@@ -104,6 +129,63 @@ export class ResponseSurveyService {
     );
   }
 
+  async validateResponseOptions(
+    formId: number,
+    responseOptions: FormSettingDto[],
+  ) {
+    const errors: string[] = [];
+    const currentDate = new Date();
+
+    const totalResponses =
+      await this.responseQuestionRepository.totalResponses(formId);
+
+    responseOptions.forEach((formSetting) => {
+      const { enabled, limit, date } = formSetting.settings;
+
+      console.log(enabled, limit, date);
+
+      if (enabled) {
+        if (formSetting.key === 'closeOnResponseLimit') {
+          if (enabled && totalResponses > limit) {
+            errors.push(
+              `'closeOnResponseLimit' is enabled but 'limit' is not set or invalid in group '${formSetting.key}'.`,
+            );
+          }
+        } else if (formSetting.key === 'releaseOnDate') {
+          if (enabled && date) {
+            const releaseDate = new Date(date);
+            if (releaseDate > currentDate) {
+              errors.push(
+                `Survey is scheduled to release on ${date} and cannot be accessed yet in group '${formSetting.key}'.`,
+              );
+            }
+          } else if (enabled && !date) {
+            errors.push(
+              `'releaseOnDate' is enabled but no 'date' is specified in group '${formSetting.key}'.`,
+            );
+          }
+        } else if (formSetting.key === 'closeOnDate') {
+          if (enabled && date) {
+            const closeDate = new Date(date);
+            console.log(closeDate, date, 'sddddd');
+            console.log(closeDate <= currentDate, 'jaksjsjạ');
+            if (closeDate <= currentDate) {
+              errors.push(
+                `Survey was closed on ${date} and is no longer accessible in group '${formSetting.key}'.`,
+              );
+            }
+          } else if (enabled && !date) {
+            errors.push(
+              `'closeOnDate' is enabled but no 'date' is specified in group '${formSetting.key}'.`,
+            );
+          }
+        }
+      }
+    });
+
+    return errors;
+  }
+
   async validateResponses(
     responses: ResponseDto[],
     settings: QuestionSetting[],
@@ -122,7 +204,6 @@ export class ResponseSurveyService {
 
       const { settings: questionSettings } = questionSetting;
 
-      // Kiểm tra nếu câu hỏi là bắt buộc
       if (
         questionSettings.require &&
         !response.answerText &&
@@ -367,8 +448,6 @@ export class ResponseSurveyService {
           })),
       })),
     }));
-
-    // console.log(userResponse.userId);
 
     return plainToInstance(
       FormResponse,

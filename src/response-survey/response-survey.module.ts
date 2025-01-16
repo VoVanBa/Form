@@ -8,6 +8,7 @@ import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-respon
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 
 @Module({
   controllers: [ResponseSurveyController],
@@ -20,6 +21,7 @@ import { JwtService } from '@nestjs/jwt';
     PrismaQuestionRepository,
     UsersService,
     JwtService,
+    PrismaFormSettingRepository,
   ],
 })
 export class ResponseSurveyModule {}
