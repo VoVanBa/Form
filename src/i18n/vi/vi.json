@@ -1,0 +1,15 @@
+{
+    "errors": {
+      "surveyFeedbackNotFound": "Không tìm thấy khảo sát",
+      "questionNotFound": "Không tìm thấy câu hỏi",
+      "imageNotFound": "Hình ảnh không tìm thấy hoặc đã được liên kết với câu hỏi khác",
+      "mustHaveAtLeastTwoChoices": "Phải có ít nhất 2 lựa chọn",
+      "alreadyAtTop": "Câu hỏi này đã ở trên cùng",
+      "alreadyAtBottom": "Câu hỏi này đã ở dưới cùng"
+    },
+    "messages": {
+      "questionMovedUp": "Di chuyển câu hỏi lên thành công",
+      "questionMovedDown": "Di chuyển câu hỏi xuống thành công"
+    }
+  }
+  

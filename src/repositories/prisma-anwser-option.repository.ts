@@ -21,7 +21,7 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
         questionId,
         label: answerOptions.label,
         isActive: answerOptions.isActive,
-        sortOrder: index,
+        index: index,
         description: answerOptions.description,
       },
     });

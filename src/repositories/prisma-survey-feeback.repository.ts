@@ -1,9 +1,10 @@
+import { QuestionMedia } from './../responses/surveyfeedback.response';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/form.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
-import { FormStatus, SurveyFeedback } from '@prisma/client';
+import { FormStatus, SurveyFeedback, Media } from '@prisma/client';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -24,6 +25,29 @@ export class PrismasurveyFeedbackRepository
   async getsurveyFeedbackById(id: number) {
     return this.prisma.surveyFeedback.findUnique({
       where: { id },
+      include: {
+        questions: {
+          orderBy: { index: 'asc' },
+          include: {
+            questionOnMedia: {
+              include: {
+                media: true,
+              },
+            },
+            answerOptions: {
+              orderBy: { index: 'asc' },
+              include: {
+                answerOptionOnMedia: {
+                  include: {
+                    media: true,
+                  },
+                },
+              },
+            },
+            businessQuestionConfiguration: true,
+          },
+        },
+      },
     });
   }
   async getAllsurveyFeedbacks(businessId: number) {

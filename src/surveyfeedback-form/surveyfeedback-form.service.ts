@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-form.repository';
+import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
@@ -46,16 +46,21 @@ export class SurveyFeedackFormService {
     id: number,
     businessId: number,
   ): Promise<SurveyFeedbackResponse> {
-    const business = this.businessRepository.getbusinessbyId(businessId);
+    const business = await this.businessRepository.getbusinessbyId(businessId);
     if (!business) {
-      throw new BadRequestException('not found business');
+      throw new BadRequestException('Business not found');
     }
-    const surveyFeedback = this.formRepository.getsurveyFeedbackById(id);
+
+    const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
+    if (!surveyFeedback) {
+      throw new BadRequestException('Survey Feedback not found');
+    }
 
     return plainToInstance(SurveyFeedbackResponse, surveyFeedback, {
       excludeExtraneousValues: true,
     });
   }
+
   async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {
     return this.formRepository.updatesurveyFeedback(id, updateFormDto);
   }

@@ -1,0 +1,15 @@
+{
+    "errors": {
+      "surveyFeedbackNotFound": "Survey feedback not found",
+      "questionNotFound": "Question not found",
+      "imageNotFound": "Image not found or already associated with another question",
+      "mustHaveAtLeastTwoChoices": "Must have at least 2 choices",
+      "alreadyAtTop": "This question is already at the top",
+      "alreadyAtBottom": "This question is already at the bottom"
+    },
+    "messages": {
+      "questionMovedUp": "Question moved up successfully",
+      "questionMovedDown": "Question moved down successfully"
+    }
+  }
+  

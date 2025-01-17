@@ -26,7 +26,7 @@ import { QuestionType } from '@prisma/client';
 @Controller('form')
 export class QuestionController {
   constructor(private questionService: QuestionService) {}
-  // --------------question----------------
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':formId')
   async getAllQuestions(@Param('formId') formId: number) {
@@ -78,7 +78,7 @@ export class QuestionController {
       },
     }),
   )
-  async uploadImages(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadAnswerOptionImages(@UploadedFiles() files: Express.Multer.File[]) {
     try {
       if (!files || files.length === 0) {
         throw new HttpException('No files provided', HttpStatus.BAD_REQUEST);
@@ -103,9 +103,8 @@ export class QuestionController {
   @Post('upload-image/question')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 5 * 1024 * 1024 },
+      limits: { fileSize: 1 * 1024 * 1024 },
       fileFilter: (req, file, callback) => {
-        // Kiểm tra định dạng file
         if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
           return callback(
             new BadRequestException('Only image files are allowed!'),
@@ -116,7 +115,7 @@ export class QuestionController {
       },
     }),
   )
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadQuestionImage(@UploadedFile() file: Express.Multer.File) {
     try {
       if (!file) {
         throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
@@ -179,12 +178,4 @@ export class QuestionController {
   ) {
     return this.questionService.handleQuestionOrderDown(questionId, formId);
   }
-
-  // @Post(':surveyId/questions')
-  // async addOrUpdateQuestions(
-  //   @Param('surveyId', ParseIntPipe) surveyId: number,
-  //   @Body() addQuestionDtos: AddQuestionDto[],
-  // ) {
-  //   return this.questionService.addOrUpdateQuestions(surveyId, addQuestionDtos);
-  // }
 }

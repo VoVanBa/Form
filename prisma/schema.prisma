@@ -54,11 +54,11 @@ model SurveyFeedback {
 }
 
 model UserOnResponse {
-  id     Int      @id @default(autoincrement())
-  formId Int
-  userId Int?
-  guest  Json?
-  sentAt DateTime @default(now())
+  id                  Int                  @id @default(autoincrement())
+  formId              Int
+  userId              Int?
+  guest               Json?
+  sentAt              DateTime             @default(now())
   responseOnQuestions ResponseOnQuestion[]
   form                SurveyFeedback       @relation(fields: [formId], references: [id], onDelete: Cascade)
   user                User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -155,7 +155,7 @@ model AnswerOption {
   questionId          Int
   label               String?
   isActive            Boolean               @default(true)
-  sortOrder           Int?
+  index               Int?
   description         String?
   //formResponseId      Int?
   question            Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
