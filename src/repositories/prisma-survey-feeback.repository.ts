@@ -2,7 +2,7 @@ import { QuestionMedia } from './../responses/surveyfeedback.response';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
-import { IsurveyFeedbackRepository } from './i-repositories/form.repository';
+import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
 import { FormStatus, SurveyFeedback, Media } from '@prisma/client';
 
@@ -27,6 +27,7 @@ export class PrismasurveyFeedbackRepository
       where: { id },
       include: {
         questions: {
+          where: { isDeleted: false },
           orderBy: { index: 'asc' },
           include: {
             questionOnMedia: {

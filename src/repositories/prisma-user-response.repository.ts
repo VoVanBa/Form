@@ -36,13 +36,25 @@ export class PrismaUserResponseRepository {
       where: {
         formId: formId,
       },
+      orderBy: {
+        sentAt: 'desc', // Sorting the parent model `userOnResponse` by `sentAt`
+      },
       include: {
         user: true,
         responseOnQuestions: {
+          // orderBy: { sentAt: 'desc' },
           include: {
             question: {
               include: {
-                answerOptions: true,
+                answerOptions: {
+                  include: {
+                    answerOptionOnMedia: {
+                      include: {
+                        media: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -50,4 +62,32 @@ export class PrismaUserResponseRepository {
       },
     });
   }
+
+  // async getDetailResponesFromUser(formId: number) {
+  //   return this.prisma.question.findMany({
+  //     where: {
+  //       formId: formId,
+  //     },
+  //     include: {
+  //       responseOnQuestions: {
+  //         include: {
+  //           userResponse: {
+  //             include: {
+  //               user: true,
+  //             },
+  //           },
+  //           answerOption: {
+  //             include: {
+  //               answerOptionOnMedia: {
+  //                 include: {
+  //                   media: true,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }

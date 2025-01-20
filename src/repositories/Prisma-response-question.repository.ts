@@ -66,7 +66,15 @@ export class PrismaResponseQuestionRepository {
     return await this.prisma.question.findMany({
       where: { formId: formId, isDeleted: false },
       include: {
-        answerOptions: true,
+        answerOptions: {
+          include: {
+            answerOptionOnMedia: {
+              include: {
+                media: true,
+              },
+            },
+          },
+        },
         responseOnQuestions: true,
         businessQuestionConfiguration: {
           select: {

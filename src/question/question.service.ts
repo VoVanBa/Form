@@ -591,7 +591,7 @@ import {
 } from '@nestjs/common';
 import { AddQuestionDto } from './dtos/add.question.dto';
 import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryUploadResult } from 'src/feedback/dtos/cloudinary.upload.result';
+// import { CloudinaryUploadResult } from 'src/feedback/dtos/cloudinary.upload.result';
 import { PrismaService } from 'src/config/prisma.service';
 import { Prisma, QuestionType } from '@prisma/client';
 import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
@@ -602,6 +602,7 @@ import { defaultQuestionSettings } from 'src/config/default.question.settings';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { I18nService } from 'nestjs-i18n';
+import { CloudinaryUploadResult } from './dtos/cloudinary.upload.result';
 
 @Injectable()
 export class QuestionService {
@@ -625,13 +626,26 @@ export class QuestionService {
         surveyFeedBackId,
       );
     if (!form) {
-      throw new Error(this.i18n.translate('errors.surveyFeedbackNotFound'));
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+
+    const quantityAnserOption =
+      await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+        questionId,
+      );
+
+    if (quantityAnserOption <= 2) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.ANSWEROPTIONSMUSTBEGREATERTHANTWO'),
+      );
     }
 
     const question =
       await this.prismaQuestionRepository.getQuessionById(questionId);
     if (!question) {
-      throw new Error(this.i18n.translate('errors.questionNotFound'));
+      throw new Error(this.i18n.translate('errors.QUESTIONNOTFOUND'));
     }
 
     const answerOption = await this.prismaService.answerOption.delete({
@@ -656,7 +670,9 @@ export class QuestionService {
       await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
 
     if (!form) {
-      throw new BadRequestException(this.i18n.translate('errors.formNotFound'));
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
 
     const { questionType, questionId } = updateQuestionDto;
@@ -669,7 +685,7 @@ export class QuestionService {
 
       if (!question) {
         throw new BadRequestException(
-          this.i18n.translate('errors.questionNotFound'),
+          this.i18n.translate('errors.QUESTIONNOTFOUND'),
         );
       }
 
@@ -699,7 +715,7 @@ export class QuestionService {
 
     if (!question) {
       throw new BadRequestException(
-        this.i18n.translate('errors.questionNotFound'),
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
 
@@ -790,11 +806,11 @@ export class QuestionService {
         }),
       );
 
-      await this.deleteRemovedAnswerOptions(questionId, answerOptionsId);
+      await this.deleteAnswerOptions(questionId, answerOptionsId);
     }
   }
 
-  private async deleteRemovedAnswerOptions(
+  private async deleteAnswerOptions(
     questionId: number,
     answerOptionsId: number[],
   ) {
@@ -823,7 +839,7 @@ export class QuestionService {
 
     if (!existingImage) {
       throw new BadRequestException(
-        this.i18n.translate('errors.imageNotFound'),
+        this.i18n.translate('errors.IMAGENOTFOUND'),
       );
     }
 
@@ -942,7 +958,7 @@ export class QuestionService {
 
     if (answerOptions.length < 2) {
       throw new BadRequestException(
-        this.i18n.translate('errors.mustHaveAtLeastTwoChoices'),
+        this.i18n.translate('errors.MUSTHAVEATLEASTTWOCHOICES'),
       );
     }
 
@@ -960,7 +976,7 @@ export class QuestionService {
         if (finalQuestionType === QuestionType.PICTURE_SELECTION) {
           if (!option.imageIds) {
             throw new BadRequestException(
-              this.i18n.translate('errors.imageNotFound'),
+              this.i18n.translate('errors.IMAGENOTFOUND'),
             );
           }
           await this.updateAnswerOptionImages(
@@ -1043,7 +1059,9 @@ export class QuestionService {
     const form =
       await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
     if (!form) {
-      throw new NotFoundException(this.i18n.translate('errors.formNotFound'));
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
     const question =
       await this.prismaQuestionRepository.deleteQuestionById(questionId);
@@ -1069,7 +1087,7 @@ export class QuestionService {
 
     if (!surveyFeedBack) {
       throw new NotFoundException(
-        this.i18n.translate('errors.surveyFeedbackNotFound'),
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
 
@@ -1078,7 +1096,7 @@ export class QuestionService {
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
       throw new NotFoundException(
-        this.i18n.translate('errors.questionNotFound'),
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
 
@@ -1086,7 +1104,7 @@ export class QuestionService {
     const prevQuestion = questions[questionIndex - 1];
 
     if (!prevQuestion) {
-      return { message: this.i18n.translate('errors.alreadyAtTop') };
+      return { message: this.i18n.translate('errors.ALREADYATTOP') };
     }
 
     await this.prismaQuestionRepository.updateIndexQuestion(
@@ -1099,7 +1117,7 @@ export class QuestionService {
       prevQuestion.index,
     );
 
-    return { message: this.i18n.translate('messages.questionMovedUp') };
+    return { message: this.i18n.translate('messages.QUESTIONMOVEDUP') };
   }
 
   async handleQuestionOrderDown(questionId: number, formId: number) {
@@ -1117,7 +1135,7 @@ export class QuestionService {
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
       throw new NotFoundException(
-        this.i18n.translate('errors.questionNotFound'),
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
 
@@ -1125,7 +1143,7 @@ export class QuestionService {
     const nextQuestion = questions[questionIndex + 1];
 
     if (!nextQuestion) {
-      return { message: this.i18n.translate('errors.alreadyAtBottom') };
+      return { message: this.i18n.translate('errors.QUESTIONMOVEDDOWN') };
     }
 
     await this.prismaQuestionRepository.updateIndexQuestion(
@@ -1138,6 +1156,6 @@ export class QuestionService {
       nextQuestion.index,
     );
 
-    return { message: this.i18n.translate('messages.questionMovedDown') };
+    return { message: this.i18n.translate('messages.QUESTIONMOVEDDOWN') };
   }
 }

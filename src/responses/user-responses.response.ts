@@ -1,13 +1,27 @@
-// survey-feedback-response.ts
 import { User } from '@prisma/client';
 import { Expose, Type } from 'class-transformer';
+
+export class MediaResponse {
+  @Expose()
+  url: string;
+}
 
 export class AnswerOptionResponse {
   @Expose()
   answerOptionId: number;
 
   @Expose()
-  lable: string;
+  label: string;
+
+  @Expose()
+  @Type(() => AnswerOptionOnMediaResponse)
+  mediaUrl: AnswerOptionOnMediaResponse[];
+}
+
+export class AnswerOptionOnMediaResponse {
+  @Expose()
+  @Type(() => MediaResponse)
+  media: MediaResponse;
 }
 
 export class QuestionResponse {

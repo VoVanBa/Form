@@ -10,6 +10,7 @@ import { FormResponse } from 'src/responses/user-responses.response';
 import { plainToInstance } from 'class-transformer';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { FormSettingDto } from './dtos/form.setting.dto';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class ResponseSurveyService {
@@ -19,6 +20,7 @@ export class ResponseSurveyService {
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     private questionRepository: PrismaQuestionRepository,
     private formSetting: PrismaFormSettingRepository,
+    private readonly i18n: I18nService,
   ) {}
   async saveGuestInfoAndResponses(
     businessId: number,
@@ -31,7 +33,9 @@ export class ResponseSurveyService {
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
-      throw new BadRequestException('Survey not found for this business');
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTFOUNDFORTHISBUSINESS'),
+      );
     }
 
     const settings = await this.formSetting.getAllFormSettingBusiness(
@@ -53,7 +57,6 @@ export class ResponseSurveyService {
       formId,
       transformedSettings,
     );
-    console.log(settings, 'transformedSettings');
 
     if (validationFormErrors.length > 0) {
       throw new BadRequestException(validationFormErrors);
@@ -61,7 +64,7 @@ export class ResponseSurveyService {
 
     const questionSettings =
       await this.questionRepository.getSettingByFormId(formId);
-    const validationErrors = await this.validateResponses(
+    const validationErrors = await this.validateQuestionResponses(
       responses,
       questionSettings,
     );
@@ -146,9 +149,11 @@ export class ResponseSurveyService {
 
       if (enabled) {
         if (formSetting.key === 'closeOnResponseLimit') {
-          if (enabled && totalResponses > limit) {
+          if (enabled && totalResponses >= limit) {
             errors.push(
-              `'closeOnResponseLimit' is enabled but 'limit' is not set or invalid in group '${formSetting.key}'.`,
+              this.i18n.translate('errors.RESPONSELIMITEXCEEDED', {
+                args: { key: formSetting.key },
+              }),
             );
           }
         } else if (formSetting.key === 'releaseOnDate') {
@@ -156,12 +161,16 @@ export class ResponseSurveyService {
             const releaseDate = new Date(date);
             if (releaseDate > currentDate) {
               errors.push(
-                `Survey is scheduled to release on ${date} and cannot be accessed yet in group '${formSetting.key}'.`,
+                this.i18n.translate('errors.SURVEYNOTYETRELEASED', {
+                  args: { date, key: formSetting.key },
+                }),
               );
             }
           } else if (enabled && !date) {
             errors.push(
-              `'releaseOnDate' is enabled but no 'date' is specified in group '${formSetting.key}'.`,
+              this.i18n.translate('errors.RELEASEONDATEWITHOUTDATE', {
+                args: { key: formSetting.key },
+              }),
             );
           }
         } else if (formSetting.key === 'closeOnDate') {
@@ -171,12 +180,16 @@ export class ResponseSurveyService {
             console.log(closeDate <= currentDate, 'jaksjsjạ');
             if (closeDate <= currentDate) {
               errors.push(
-                `Survey was closed on ${date} and is no longer accessible in group '${formSetting.key}'.`,
+                this.i18n.translate('errors.SURVEYCLOSED', {
+                  args: { date, key: formSetting.key },
+                }),
               );
             }
           } else if (enabled && !date) {
             errors.push(
-              `'closeOnDate' is enabled but no 'date' is specified in group '${formSetting.key}'.`,
+              this.i18n.translate('errors.CLOSEONDATEWITHOUTDATE', {
+                args: { key: formSetting.key },
+              }),
             );
           }
         }
@@ -186,7 +199,7 @@ export class ResponseSurveyService {
     return errors;
   }
 
-  async validateResponses(
+  async validateQuestionResponses(
     responses: ResponseDto[],
     settings: QuestionSetting[],
   ) {
@@ -198,7 +211,11 @@ export class ResponseSurveyService {
       );
 
       if (!questionSetting) {
-        errors.push(`No settings found for question ID ${response.questionId}`);
+        errors.push(
+          this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+            args: { questionId: response.questionId },
+          }),
+        );
         return;
       }
 
@@ -211,7 +228,9 @@ export class ResponseSurveyService {
         response.ratingValue === undefined
       ) {
         errors.push(
-          `Question ID ${response.questionId} is required but not answered.`,
+          this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+            args: { questionId: response.questionId },
+          }),
         );
         return;
       }
@@ -234,7 +253,9 @@ export class ResponseSurveyService {
               (questionSettings.minSelections || 1)
             ) {
               errors.push(
-                `Question ID ${response.questionId} requires at least ${questionSettings.minSelections} selections.`,
+                this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+                  args: { questionId: response.questionId },
+                }),
               );
             }
             if (
@@ -247,7 +268,9 @@ export class ResponseSurveyService {
             }
           } else if (questionSettings.require) {
             errors.push(
-              `Question ID ${response.questionId} requires at least one selection.`,
+              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+                args: { questionId: response.questionId },
+              }),
             );
           }
           break;
@@ -255,7 +278,9 @@ export class ResponseSurveyService {
         case 'INPUT_TEXT':
           if (questionSettings.require && !response.answerText) {
             errors.push(
-              `Question ID ${response.questionId} requires an input text.`,
+              this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
+                args: { questionId: response.questionId },
+              }),
             );
           }
           break;
@@ -266,7 +291,9 @@ export class ResponseSurveyService {
             response.ratingValue === undefined
           ) {
             errors.push(
-              `Question ID ${response.questionId} requires a rating value.`,
+              this.i18n.translate('errors.QUESTIONREQUIRESRATINGVALUE', {
+                args: { questionId: response.questionId },
+              }),
             );
           }
 
@@ -276,7 +303,9 @@ export class ResponseSurveyService {
               response.ratingValue <= 0)
           ) {
             errors.push(
-              `Question ID ${response.questionId}: Rating value must be between 0 and ${questionSettings.range}.`,
+              this.i18n.translate('errors.INVALIDRATINGVALUE', {
+                args: { questionId: response.questionId },
+              }),
             );
           }
 
@@ -292,7 +321,111 @@ export class ResponseSurveyService {
     return errors;
   }
 
-  async getDetailedSurveyResponses(formId: number): Promise<any> {
+  // async getFormRate(formId: number): Promise<any> {
+  //   const totalResponses =
+  //     await this.responseQuestionRepository.totalResponses(formId);
+
+  //   const questions = await this.responseQuestionRepository.getAll(formId);
+
+  //   const detailedResponses = questions.map((question) => {
+  //     const responses = [];
+  //     let totalQuestionResponses = 0;
+
+  //     if (
+  //       question.questionType === 'SINGLE_CHOICE' ||
+  //       question.questionType === 'MULTI_CHOICE' ||
+  //       question.questionType === 'PICTURE_SELECTION'
+  //     ) {
+  //       const totalQuestion = question.responseOnQuestions.length;
+
+  //       question.answerOptions.forEach((option) => {
+  //         const count = question.responseOnQuestions.filter(
+  //           (response) => response.answerOptionId === option.id,
+  //         ).length;
+
+  //         const percentage =
+  //           count === 0 ? 0 : ((count / totalQuestion) * 100).toFixed(2);
+
+  //         responses.push({
+  //           id: option.id,
+  //           label: option.label,
+
+  //           count,
+  //           percentage: percentage,
+  //         });
+  //       });
+  //       totalQuestionResponses = totalQuestion;
+  //     } else if (question.questionType === 'RATING_SCALE') {
+  //       const configurations = question.businessQuestionConfiguration;
+  //       console.log(configurations);
+
+  //       let range = 0;
+  //       if (Array.isArray(configurations)) {
+  //         const rangeSetting = configurations.find((config) => {
+  //           const settings = config.settings as any;
+  //           return parseInt(settings.range);
+  //         });
+
+  //         console.log(rangeSetting, 'rangeSetting');
+
+  //         if (rangeSetting) {
+  //           const settings = rangeSetting.settings as any;
+  //           range = parseInt(settings.range);
+  //         }
+  //       }
+
+  //       console.log(range, 'range');
+
+  //       const ratingCounts = Array(range).fill(0);
+
+  //       question.responseOnQuestions.forEach((response) => {
+  //         if (
+  //           response.ratingValue &&
+  //           response.ratingValue >= 1 &&
+  //           response.ratingValue <= range
+  //         ) {
+  //           ratingCounts[response.ratingValue - 1]++;
+  //           totalQuestionResponses++;
+  //         }
+  //       });
+
+  //       for (let i = 0; i < range; i++) {
+  //         const percentage =
+  //           ratingCounts[i] === 0
+  //             ? 0
+  //             : ((ratingCounts[i] / totalQuestionResponses) * 100).toFixed(2);
+
+  //         responses.push({
+  //           label: `${i + 1}`,
+  //           count: ratingCounts[i],
+  //           percentage: percentage,
+  //         });
+  //       }
+  //     } else if (question.questionType === 'INPUT_TEXT') {
+  //       const texts = question.responseOnQuestions
+  //         .filter((response) => response.answerText)
+  //         .map((response) => response.answerText);
+
+  //       responses.push(...texts.map((text) => ({ answerText: text })));
+  //       totalQuestionResponses = responses.length;
+  //     }
+
+  //     return {
+  //       questionId: question.id,
+  //       type: question.questionType,
+  //       headline: question.headline,
+  //       responses,
+  //       totalQuestionResponses,
+  //     };
+  //   });
+
+  //   return {
+  //     totalResponses,
+  //     questions: detailedResponses,
+  //   };
+  // }
+
+  async getFormRate(formId: number): Promise<any> {
     const totalResponses =
       await this.responseQuestionRepository.totalResponses(formId);
 
@@ -314,12 +447,23 @@ export class ResponseSurveyService {
             (response) => response.answerOptionId === option.id,
           ).length;
 
-          responses.push({
+          const percentage =
+            count === 0 ? 0 : ((count / totalQuestion) * 100).toFixed(2);
+
+          const responseObj: any = {
             id: option.id,
             label: option.label,
             count,
-            percentage: ((count / totalQuestion) * 100).toFixed(2) || 0,
-          });
+            percentage: percentage,
+          };
+
+          if (question.questionType === 'PICTURE_SELECTION') {
+            responseObj.mediaUrls = option.answerOptionOnMedia.map(
+              (media) => media.media.url,
+            );
+          }
+
+          responses.push(responseObj);
         });
         totalQuestionResponses = totalQuestion;
       } else if (question.questionType === 'RATING_SCALE') {
@@ -357,12 +501,15 @@ export class ResponseSurveyService {
         });
 
         for (let i = 0; i < range; i++) {
+          const percentage =
+            ratingCounts[i] === 0
+              ? 0
+              : ((ratingCounts[i] / totalQuestionResponses) * 100).toFixed(2);
+
           responses.push({
             label: `${i + 1}`,
             count: ratingCounts[i],
-            percentage:
-              ((ratingCounts[i] / totalQuestionResponses) * 100).toFixed(2) ||
-              0,
+            percentage: percentage,
           });
         }
       } else if (question.questionType === 'INPUT_TEXT') {
@@ -393,7 +540,9 @@ export class ResponseSurveyService {
     const form = await this.formRepository.getsurveyFeedbackById(formId);
 
     if (!form) {
-      throw new BadRequestException('Survey not found');
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
 
     const surveyResponseQuestions =
@@ -401,18 +550,83 @@ export class ResponseSurveyService {
 
     return surveyResponseQuestions;
   }
-  async getDetailResponesFromUser(formId: number) {
+  // async getUserResponseDetails(formId: number) {
+  //   const existingForm =
+  //     await this.formRepository.getsurveyFeedbackById(formId);
+  //   if (!existingForm) {
+  //     throw new BadRequestException(
+  //       this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+  //     );
+  //   }
+
+  //   const userResponses =
+  //     await this.userResponseRepository.getDetailResponesFromUser(formId);
+
+  //   console.log(userResponses);
+
+  //   const formattedData = userResponses.map((userResponse) => ({
+  //     sentAt: userResponse.sentAt,
+  //     user:
+  //       userResponse.userId !== null && userResponse.user
+  //         ? {
+  //             name: userResponse.user.username || null,
+  //             email: userResponse.user.email || null,
+  //           }
+  //         : null,
+
+  //     guest:
+  //       userResponse.guest && typeof userResponse.guest === 'object'
+  //         ? {
+  //             name: (userResponse.guest as { name?: string }).name || '',
+  //             address:
+  //               (userResponse.guest as { address?: string }).address || '',
+  //             phoneNumber:
+  //               (userResponse.guest as { phoneNumber?: string }).phoneNumber ||
+  //               '',
+  //           }
+  //         : null,
+  //     responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
+  //       questionId: response.question.id,
+  //       headline: response.question.headline,
+  //       questionType: response.question.questionType,
+  //       answerText: response.answerText,
+  //       ratingValue: response.ratingValue,
+  //       answerOptions: response.question.answerOptions
+  //         .filter((option) => option.id === response.answerOptionId)
+  //         .map((option) => ({
+  //           answerOptionId: option.id,
+  //           label: option.label,
+  //           mediaUrl: option.answerOptionOnMedia.map(
+  //             (media) => media.media.url,
+  //           ),
+  //         })),
+  //     })),
+  //   }));
+
+  //   return plainToInstance(
+  //     FormResponse,
+  //     { formId, userResponses: formattedData },
+  //     {
+  //       excludeExtraneousValues: true,
+  //     },
+  //   );
+  // }
+
+  async getUserResponseDetails(formId: number) {
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
-      throw new BadRequestException('Survey not found for this business');
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
 
+    // Fetch user responses with detailed nested data
     const userResponses =
       await this.userResponseRepository.getDetailResponesFromUser(formId);
-
     console.log(userResponses);
 
+    // Format the user responses for output
     const formattedData = userResponses.map((userResponse) => ({
       sentAt: userResponse.sentAt,
       user:
@@ -422,7 +636,6 @@ export class ResponseSurveyService {
               email: userResponse.user.email || null,
             }
           : null,
-
       guest:
         userResponse.guest && typeof userResponse.guest === 'object'
           ? {
@@ -434,27 +647,33 @@ export class ResponseSurveyService {
                 '',
             }
           : null,
+
+      // Format the question responses
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
         questionId: response.question.id,
         headline: response.question.headline,
         questionType: response.question.questionType,
         answerText: response.answerText,
         ratingValue: response.ratingValue,
+
+        // Map the answer options and associated media
         answerOptions: response.question.answerOptions
           .filter((option) => option.id === response.answerOptionId)
           .map((option) => ({
             answerOptionId: option.id,
             label: option.label,
+            mediaUrl: option.answerOptionOnMedia.map(
+              (media) => media.media.url,
+            ),
           })),
       })),
     }));
 
+    // Transform the formatted data into the proper DTO using plainToInstance
     return plainToInstance(
       FormResponse,
       { formId, userResponses: formattedData },
-      {
-        excludeExtraneousValues: true,
-      },
+      { excludeExtraneousValues: true },
     );
   }
 }

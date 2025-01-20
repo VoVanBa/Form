@@ -36,10 +36,11 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     });
   }
 
-  async deleteAnserOption(ids: number) {
+  async deleteAnserOption(id: number) {
+    
     return await this.prismaService.answerOption.delete({
       where: {
-        id: ids,
+        id: id,
       },
     });
   }

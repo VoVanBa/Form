@@ -1,15 +1,29 @@
 {
-    "errors": {
-      "surveyFeedbackNotFound": "Không tìm thấy khảo sát",
-      "questionNotFound": "Không tìm thấy câu hỏi",
-      "imageNotFound": "Hình ảnh không tìm thấy hoặc đã được liên kết với câu hỏi khác",
-      "mustHaveAtLeastTwoChoices": "Phải có ít nhất 2 lựa chọn",
-      "alreadyAtTop": "Câu hỏi này đã ở trên cùng",
-      "alreadyAtBottom": "Câu hỏi này đã ở dưới cùng"
-    },
-    "messages": {
-      "questionMovedUp": "Di chuyển câu hỏi lên thành công",
-      "questionMovedDown": "Di chuyển câu hỏi xuống thành công"
-    }
+  "errors": {
+    "SURVEYFEEDBACKNOTFOUND": "Không tìm thấy khảo sát",
+    "QUESTIONNOTFOUND": "Không tìm thấy câu hỏi",
+    "IMAGENOTFOUND": "Hình ảnh không tìm thấy hoặc đã được liên kết với câu hỏi khác",
+    "MUSTHAVEATLEASTTWOCHOICES": "Phải có ít nhất 2 lựa chọn",
+    "ALREADYATTOP": "Câu hỏi này đã ở trên cùng",
+    "ALREADYATBOTTOM": "Câu hỏi này đã ở dưới cùng",
+    "USERRESPONSENOTALLOWED": "Người dùng không được phép trả lời khảo sát",
+    "RESPONSELIMITEXCEEDED": "'closeOnResponseLimit' được bật nhưng 'limit' không được đặt hoặc không hợp lệ trong nhóm '{{key}}'.",
+    "SURVEYNOTYETRELEASED": "Khảo sát được lên lịch phát hành vào {{date}} và chưa thể truy cập được trong nhóm '{{key}}'.",
+    "RELEASEONDATEWITHOUTDATE": "'releaseOnDate' được bật nhưng không có 'date' được chỉ định trong nhóm '{{key}}'.",
+    "SURVEYCLOSED": "Khảo sát đã đóng vào {{date}} và không còn truy cập được trong nhóm '{{key}}'.",
+    "CLOSEONDATEWITHOUTDATE": "'closeOnDate' được bật nhưng không có 'date' được chỉ định trong nhóm '{{key}}'.",
+    "QUESTIONREQUIRESSELECTION": "Câu hỏi ID {{questionId}} yêu cầu ít nhất một lựa chọn.",
+    "QUESTIONREQUIRESINPUTTEXT": "Câu hỏi ID {{questionId}} yêu cầu nhập văn bản.",
+    "QUESTIONREQUIRESRATINGVALUE": "Câu hỏi ID {{questionId}} yêu cầu một giá trị đánh giá.",
+    "INVALIDRATINGVALUE": "Câu hỏi ID {{questionId}} có giá trị đánh giá không hợp lệ.",
+    "BUSINESSNOTFOUND": "Không tìm thấy doanh nghiệp",
+    "FORMNOTFOUND": "Không tìm thấy biểu mẫu",
+    "SURVEYIDNOTEXISTING": "ID khảo sát không tồn tại",
+    "SURVEYNOTFOUNDFORTHISBUSINESS": "Không tìm thấy khảo sát cho doanh nghiệp này",
+    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Số lượng lựa chọn phải lớn hơn 2"
+  },
+  "messages": {
+    "QUESTIONMOVEDUP": "Di chuyển câu hỏi lên thành công",
+    "QUESTIONMOVEDDOWN": "Di chuyển câu hỏi xuống thành công"
   }
-  
+}

@@ -57,7 +57,7 @@ export class ResponseSurveyController {
 
   @Get(':formId/get-ratio')
   async getRatioSurveyResponse(@Param('formId') formId: number) {
-    return this.responseService.getDetailedSurveyResponses(formId);
+    return this.responseService.getFormRate(formId);
   }
 
   @Get(':formId')
@@ -67,6 +67,6 @@ export class ResponseSurveyController {
 
   @Get(':formId/detail')
   async getDetailResponesFromUser(@Param('formId') formId: number) {
-    return this.responseService.getDetailResponesFromUser(formId);
+    return this.responseService.getUserResponseDetails(formId);
   }
 }

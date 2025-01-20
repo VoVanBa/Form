@@ -1,3 +1,3 @@
 export class CloudinaryUploadResult {
-  secure_url: string;
-}
+    secure_url: string;
+  }

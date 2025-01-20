@@ -8,6 +8,7 @@ import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.rep
 import { plainToInstance } from 'class-transformer';
 import { SurveyFeedbackResponse } from 'src/responses/surveyfeedback.response';
 import { FormSettingTypeResponse } from 'src/responses/survey-feedback-setting-response';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -15,6 +16,7 @@ export class SurveyFeedackFormService {
     private formRepository: PrismasurveyFeedbackRepository,
     private businessRepository: PrismaBusinessRepository,
     private formSetting: PrismaFormSettingRepository,
+    private readonly i18n: I18nService,
   ) {}
   async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
     const save = await this.formRepository.createsurveyFeedback(
@@ -42,18 +44,20 @@ export class SurveyFeedackFormService {
   async getForms(businessId: number) {
     return this.formRepository.getAllsurveyFeedbacks(businessId);
   }
-  async getFormById(
-    id: number,
-    businessId: number,
-  ): Promise<SurveyFeedbackResponse> {
-    const business = await this.businessRepository.getbusinessbyId(businessId);
-    if (!business) {
-      throw new BadRequestException('Business not found');
+  async getFormById(id: number, businessId: number) {
+    const existingBusiness =
+      await this.businessRepository.getbusinessbyId(businessId);
+    if (!existingBusiness) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.BUSINESSNOTFOUND'),
+      );
     }
 
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
     if (!surveyFeedback) {
-      throw new BadRequestException('Survey Feedback not found');
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
 
     return plainToInstance(SurveyFeedbackResponse, surveyFeedback, {
@@ -64,29 +68,34 @@ export class SurveyFeedackFormService {
   async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {
     return this.formRepository.updatesurveyFeedback(id, updateFormDto);
   }
+
   async deleteForm(id: number) {
     return this.formRepository.deletesurveyFeedback(id);
   }
+
   async updateStatus(status: FormStatus, formId: number, businessId: number) {
     const existingBusiness =
-      this.businessRepository.getbusinessbyId(businessId);
-
+      await this.businessRepository.getbusinessbyId(businessId);
     if (!existingBusiness) {
-      throw new BadRequestException('bussiness not found');
+      throw new BadRequestException(
+        this.i18n.translate('errors.BUSINESSNOTFOUND'),
+      );
     }
 
-    const existingForm = this.getFormById(formId, businessId);
+    const existingForm = await this.getFormById(formId, businessId);
     if (!existingForm) {
-      throw new BadRequestException('form not found');
+      throw new BadRequestException(this.i18n.translate('errors.FORMNOTFOUND'));
     }
 
-    this.formRepository.updateStatus(status, formId);
+    await this.formRepository.updateStatus(status, formId);
   }
 
   async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
     const survey = await this.formRepository.getsurveyFeedbackById(surveyId);
     if (!survey) {
-      throw new BadRequestException('survey id not existing');
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
+      );
     }
     return await this.formRepository.updateSurveyallowAnonymous(
       surveyId,

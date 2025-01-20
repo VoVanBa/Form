@@ -1,15 +1,29 @@
 {
-    "errors": {
-      "surveyFeedbackNotFound": "Survey feedback not found",
-      "questionNotFound": "Question not found",
-      "imageNotFound": "Image not found or already associated with another question",
-      "mustHaveAtLeastTwoChoices": "Must have at least 2 choices",
-      "alreadyAtTop": "This question is already at the top",
-      "alreadyAtBottom": "This question is already at the bottom"
-    },
-    "messages": {
-      "questionMovedUp": "Question moved up successfully",
-      "questionMovedDown": "Question moved down successfully"
-    }
+  "errors": {
+    "SURVEYFEEDBACKNOTFOUND": "Survey feedback not found",
+    "QUESTIONNOTFOUND": "Question not found",
+    "IMAGENOTFOUND": "Image not found or already associated with another question",
+    "MUSTHAVEATLEASTTWOCHOICES": "Must have at least 2 choices",
+    "ALREADYATTOP": "This question is already at the top",
+    "ALREADYATBOTTOM": "This question is already at the bottom",
+    "USERRESPONSENOTALLOWED": "User is not allowed to respond to the survey",
+    "RESPONSELIMITEXCEEDED": "'closeOnResponseLimit' is enabled but 'limit' is not set or invalid in group '{{key}}'.",
+    "SURVEYNOTYETRELEASED": "Survey is scheduled to release on {{date}} and cannot be accessed yet in group '{{key}}'.",
+    "RELEASEONDATEWITHOUTDATE": "'releaseOnDate' is enabled but no 'date' is specified in group '{{key}}'.",
+    "SURVEYCLOSED": "Survey was closed on {{date}} and is no longer accessible in group '{{key}}'.",
+    "CLOSEONDATEWITHOUTDATE": "'closeOnDate' is enabled but no 'date' is specified in group '{{key}}'.",
+    "QUESTIONREQUIRESSELECTION": "Question ID {{questionId}} requires at least one selection.",
+    "QUESTIONREQUIRESINPUTTEXT": "Question ID {{questionId}} requires an input text.",
+    "QUESTIONREQUIRESRATINGVALUE": "Question ID {{questionId}} requires a rating value.",
+    "INVALIDRATINGVALUE": "Question ID {{questionId}} has an invalid rating value.",
+    "BUSINESSNOTFOUND": "Business not found",
+    "FORMNOTFOUND": "Form not found",
+    "SURVEYIDNOTEXISTING": "Survey ID not existing",
+    "SURVEYNOTFOUNDFORTHISBUSINESS": "Survey not found for this business",
+    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Answer options must be greater than 2"
+  },
+  "messages": {
+    "QUESTIONMOVEDUP": "Question moved up successfully",
+    "QUESTIONMOVEDDOWN": "Question moved down successfully"
   }
-  
+}

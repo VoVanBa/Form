@@ -136,7 +136,7 @@ export class QuestionController {
   }
 
   @Delete(
-    'question/:questionId/answer-options/:optionAnwerId/surveyFeedBack/:surveyFeedBackId',
+    'question/:questionId/answer-options/:optionAnwerId/form/:surveyFeedBackId',
   )
   async deleteOptionAnwser(
     @Param('questionId') questionId: number,
