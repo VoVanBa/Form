@@ -6,8 +6,8 @@ import { PrismaBusinessRepository } from 'src/repositories/prims-business.reposi
 import { FormStatus } from '@prisma/client';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { plainToInstance } from 'class-transformer';
-import { SurveyFeedbackResponse } from 'src/responses/surveyfeedback.response';
-import { FormSettingTypeResponse } from 'src/responses/survey-feedback-setting-response';
+import { SurveyFeedbackResponse } from 'src/response-customization/surveyfeedback.response';
+import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
@@ -84,10 +84,12 @@ export class SurveyFeedackFormService {
 
     const existingForm = await this.getFormById(formId, businessId);
     if (!existingForm) {
-      throw new BadRequestException(this.i18n.translate('errors.FORMNOTFOUND'));
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
 
-    await this.formRepository.updateStatus(status, formId);
+    return await this.formRepository.updateStatus(status, formId);
   }
 
   async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
@@ -147,13 +149,6 @@ export class SurveyFeedackFormService {
 
     await Promise.all(filteredPromises);
   }
-
-  // async getSettingTypeWithBusinessSettings(businessId: number, formId: number) {
-  //   return this.formSetting.getSettingTypeWithBusinessSettings(
-  //     businessId,
-  //     formId,
-  //   );
-  // }
 
   async getAllBusinessSettings(
     businessId: number,

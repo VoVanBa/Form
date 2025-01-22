@@ -12,7 +12,7 @@ export class PrismaMediaRepository implements IMediaRepository {
     fileName: string,
     mimeType: string,
     size: number,
-  ): Promise<Media> {
+  ) {
     return this.prisma.media.create({
       data: {
         url,

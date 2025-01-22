@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma.service';
-import { CreateResponseOnQuestionDto } from 'src/response-survey/dtos/create.response.on.question.dto';
-import { ResponseDto } from 'src/response-survey/dtos/response.dto';
 
 @Injectable()
 export class PrismaResponseQuestionRepository {
@@ -21,8 +20,10 @@ export class PrismaResponseQuestionRepository {
     answerText: string,
     ratingValue: number,
     formId: number,
+    tx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.responseOnQuestion.create({
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId: questionId,
@@ -33,7 +34,6 @@ export class PrismaResponseQuestionRepository {
       },
     });
   }
-
   async getGroupedResponsesByOption(formId: number) {
     return this.prisma.responseOnQuestion.groupBy({
       by: ['answerOptionId'],

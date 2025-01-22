@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from 'src/config/prisma.service';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { name } from 'ejs';
+import { PrismaService } from 'src/config/prisma.service';
 
 @Injectable()
 export class UsersService {

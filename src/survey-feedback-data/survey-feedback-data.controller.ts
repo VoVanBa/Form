@@ -5,19 +5,20 @@ import {
   Headers,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Roles } from 'src/auth/decorater/role.customize';
-import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
-import { ResponseSurveyService } from './response-survey.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/role-auth.guard';
 import { UsersService } from 'src/users/users.service';
+import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
+import { SurveyFeedbackDataService } from './survey-feedback-data.service';
 
-@Controller('response-survey')
-export class ResponseSurveyController {
+@Controller('response')
+export class SurveyFeedbackDataController {
   constructor(
-    private readonly responseService: ResponseSurveyService,
+    private readonly responseService: SurveyFeedbackDataService,
     private userService: UsersService,
   ) {}
   @Post('form/:formId/business/:businessId/')
@@ -68,5 +69,17 @@ export class ResponseSurveyController {
   @Get(':formId/detail')
   async getDetailResponesFromUser(@Param('formId') formId: number) {
     return this.responseService.getUserResponseDetails(formId);
+  }
+
+  @Get(':formId/feedback-responses')
+  async getUserResponseDetails(
+    @Param('formId') formId: number,
+    @Query('username') username?: string,
+  ) {
+    if (!username) {
+      throw new Error('Username query parameter is required.');
+    }
+
+    return this.responseService.getDetailResponsesByUsername(username, formId);
   }
 }

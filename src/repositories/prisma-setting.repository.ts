@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/config/prisma.service';
 import { IFormSettingRepository } from './i-repositories/setting.repository';
 import { UpdateSettingTypeDto } from 'src/admin/dtos/update.setting.type.dtos';
-import { FormSettings } from '@prisma/client';
+import { PrismaService } from 'src/config/prisma.service';
 
 @Injectable()
 export class PrismaFormSettingRepository implements IFormSettingRepository {
@@ -32,7 +31,7 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
   }
 
   async updateFormSetting(key: string, value: any, formSettingTypesId) {
-    return this.prisma.formSettings.update({
+    return this.prisma.surveyFeedbackSettings.update({
       where: { key },
       data: {
         value,
@@ -48,7 +47,7 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
     label: string,
     description: string,
   ) {
-    return this.prisma.formSettings.create({
+    return this.prisma.surveyFeedbackSettings.create({
       data: {
         key,
         value,
@@ -59,7 +58,7 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
     });
   }
   async getFormsettingByKey(key: string) {
-    return this.prisma.formSettings.findUnique({
+    return this.prisma.surveyFeedbackSettings.findUnique({
       where: { key },
     });
   }
@@ -78,14 +77,14 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
     description: string,
     formSettingTypesId: number,
   ) {
-    return this.prisma.formSettings.upsert({
+    return this.prisma.surveyFeedbackSettings.upsert({
       where: { key },
       update: { value, formSettingTypesId },
       create: { key, value, formSettingTypesId, label, description },
     });
   }
   async getAllFormSetting() {
-    return this.prisma.formSettings.findMany();
+    return this.prisma.surveyFeedbackSettings.findMany();
   }
   async saveSetting(
     formId: number,

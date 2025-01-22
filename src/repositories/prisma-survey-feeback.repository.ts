@@ -1,16 +1,17 @@
-import { QuestionMedia } from './../responses/surveyfeedback.response';
+import { QuestionMedia } from '../response-customization/surveyfeedback.response';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/config/prisma.service';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
 import { FormStatus, SurveyFeedback, Media } from '@prisma/client';
+import { PrismaService } from 'src/config/prisma.service';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
   implements IsurveyFeedbackRepository
 {
   constructor(private readonly prisma: PrismaService) {}
+
   async createsurveyFeedback(
     data: CreatesurveyFeedbackDto,
     businessId: number,
@@ -80,10 +81,10 @@ export class PrismasurveyFeedbackRepository
     });
   }
 
-  async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
+  async updateSurveyallowAnonymous(formId: number, active: boolean) {
     return await this.prisma.surveyFeedback.update({
       where: {
-        id: surveyId,
+        id: formId,
       },
       data: {
         allowAnonymous: active,

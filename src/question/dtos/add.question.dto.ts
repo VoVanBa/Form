@@ -33,15 +33,15 @@ export class AddQuestionDto {
   @Type(() => AddAnswerOptionDto)
   answerOptions?: AddAnswerOptionDto[];
 
-  @IsOptional()
-  @IsInt()
-  range?: number;
+  // @IsOptional()
+  // @IsInt()
+  // range?: number;
 
-  @IsOptional()
-  @IsString()
-  lowerLabel?: string;
+  // @IsOptional()
+  // @IsString()
+  // lowerLabel?: string;
 
-  @IsOptional()
-  @IsString()
-  upperLabel?: string;
+  // @IsOptional()
+  // @IsString()
+  // upperLabel?: string;
 }

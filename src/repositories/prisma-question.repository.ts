@@ -1,4 +1,3 @@
-import { PrismaService } from './../config/prisma.service';
 // src/modules/repositories/prisma-question.repository.ts
 
 import { Inject, Injectable } from '@nestjs/common';
@@ -6,6 +5,7 @@ import { AddQuestionDto } from '../question/dtos/add.question.dto';
 import { QuestionRepository } from './i-repositories/question.repository';
 import { Question, QuestionType } from '@prisma/client';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
+import { PrismaService } from 'src/config/prisma.service';
 
 @Injectable()
 export class PrismaQuestionRepository implements QuestionRepository {
@@ -141,7 +141,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
   async findAllQuestion(formId: number) {
-    return await this.prismaService.question.findMany({
+    return this.prismaService.question.findMany({
       where: { formId },
       select: {
         id: true,

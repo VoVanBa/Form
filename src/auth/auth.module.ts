@@ -4,12 +4,12 @@ import { AuthService } from './auth.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import * as ms from 'ms';
-import { PrismaService } from 'src/config/prisma.service';
 import { JwtStrategy } from './passport/jwt.strategy';
 import { LocalStrategy } from './passport/local.strategy';
 import { UsersService } from 'src/users/users.service';
 import { GoogleOauthGuard } from './google-oauth.guard';
 import { GoogleStrategy } from './passport/google.strategy';
+import { PrismaService } from 'src/config/prisma.service';
 
 @Module({
   imports: [

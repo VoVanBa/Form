@@ -20,7 +20,8 @@
     "FORMNOTFOUND": "Form not found",
     "SURVEYIDNOTEXISTING": "Survey ID not existing",
     "SURVEYNOTFOUNDFORTHISBUSINESS": "Survey not found for this business",
-    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Answer options must be greater than 2"
+    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Answer options must be greater than 2",
+    "NOTALLOWANONYMOUSE": "Not allow anonymouse"
   },
   "messages": {
     "QUESTIONMOVEDUP": "Question moved up successfully",

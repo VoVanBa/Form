@@ -30,7 +30,7 @@ model Business {
   businessSurveySettings BusinessSurveyFeedbackSettings[]
   forms                  SurveyFeedback[]
 
-  @@index([userId], map: "Business_userId_fkey")
+  // @@index([userId], map: "Business_userId_fkey")
 }
 
 model SurveyFeedback {
@@ -40,7 +40,6 @@ model SurveyFeedback {
   createdBy         String
   createdAt         DateTime                         @default(now())
   updatedAt         DateTime                         @updatedAt
-  isOpen            Boolean                          @default(true)
   type              SurveyFeedbackType
   allowAnonymous    Boolean                          @default(true)
   status            FormStatus                       @default(DRAFT)
@@ -79,13 +78,13 @@ model ResponseOnQuestion {
 }
 
 model SettingTypes {
-  id          Int            @id @default(autoincrement())
-  name        String         @unique
+  id          Int                      @id @default(autoincrement())
+  name        String                   @unique
   description String
-  settings    FormSettings[]
+  settings    SurveyFeedbackSettings[]
 }
 
-model FormSettings {
+model SurveyFeedbackSettings {
   id                             Int                              @id @default(autoincrement())
   key                            String                           @unique
   value                          Json
@@ -97,15 +96,15 @@ model FormSettings {
 }
 
 model BusinessSurveyFeedbackSettings {
-  id            Int            @id @default(autoincrement())
+  id            Int                    @id @default(autoincrement())
   businessId    Int
   formId        Int
   key           String
   value         Json
   formSettingId Int
-  formSetting   FormSettings   @relation(fields: [formSettingId], references: [id], onDelete: Cascade)
-  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  form          SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formSetting   SurveyFeedbackSettings @relation(fields: [formSettingId], references: [id], onDelete: Cascade)
+  business      Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  form          SurveyFeedback         @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, formId, key])
 }
@@ -116,6 +115,7 @@ model Question {
   questionType                  QuestionType
   formId                        Int
   index                         Int
+  deletedAt                     DateTime?
   isDeleted                     Boolean                         @default(false)
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]

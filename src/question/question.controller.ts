@@ -51,9 +51,12 @@ export class QuestionController {
   @Post(':formId/questions')
   async addQuestion(
     @Param('formId') formId: number,
-    @Body() updateQuestionDto: UpdateQuestionDto,
+    @Body() updateQuestionDto: UpdateQuestionDto[],
   ) {
-    return this.questionService.addAndUpdateQuestion(formId, updateQuestionDto);
+    return this.questionService.addAndUpdateQuestions(
+      formId,
+      updateQuestionDto,
+    );
   }
   // @UseGuards(JwtAuthGuard, RolesGuard)
   // @Get(':surveyId/questions')
@@ -78,7 +81,9 @@ export class QuestionController {
       },
     }),
   )
-  async uploadAnswerOptionImages(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadAnswerOptionImages(
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
     try {
       if (!files || files.length === 0) {
         throw new HttpException('No files provided', HttpStatus.BAD_REQUEST);

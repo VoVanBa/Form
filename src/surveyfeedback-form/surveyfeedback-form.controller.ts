@@ -39,7 +39,7 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getFormById(id, businessId);
   }
 
-  @Put(':formId/businessId/:businessId/status')
+  @Put(':formId/business/:businessId/status')
   updateStatus(
     @Query('status') status: FormStatus,
     @Param('formId') formId: number,
