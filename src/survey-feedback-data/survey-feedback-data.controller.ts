@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Query,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Roles } from 'src/auth/decorater/role.customize';
@@ -21,38 +22,31 @@ export class SurveyFeedbackDataController {
     private readonly responseService: SurveyFeedbackDataService,
     private userService: UsersService,
   ) {}
-  @Post('form/:formId/business/:businessId/')
-  @Roles('CUSTOMER')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async saveGuestInfoAndResponsesNotAllowAnonymous(
+  @Post('form/:formId/business/:businessId/save')
+  async saveGuestInfoAndResponses(
     @Body() response: CreateResponseOnQuestionDto,
-    @Headers('authorization') jwt: string,
+    @Headers('authorization') jwt: string | undefined,
     @Param('businessId') businessId: number,
     @Param('formId') formId: number,
   ): Promise<any> {
-    const user = await this.userService.getUserByJwt(jwt);
-    const result =
-      await this.responseService.saveGuestInfoAndResponsesNotAllowAnonymous(
-        businessId,
-        formId,
-        response,
-        user.id,
-      );
-    return result;
-  }
+    let userId: number | null = null;
+    const allowAnonymous = this.responseService.getStatusAnonymous(formId);
+    if (!allowAnonymous) {
+      if (!jwt) {
+        throw new UnauthorizedException(
+          'JWT token is required for non-anonymous responses.',
+        );
+      }
+      const user = await this.userService.getUserByJwt(jwt);
+      userId = user.id;
+    }
 
-  @Post('form/:formId/business/:businessId/allowAnonymous')
-  async saveGuestInfoAndResponsesAllowAnonymous(
-    @Body() response: CreateResponseOnQuestionDto,
-    @Param('businessId') businessId: number,
-    @Param('formId') formId: number,
-  ): Promise<any> {
-    const result =
-      await this.responseService.saveGuestInfoAndResponsesAllowAnonymous(
-        businessId,
-        formId,
-        response,
-      );
+    const result = await this.responseService.saveGuestInfoAndResponses(
+      businessId,
+      formId,
+      response,
+      userId,
+    );
     return result;
   }
 

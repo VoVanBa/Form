@@ -25,6 +25,14 @@ export class SurveyFeedbackDataService {
     private prisma: PrismaService,
   ) {}
 
+  async getStatusAnonymous(formId: number) {
+    const form = await this.formRepository.getsurveyFeedbackById(formId);
+    if(!form){
+      throw new BadRequestException(this.i18n.translate('errors.'));
+    }
+    return form.allowAnonymous;
+  }
+
   async saveGuestInfoAndResponses(
     businessId: number,
     formId: number,
@@ -121,34 +129,34 @@ export class SurveyFeedbackDataService {
     });
   }
 
-  async saveGuestInfoAndResponsesAllowAnonymous(
-    businessId: number,
-    formId: number,
-    createResponse: CreateResponseOnQuestionDto,
-  ) {
-    const existingForm =
-      await this.formRepository.getsurveyFeedbackById(formId);
-    if (!existingForm.allowAnonymous) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.NOTALLOWANONYMOUSE'),
-      );
-    }
-    return this.saveGuestInfoAndResponses(businessId, formId, createResponse);
-  }
+  // async saveGuestInfoAndResponsesAllowAnonymous(
+  //   businessId: number,
+  //   formId: number,
+  //   createResponse: CreateResponseOnQuestionDto,
+  // ) {
+  //   const existingForm =
+  //     await this.formRepository.getsurveyFeedbackById(formId);
+  //   if (!existingForm.allowAnonymous) {
+  //     throw new BadRequestException(
+  //       this.i18n.translate('errors.NOTALLOWANONYMOUSE'),
+  //     );
+  //   }
+  //   return this.saveGuestInfoAndResponses(businessId, formId, createResponse);
+  // }
 
-  async saveGuestInfoAndResponsesNotAllowAnonymous(
-    businessId: number,
-    formId: number,
-    createResponse: CreateResponseOnQuestionDto,
-    userId: number,
-  ) {
-    return this.saveGuestInfoAndResponses(
-      businessId,
-      formId,
-      createResponse,
-      userId,
-    );
-  }
+  // async saveGuestInfoAndResponsesNotAllowAnonymous(
+  //   businessId: number,
+  //   formId: number,
+  //   createResponse: CreateResponseOnQuestionDto,
+  //   userId: number,
+  // ) {
+  //   return this.saveGuestInfoAndResponses(
+  //     businessId,
+  //     formId,
+  //     createResponse,
+  //     userId,
+  //   );
+  // }
 
   async validateResponseOptions(
     formId: number,

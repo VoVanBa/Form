@@ -23,7 +23,6 @@ CREATE TABLE `Business` (
     `updatedAt` DATETIME(3) NOT NULL,
     `userId` INTEGER NOT NULL,
 
-    INDEX `Business_userId_fkey`(`userId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -35,7 +34,6 @@ CREATE TABLE `SurveyFeedback` (
     `createdBy` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-    `isOpen` BOOLEAN NOT NULL DEFAULT true,
     `type` ENUM('SURVEY', 'FEEDBACK') NOT NULL,
     `allowAnonymous` BOOLEAN NOT NULL DEFAULT true,
     `status` ENUM('DRAFT', 'PUBLISHED', 'COMPLETED') NOT NULL DEFAULT 'DRAFT',
@@ -50,6 +48,7 @@ CREATE TABLE `UserOnResponse` (
     `formId` INTEGER NOT NULL,
     `userId` INTEGER NULL,
     `guest` JSON NULL,
+    `sentAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -78,7 +77,7 @@ CREATE TABLE `SettingTypes` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `FormSettings` (
+CREATE TABLE `SurveyFeedbackSettings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `key` VARCHAR(191) NOT NULL,
     `value` JSON NOT NULL,
@@ -86,7 +85,7 @@ CREATE TABLE `FormSettings` (
     `description` VARCHAR(191) NULL,
     `formSettingTypesId` INTEGER NULL,
 
-    UNIQUE INDEX `FormSettings_key_key`(`key`),
+    UNIQUE INDEX `SurveyFeedbackSettings_key_key`(`key`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -110,6 +109,7 @@ CREATE TABLE `Question` (
     `questionType` ENUM('SINGLE_CHOICE', 'MULTI_CHOICE', 'INPUT_TEXT', 'RATING_SCALE', 'PICTURE_SELECTION') NOT NULL,
     `formId` INTEGER NOT NULL,
     `index` INTEGER NOT NULL,
+    `isDeleted` BOOLEAN NOT NULL DEFAULT false,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -151,9 +151,8 @@ CREATE TABLE `AnswerOption` (
     `questionId` INTEGER NOT NULL,
     `label` VARCHAR(191) NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
-    `sortOrder` INTEGER NULL,
+    `index` INTEGER NULL,
     `description` VARCHAR(191) NULL,
-    `formResponseId` INTEGER NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -205,10 +204,10 @@ ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_useronRespon
 ALTER TABLE `ResponseOnQuestion` ADD CONSTRAINT `ResponseOnQuestion_formId_fkey` FOREIGN KEY (`formId`) REFERENCES `SurveyFeedback`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FormSettings` ADD CONSTRAINT `FormSettings_formSettingTypesId_fkey` FOREIGN KEY (`formSettingTypesId`) REFERENCES `SettingTypes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `SurveyFeedbackSettings` ADD CONSTRAINT `SurveyFeedbackSettings_formSettingTypesId_fkey` FOREIGN KEY (`formSettingTypesId`) REFERENCES `SettingTypes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `BusinessSurveyFeedbackSettings` ADD CONSTRAINT `BusinessSurveyFeedbackSettings_formSettingId_fkey` FOREIGN KEY (`formSettingId`) REFERENCES `FormSettings`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `BusinessSurveyFeedbackSettings` ADD CONSTRAINT `BusinessSurveyFeedbackSettings_formSettingId_fkey` FOREIGN KEY (`formSettingId`) REFERENCES `SurveyFeedbackSettings`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `BusinessSurveyFeedbackSettings` ADD CONSTRAINT `BusinessSurveyFeedbackSettings_businessId_fkey` FOREIGN KEY (`businessId`) REFERENCES `Business`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

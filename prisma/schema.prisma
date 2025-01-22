@@ -115,7 +115,7 @@ model Question {
   questionType                  QuestionType
   formId                        Int
   index                         Int
-  deletedAt                     DateTime?
+  // deletedAt                     DateTime?
   isDeleted                     Boolean                         @default(false)
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
