@@ -3,12 +3,15 @@ import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
-import { FormStatus } from '@prisma/client';
+import { FormStatus as PrismaFormStatus } from '@prisma/client';
+import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { plainToInstance } from 'class-transformer';
 import { SurveyFeedbackResponse } from 'src/response-customization/surveyfeedback.response';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
+import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
+import { SurveyFeedback } from 'src/models/SurveyFeedback';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -44,15 +47,8 @@ export class SurveyFeedackFormService {
   async getForms(businessId: number) {
     return this.formRepository.getAllsurveyFeedbacks(businessId);
   }
-  async getFormById(id: number, businessId: number) {
-    const existingBusiness =
-      await this.businessRepository.getbusinessbyId(businessId);
-    if (!existingBusiness) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.BUSINESSNOTFOUND'),
-      );
-    }
 
+  async getFormById(id: number): Promise<SurveyFeedback> {
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
     if (!surveyFeedback) {
       throw new BadRequestException(
@@ -60,11 +56,61 @@ export class SurveyFeedackFormService {
       );
     }
 
-    return plainToInstance(SurveyFeedbackResponse, surveyFeedback, {
-      excludeExtraneousValues: true,
-    });
+    return new SurveyFeedback(
+      surveyFeedback.id,
+      surveyFeedback.name,
+      surveyFeedback.description,
+      surveyFeedback.createdBy,
+      surveyFeedback.createdAt,
+      surveyFeedback.updatedAt,
+      surveyFeedback.type as SurveyFeedbackType,
+      surveyFeedback.allowAnonymous,
+      surveyFeedback.status as FormStatus,
+      surveyFeedback.businessId,
+      surveyFeedback.businessSettings.map((setting) => ({
+        ...setting,
+        value:
+          typeof setting.value === 'string'
+            ? JSON.parse(setting.value)
+            : setting.value,
+        formSetting: setting.formSetting || null,
+        business: surveyFeedback.business || null,
+        form: setting.form || null,
+      })),
+      {
+        ...surveyFeedback.business,
+        user: 1, // Placeholder if needed
+        businessSurveySettings: [],
+        forms: [],
+      },
+      surveyFeedback.questions.map((question) => ({
+        ...question,
+        questionOnMedia: question.questionOnMedia.map((qom) => ({
+          ...qom,
+          media: qom.media.url,
+        })),
+        answerOptions: question.answerOptions.map((option) => ({
+          ...option,
+          answerOptionOnMedia: option.answerOptionOnMedia.map((aom) => ({
+            ...aom,
+            media: aom.media.url,
+          })),
+        })),
+      })),
+      surveyFeedback.userFormResponses,
+      surveyFeedback.configurations.map((config) => ({
+        ...config,
+        question: config.question || { id: config.questionId },
+        form: {
+          id: surveyFeedback.id,
+          name: surveyFeedback.name,
+        },
+        value: config.settings || '', // Add default value or appropriate value
+        label: typeof config.settings === 'string' ? config.settings : '', // Ensure label is a string
+      })),
+      surveyFeedback.responses,
+    );
   }
-
   async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {
     return this.formRepository.updatesurveyFeedback(id, updateFormDto);
   }
@@ -82,7 +128,7 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const existingForm = await this.getFormById(formId, businessId);
+    const existingForm = await this.getFormById(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),

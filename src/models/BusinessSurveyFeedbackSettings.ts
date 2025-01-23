@@ -1,15 +1,28 @@
-import { IBusiness } from './Business';
-import { ISurveyFeedback } from './SurveyFeedback';
-import { ISurveyFeedbackSettings } from './SurveyFeedbackSettings';
+import { Business } from './Business';
+import { SurveyFeedback } from './SurveyFeedback';
+import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
 
-export interface IBusinessSurveyFeedbackSettings {
+export class BusinessSurveyFeedbackSettings {
   id: number;
-  businessId: number;
-  formId: number;
-  key: string;
-  value: object;
+  value: any;
+  formSetting: BusinessQuestionConfiguration;
+  business: Business;
+  form: SurveyFeedback;
   formSettingId: number;
-  formSetting: ISurveyFeedbackSettings;
-  business: IBusiness;
-  form: ISurveyFeedback;
+
+  constructor(
+    id: number,
+    value: any,
+    formSetting: BusinessQuestionConfiguration,
+    business: Business,
+    form: SurveyFeedback,
+    formSettingId: number,
+  ) {
+    this.id = id;
+    this.value = value;
+    this.formSetting = formSetting;
+    this.business = business;
+    this.form = form;
+    this.formSettingId = formSettingId;
+  }
 }

@@ -1,20 +1,33 @@
-import { IAnswerOption } from './AnswerOption';
-import { IBusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
-import { QuestionType } from './enums/QuestionType';
-import { IQuestionOnMedia } from './QuestionOnMedia';
-import { IResponseOnQuestion } from './ResponseOnQuestion';
-import { ISurveyFeedback } from './SurveyFeedback';
+import { AnswerOption, QuestionOnMedia, QuestionType } from '@prisma/client';
+import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
 
-export interface IQuestion {
+export class Question {
   id: number;
   headline: string;
   questionType: QuestionType;
-  formId: number;
   index: number;
-  isDeleted: boolean;
-  answerOptions: IAnswerOption[];
-  responseOnQuestions: IResponseOnQuestion[];
-  form: ISurveyFeedback;
-  questionOnMedia: IQuestionOnMedia[];
-  businessQuestionConfiguration: IBusinessQuestionConfiguration[];
+  formId: number;
+  questionOnMedia: QuestionOnMedia[];
+  answerOptions: AnswerOption[];
+  businessQuestionConfiguration: BusinessQuestionConfiguration[];
+
+  constructor(
+    id: number,
+    headline: string,
+    questionType: QuestionType,
+    index: number,
+    formId: number,
+    questionOnMedia: QuestionOnMedia[],
+    answerOptions: AnswerOption[],
+    businessQuestionConfiguration: BusinessQuestionConfiguration[],
+  ) {
+    this.id = id;
+    this.headline = headline;
+    this.questionType = questionType;
+    this.index = index;
+    this.formId = formId;
+    this.questionOnMedia = questionOnMedia;
+    this.answerOptions = answerOptions;
+    this.businessQuestionConfiguration = businessQuestionConfiguration;
+  }
 }

@@ -1,8 +1,20 @@
-import { ISurveyFeedbackSettings } from './SurveyFeedbackSettings';
+import { SurveyFeedbackSettings } from '@prisma/client';
 
-export interface ISettingTypes {
+export class SettingTypes {
   id: number;
   name: string;
   description: string;
-  settings: ISurveyFeedbackSettings[];
+  settings: SurveyFeedbackSettings[];
+
+  constructor(
+    id: number,
+    name: string,
+    description: string,
+    settings: SurveyFeedbackSettings[],
+  ) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.settings = settings;
+  }
 }

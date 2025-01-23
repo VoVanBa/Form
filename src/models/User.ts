@@ -1,15 +1,21 @@
-import { Role } from '@prisma/client';
-import { IBusiness } from './Business';
-import { IUserOnResponse } from './UserOnResponse';
-
-export interface IUser {
+export class User {
   id: number;
   username: string;
   email: string;
-  password: string;
-  refreshToken: string;
-  role: Role;
-  googleId?: string;
-  businesses: IBusiness[];
-  formResponses: IUserOnResponse[];
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(
+    id: number,
+    username: string,
+    email: string,
+    createdAt: Date,
+    updatedAt: Date,
+  ) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
 }

@@ -1,11 +1,20 @@
-import { IAnswerOption } from './AnswerOption';
-import { IMedia } from './Media';
+import { Media } from "@prisma/client";
 
-export interface IAnswerOptionOnMedia {
+export class AnswerOptionOnMedia {
   id: number;
+  answerOptionId: number;
   mediaId: number;
-  answerOptionId?: number;
-  index?: number;
-  answerOption?: IAnswerOption;
-  media: IMedia;
+  media: Media;
+
+  constructor(
+    id: number,
+    answerOptionId: number,
+    mediaId: number,
+    media: Media,
+  ) {
+    this.id = id;
+    this.answerOptionId = answerOptionId;
+    this.mediaId = mediaId;
+    this.media = media;
+  }
 }

@@ -1,13 +1,18 @@
-import { IAnswerOptionOnMedia } from './AnswerOptionOnMedia';
-import { IQuestionOnMedia } from './QuestionOnMedia';
-
-export interface IMedia {
+export class Media {
   id: number;
   url: string;
-  fileName: string;
-  mimeType: string;
-  size: number;
   createdAt: Date;
-  answerOptionOnMedia: IAnswerOptionOnMedia[];
-  questionOnMedia: IQuestionOnMedia[];
+  updatedAt: Date;
+
+  constructor(
+    id: number,
+    url: string,
+    createdAt: Date,
+    updatedAt: Date,
+  ) {
+    this.id = id;
+    this.url = url;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
 }

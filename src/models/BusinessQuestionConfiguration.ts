@@ -1,12 +1,24 @@
-import { IQuestion } from './Question';
-import { ISurveyFeedback } from './SurveyFeedback';
-
-export interface IBusinessQuestionConfiguration {
+export class BusinessQuestionConfiguration {
   id: number;
-  questionId: number;
-  formId: number;
   key: string;
-  settings: object;
-  question: IQuestion;
-  form: ISurveyFeedback;
+  value: any;
+  label: string | null;
+  description: string | null;
+  formSettingTypesId: number | null;
+
+  constructor(
+    id: number,
+    key: string,
+    value: any,
+    label: string | null,
+    description: string | null,
+    formSettingTypesId: number | null,
+  ) {
+    this.id = id;
+    this.key = key;
+    this.value = value;
+    this.label = label;
+    this.description = description;
+    this.formSettingTypesId = formSettingTypesId;
+  }
 }

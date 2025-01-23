@@ -3,8 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
-import { FormStatus, SurveyFeedback, Media } from '@prisma/client';
+import { FormStatus, Media } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma.service';
+import { SurveyFeedback } from 'src/models/SurveyFeedback';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -23,10 +24,11 @@ export class PrismasurveyFeedbackRepository
       },
     });
   }
-  async getsurveyFeedbackById(id: number) {
-    return this.prisma.surveyFeedback.findUnique({
+  async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
+    const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
+        // Existing include configuration
         questions: {
           where: { isDeleted: false },
           orderBy: { index: 'asc' },
@@ -49,8 +51,34 @@ export class PrismasurveyFeedbackRepository
             businessQuestionConfiguration: true,
           },
         },
+        business: true,
+        businessSettings: {
+          include: {
+            formSetting: true,
+            form: true,
+          },
+        },
+        userFormResponses: {
+          include: {
+            responseOnQuestions: true,
+            user: true,
+          },
+        },
+        configurations: {
+          include: {
+            question: true,
+          },
+        },
+        responses: {
+          include: {
+            question: true,
+            answerOption: true,
+            userResponse: true,
+          },
+        },
       },
     });
+    return surveyFeedback;
   }
   async getAllsurveyFeedbacks(businessId: number) {
     return this.prisma.surveyFeedback.findMany({
@@ -91,6 +119,4 @@ export class PrismasurveyFeedbackRepository
       },
     });
   }
-
-
 }

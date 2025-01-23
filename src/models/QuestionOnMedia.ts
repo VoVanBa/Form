@@ -1,10 +1,15 @@
-import { IMedia } from './Media';
-import { IQuestion } from './Question';
+import { Media } from '@prisma/client';
 
-export interface IQuestionOnMedia {
+export class QuestionOnMedia {
   id: number;
+  questionId: number;
   mediaId: number;
-  questionId?: number;
-  media: IMedia;
-  question?: IQuestion;
+  media: Media;
+
+  constructor(id: number, questionId: number, mediaId: number, media: Media) {
+    this.id = id;
+    this.questionId = questionId;
+    this.mediaId = mediaId;
+    this.media = media;
+  }
 }

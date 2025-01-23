@@ -1,15 +1,23 @@
-import { IAnswerOptionOnMedia } from './AnswerOptionOnMedia';
-import { IQuestion } from './Question';
-import { IResponseOnQuestion } from './ResponseOnQuestion';
+import { AnswerOptionOnMedia } from '@prisma/client';
 
-export interface IAnswerOption {
+export class AnswerOption {
   id: number;
+  label: string;
+  index: number;
   questionId: number;
-  label?: string;
-  isActive: boolean;
-  index?: number;
-  description?: string;
-  question: IQuestion;
-  answerOptionOnMedia: IAnswerOptionOnMedia[];
-  responseOnQuestions: IResponseOnQuestion[];
+  answerOptionOnMedia: AnswerOptionOnMedia[];
+
+  constructor(
+    id: number,
+    label: string,
+    index: number,
+    questionId: number,
+    answerOptionOnMedia: AnswerOptionOnMedia[],
+  ) {
+    this.id = id;
+    this.label = label;
+    this.index = index;
+    this.questionId = questionId;
+    this.answerOptionOnMedia = answerOptionOnMedia;
+  }
 }
