@@ -1,19 +1,33 @@
-import { AnswerOption } from './AnswerOption';
-import { Question } from './Question';
-import { UserOnResponse } from './UserOnResponse';
-import { SurveyFeedback } from './SurveyFeedback';
+import {
+  AnswerOption,
+  Question,
+  SurveyFeedback,
+  UserOnResponse,
+} from '@prisma/client';
+import { Expose } from 'class-transformer';
 
 export class ResponseOnQuestion {
+  @Expose()
   id: number;
+  @Expose()
   useronResponseId: number;
+  @Expose()
   questionId: number;
+  @Expose()
   formId: number;
+  @Expose()
   answerOptionId: number | null;
+  @Expose()
   answerText: string | null;
+  @Expose()
   ratingValue: number | null;
+  @Expose()
   answerOption: AnswerOption | null;
+  @Expose()
   question: Question;
+  @Expose()
   userResponse: UserOnResponse;
+  @Expose()
   form: SurveyFeedback;
 
   constructor(

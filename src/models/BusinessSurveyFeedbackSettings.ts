@@ -1,19 +1,30 @@
-import { Business } from './Business';
-import { SurveyFeedback } from './SurveyFeedback';
-import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
+import {
+  Business,
+  SurveyFeedback,
+  SurveyFeedbackSettings,
+} from '@prisma/client';
+import { Expose } from 'class-transformer';
 
 export class BusinessSurveyFeedbackSettings {
+  @Expose()
   id: number;
+  @Expose()
+  key: string;
+  @Expose()
   value: any;
-  formSetting: BusinessQuestionConfiguration;
+  @Expose()
+  formSetting: SurveyFeedbackSettings;
+  @Expose()
   business: Business;
+  @Expose()
   form: SurveyFeedback;
+  @Expose()
   formSettingId: number;
 
   constructor(
     id: number,
     value: any,
-    formSetting: BusinessQuestionConfiguration,
+    formSetting: SurveyFeedbackSettings,
     business: Business,
     form: SurveyFeedback,
     formSettingId: number,

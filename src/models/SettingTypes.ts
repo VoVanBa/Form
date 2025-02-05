@@ -1,9 +1,14 @@
 import { SurveyFeedbackSettings } from '@prisma/client';
+import { Expose } from 'class-transformer';
 
 export class SettingTypes {
+  @Expose()
   id: number;
+  @Expose()
   name: string;
+  @Expose()
   description: string;
+  @Expose()
   settings: SurveyFeedbackSettings[];
 
   constructor(

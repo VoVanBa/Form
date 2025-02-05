@@ -3,15 +3,17 @@ import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
-import { FormStatus as PrismaFormStatus } from '@prisma/client';
-import { FormStatus } from 'src/models/enums/FormStatus';
+import { FormStatus, FormStatus as PrismaFormStatus } from '@prisma/client';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
-import { plainToInstance } from 'class-transformer';
+import { plainToClass, plainToInstance } from 'class-transformer';
 import { SurveyFeedbackResponse } from 'src/response-customization/surveyfeedback.response';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
 import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
+import { BusinessSurveyFeedbackSettings } from 'src/models/BusinessSurveyFeedbackSettings';
+import { Question } from 'src/models/Question';
+import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -49,68 +51,51 @@ export class SurveyFeedackFormService {
   }
 
   async getFormById(id: number): Promise<SurveyFeedback> {
+    // Kiểm tra xem surveyFeedback có được tìm thấy hay không
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
+
     if (!surveyFeedback) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
 
-    return new SurveyFeedback(
-      surveyFeedback.id,
-      surveyFeedback.name,
-      surveyFeedback.description,
-      surveyFeedback.createdBy,
-      surveyFeedback.createdAt,
-      surveyFeedback.updatedAt,
-      surveyFeedback.type as SurveyFeedbackType,
-      surveyFeedback.allowAnonymous,
-      surveyFeedback.status as FormStatus,
-      surveyFeedback.businessId,
-      surveyFeedback.businessSettings.map((setting) => ({
-        ...setting,
-        value:
-          typeof setting.value === 'string'
-            ? JSON.parse(setting.value)
-            : setting.value,
-        formSetting: setting.formSetting || null,
-        business: surveyFeedback.business || null,
-        form: setting.form || null,
-      })),
-      {
-        ...surveyFeedback.business,
-        user: 1, // Placeholder if needed
-        businessSurveySettings: [],
-        forms: [],
-      },
-      surveyFeedback.questions.map((question) => ({
-        ...question,
-        questionOnMedia: question.questionOnMedia.map((qom) => ({
-          ...qom,
-          media: qom.media.url,
-        })),
-        answerOptions: question.answerOptions.map((option) => ({
-          ...option,
-          answerOptionOnMedia: option.answerOptionOnMedia.map((aom) => ({
-            ...aom,
-            media: aom.media.url,
-          })),
-        })),
-      })),
-      surveyFeedback.userFormResponses,
-      surveyFeedback.configurations.map((config) => ({
-        ...config,
-        question: config.question || { id: config.questionId },
-        form: {
-          id: surveyFeedback.id,
-          name: surveyFeedback.name,
-        },
-        value: config.settings || '', // Add default value or appropriate value
-        label: typeof config.settings === 'string' ? config.settings : '', // Ensure label is a string
-      })),
-      surveyFeedback.responses,
-    );
+    // Kiểm tra và log dữ liệu surveyFeedback để chắc chắn không có trường hợp undefined
+    console.log(surveyFeedback); // Thêm log để kiểm tra dữ liệu của surveyFeedback
+
+    // Nếu surveyFeedback hợp lệ, tiến hành chuyển đổi
+    const surveyFeedbackDto = plainToClass(SurveyFeedback, {
+      name: surveyFeedback.name,
+      description: surveyFeedback.description,
+      createdBy: surveyFeedback.createdBy,
+      createdAt: surveyFeedback.createdAt,
+      updatedAt: surveyFeedback.updatedAt,
+      type: surveyFeedback.type,
+      allowAnonymous: surveyFeedback.allowAnonymous,
+      status: surveyFeedback.status,
+      businessId: surveyFeedback.businessId,
+      businessSettings: surveyFeedback.businessSettings,
+      business: surveyFeedback.business,
+      questions: surveyFeedback.questions,
+      userFormResponses: surveyFeedback.userFormResponses,
+      configurations: surveyFeedback.configurations,
+      responses: surveyFeedback.responses,
+    });
+
+    return surveyFeedbackDto;
   }
+
+  /**
+   * Utility function to safely parse JSON strings
+   */
+  private parseJsonValue(value: any): any {
+    try {
+      return typeof value === 'string' ? JSON.parse(value) : value;
+    } catch (error) {
+      return value; // Return original value if parsing fails
+    }
+  }
+
   async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {
     return this.formRepository.updatesurveyFeedback(id, updateFormDto);
   }

@@ -28,14 +28,13 @@ export class PrismasurveyFeedbackRepository
     const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
-        // Existing include configuration
         questions: {
           where: { isDeleted: false },
           orderBy: { index: 'asc' },
           include: {
             questionOnMedia: {
               include: {
-                media: true,
+                media:true 
               },
             },
             answerOptions: {
@@ -55,6 +54,7 @@ export class PrismasurveyFeedbackRepository
         businessSettings: {
           include: {
             formSetting: true,
+            business: true,
             form: true,
           },
         },
@@ -78,8 +78,10 @@ export class PrismasurveyFeedbackRepository
         },
       },
     });
+
     return surveyFeedback;
   }
+
   async getAllsurveyFeedbacks(businessId: number) {
     return this.prisma.surveyFeedback.findMany({
       where: {

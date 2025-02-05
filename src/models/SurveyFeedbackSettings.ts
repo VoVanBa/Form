@@ -1,5 +1,4 @@
-import { BusinessSurveyFeedbackSettings } from './BusinessSurveyFeedbackSettings';
-import { SettingTypes } from './SettingTypes';
+import { BusinessSurveyFeedbackSettings, SettingTypes } from "@prisma/client";
 
 export class SurveyFeedbackSettings {
   id: number;

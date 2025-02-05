@@ -1,9 +1,17 @@
+import { Expose } from 'class-transformer';
+
 export class BusinessQuestionConfiguration {
+  @Expose()
   id: number;
+  @Expose()
   key: string;
+  @Expose()
   value: any;
+  @Expose()
   label: string | null;
+  @Expose()
   description: string | null;
+  @Expose()
   formSettingTypesId: number | null;
 
   constructor(
