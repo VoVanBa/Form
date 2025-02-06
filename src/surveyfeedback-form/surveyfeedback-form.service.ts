@@ -3,7 +3,12 @@ import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
-import { FormStatus, FormStatus as PrismaFormStatus } from '@prisma/client';
+import {
+  FormStatus as PrismaFormStatus,
+  // FormStatusasPrismaFormStatus,
+  QuestionOnMedia,
+} from '@prisma/client';
+import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { plainToClass, plainToInstance } from 'class-transformer';
 import { SurveyFeedbackResponse } from 'src/response-customization/surveyfeedback.response';
@@ -14,6 +19,8 @@ import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { BusinessSurveyFeedbackSettings } from 'src/models/BusinessSurveyFeedbackSettings';
 import { Question } from 'src/models/Question';
 import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
+import { url } from 'inspector';
+import { config } from 'process';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -50,7 +57,7 @@ export class SurveyFeedackFormService {
     return this.formRepository.getAllsurveyFeedbacks(businessId);
   }
 
-  async getFormById(id: number): Promise<SurveyFeedback> {
+  async getFormById(id: number) {
     // Kiểm tra xem surveyFeedback có được tìm thấy hay không
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
@@ -60,11 +67,10 @@ export class SurveyFeedackFormService {
       );
     }
 
-    // Kiểm tra và log dữ liệu surveyFeedback để chắc chắn không có trường hợp undefined
-    console.log(surveyFeedback); // Thêm log để kiểm tra dữ liệu của surveyFeedback
+    console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
 
-    // Nếu surveyFeedback hợp lệ, tiến hành chuyển đổi
-    const surveyFeedbackDto = plainToClass(SurveyFeedback, {
+    const surveyFeedbackDto = {
+      id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
       createdBy: surveyFeedback.createdBy,
@@ -74,16 +80,41 @@ export class SurveyFeedackFormService {
       allowAnonymous: surveyFeedback.allowAnonymous,
       status: surveyFeedback.status,
       businessId: surveyFeedback.businessId,
-      businessSettings: surveyFeedback.businessSettings,
-      business: surveyFeedback.business,
-      questions: surveyFeedback.questions,
-      userFormResponses: surveyFeedback.userFormResponses,
-      configurations: surveyFeedback.configurations,
-      responses: surveyFeedback.responses,
-    });
+      questions: surveyFeedback.questions.map((question) => ({
+        id: question.id,
+        text: question.headline,
+        type: question.questionType,
+        index: question.index,
+        media: question.questionOnMedia.map((media) => ({
+          id: media.id,
+          url: media.media.url,
+        })),
+        // media: question.questionOnMedia.url,
+        answerOptions: question.answerOptions.map((answerOption) => ({
+          id: answerOption.id,
+          label: answerOption.label,
+          index: answerOption.index,
+          mediaUrls:
+            answerOption.answerOptionOnMedia.length > 0
+              ? {
+                  id: answerOption.answerOptionOnMedia[0].id,
+                  url: answerOption.answerOptionOnMedia[0].media.url,
+                }
+              : null, // Chỉ lấy 1 media cho mỗi AnswerOption
+        })),
+        configuration: {
+          id: question.businessQuestionConfiguration.id,
+          key: question.businessQuestionConfiguration.key,
+          setting: question.businessQuestionConfiguration.settings,
+        },
+      })),
+    };
 
     return surveyFeedbackDto;
   }
+
+  // return surveyFeedbackDto;
+  // }
 
   /**
    * Utility function to safely parse JSON strings
@@ -119,8 +150,8 @@ export class SurveyFeedackFormService {
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
-
-    return await this.formRepository.updateStatus(status, formId);
+    return await this.formRepository.updateStatus(status as FormStatus, formId);
+    // return await this.formRepository.updateStatus(status, formId);
   }
 
   async updateSurveyallowAnonymous(surveyId: number, active: boolean) {

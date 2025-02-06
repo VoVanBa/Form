@@ -110,18 +110,17 @@ model BusinessSurveyFeedbackSettings {
 }
 
 model Question {
-  id                            Int                             @id @default(autoincrement())
+  id                            Int                            @id @default(autoincrement())
   headline                      String
   questionType                  QuestionType
   formId                        Int
   index                         Int
-  // deletedAt                     DateTime?
-  isDeleted                     Boolean                         @default(false)
+  isDeleted                     Boolean                        @default(false)
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
-  form                          SurveyFeedback                  @relation(fields: [formId], references: [id])
+  form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia[]
-  businessQuestionConfiguration BusinessQuestionConfiguration[]
+  businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
 }
 
 model QuestionConfiguration {
@@ -132,14 +131,12 @@ model QuestionConfiguration {
 
 model BusinessQuestionConfiguration {
   id         Int            @id @default(autoincrement())
-  questionId Int
+  questionId Int            @unique // Đảm bảo mỗi Question chỉ có một BusinessQuestionConfiguration
   formId     Int
   key        String
   settings   Json
-  question   Question       @relation(fields: [questionId], references: [id])
+  question   Question       @relation("BusinessQuestionConfig", fields: [questionId], references: [id])
   form       SurveyFeedback @relation(fields: [formId], references: [id])
-
-  @@unique([questionId, formId])
 }
 
 model QuestionOnMedia {

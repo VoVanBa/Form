@@ -1,82 +1,42 @@
-import {
-  Business,
-  BusinessQuestionConfiguration,
-  BusinessSurveyFeedbackSettings,
-  FormStatus,
-  Question,
-  ResponseOnQuestion,
-  SurveyFeedbackType,
-  UserOnResponse,
-} from '@prisma/client';
-import { Expose } from 'class-transformer';
+import { Business } from './Business';
+import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
+import { BusinessSurveyFeedbackSettings } from './BusinessSurveyFeedbackSettings';
+import { FormStatus } from './enums/FormStatus';
+import { SurveyFeedbackType } from './enums/SurveyFeedbackType';
+import { Question } from './Question';
+import { ResponseOnQuestion } from './ResponseOnQuestion';
+import { UserOnResponse } from './UserOnResponse';
 
-export class SurveyFeedback {
-  @Expose()
+export interface SurveyFeedback {
   readonly id: number;
-  @Expose()
-  readonly name: string;
-  @Expose()
-  readonly description?: string;
-  @Expose()
-  readonly createdBy: string;
-  @Expose()
-  readonly createdAt: Date;
-  @Expose()
-  readonly updatedAt: Date;
-  @Expose()
-  readonly type: SurveyFeedbackType;
-  @Expose()
-  readonly allowAnonymous: boolean;
-  @Expose()
-  readonly status: FormStatus;
-  @Expose()
-  readonly businessId: number;
-  @Expose()
-  readonly businessSettings: BusinessSurveyFeedbackSettings[];
-  @Expose()
-  readonly business: Business;
-  @Expose()
-  readonly questions: Question[];
-  @Expose()
-  readonly userFormResponses: UserOnResponse[];
-  @Expose()
-  readonly configurations: BusinessQuestionConfiguration[];
-  @Expose()
-  readonly responses: ResponseOnQuestion[];
 
-  constructor(data: {
-    id: number;
-    name: string;
-    description?: string;
-    createdBy: string;
-    createdAt: Date;
-    updatedAt: Date;
-    type: SurveyFeedbackType;
-    allowAnonymous: boolean;
-    status: FormStatus;
-    businessId: number;
-    businessSettings: BusinessSurveyFeedbackSettings[];
-    business: Business;
-    questions: Question[];
-    userFormResponses: UserOnResponse[];
-    configurations: BusinessQuestionConfiguration[];
-    responses: ResponseOnQuestion[];
-  }) {
-    this.id = data.id;
-    this.name = data.name;
-    this.description = data.description;
-    this.createdBy = data.createdBy;
-    this.createdAt = data.createdAt;
-    this.updatedAt = data.updatedAt;
-    this.type = data.type;
-    this.allowAnonymous = data.allowAnonymous;
-    this.status = data.status;
-    this.businessId = data.businessId;
-    this.businessSettings = [...data.businessSettings]; // Deep copy array to avoid mutation
-    this.business = { ...data.business }; // Deep copy object to avoid mutation
-    this.questions = [...data.questions];
-    this.userFormResponses = [...data.userFormResponses];
-    this.configurations = [...data.configurations];
-    this.responses = [...data.responses];
-  }
+  readonly name: string;
+
+  readonly description?: string;
+
+  readonly createdBy: string;
+
+  readonly createdAt: Date;
+
+  readonly updatedAt: Date;
+
+  readonly type: SurveyFeedbackType;
+
+  readonly allowAnonymous: boolean;
+
+  readonly status: FormStatus;
+
+  readonly businessId: number;
+
+  readonly businessSettings: BusinessSurveyFeedbackSettings[];
+
+  readonly business: Business;
+
+  readonly questions: Question[];
+
+  readonly userFormResponses: UserOnResponse[];
+
+  readonly configurations: BusinessQuestionConfiguration[];
+
+  readonly responses: ResponseOnQuestion[];
 }

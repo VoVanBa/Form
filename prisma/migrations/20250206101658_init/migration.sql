@@ -132,7 +132,8 @@ CREATE TABLE `BusinessQuestionConfiguration` (
     `key` VARCHAR(191) NOT NULL,
     `settings` JSON NOT NULL,
 
-    UNIQUE INDEX `BusinessQuestionConfiguration_questionId_formId_key`(`questionId`, `formId`),
+    UNIQUE INDEX `BusinessQuestionConfiguration_questionId_key`(`questionId`),
+    UNIQUE INDEX `BusinessQuestionConfiguration_formId_key`(`formId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

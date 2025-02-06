@@ -1,25 +1,11 @@
-import { SurveyFeedbackSettings } from '@prisma/client';
-import { Expose } from 'class-transformer';
+import { SurveyFeedbackSettings } from './SurveyFeedbackSettings';
 
-export class SettingTypes {
-  @Expose()
+export interface SettingTypes {
   id: number;
-  @Expose()
-  name: string;
-  @Expose()
-  description: string;
-  @Expose()
-  settings: SurveyFeedbackSettings[];
 
-  constructor(
-    id: number,
-    name: string,
-    description: string,
-    settings: SurveyFeedbackSettings[],
-  ) {
-    this.id = id;
-    this.name = name;
-    this.description = description;
-    this.settings = settings;
-  }
+  name: string;
+
+  description: string;
+
+  settings: SurveyFeedbackSettings[];
 }

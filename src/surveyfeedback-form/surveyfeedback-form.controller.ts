@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
-import { FormStatus } from '@prisma/client';
+import { FormStatus } from 'src/models/enums/FormStatus';
 
 @Controller('form')
 export class SurveyFeedbackFormController {

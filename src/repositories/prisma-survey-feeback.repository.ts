@@ -3,9 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
-import { FormStatus, Media } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma.service';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
+import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
+import { FormStatus } from 'src/models/enums/FormStatus';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -24,7 +25,7 @@ export class PrismasurveyFeedbackRepository
       },
     });
   }
-  async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
+  async getsurveyFeedbackById(id: number): Promise<any> {
     const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
@@ -34,7 +35,7 @@ export class PrismasurveyFeedbackRepository
           include: {
             questionOnMedia: {
               include: {
-                media:true 
+                media: true,
               },
             },
             answerOptions: {
@@ -80,6 +81,12 @@ export class PrismasurveyFeedbackRepository
     });
 
     return surveyFeedback;
+
+    // return {
+    //   ...surveyFeedback,
+    //   type: surveyFeedback.type as SurveyFeedbackType,
+    //   status: surveyFeedback.status as FormStatus,
+    // };
   }
 
   async getAllsurveyFeedbacks(businessId: number) {

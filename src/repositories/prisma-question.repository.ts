@@ -31,10 +31,8 @@ export class PrismaQuestionRepository implements QuestionRepository {
   ): Promise<any> {
     return this.prismaService.businessQuestionConfiguration.update({
       where: {
-        questionId_formId: {
-          questionId: questionId,
-          formId: formId,
-        },
+        questionId: questionId,
+        formId: formId,
       },
       data: {
         settings: settings,
@@ -48,10 +46,8 @@ export class PrismaQuestionRepository implements QuestionRepository {
   ) {
     return this.prismaService.businessQuestionConfiguration.findUnique({
       where: {
-        questionId_formId: {
-          questionId: questionId,
-          formId: formId,
-        },
+        questionId: questionId,
+        formId: formId,
       },
     });
   }
