@@ -3,24 +3,12 @@ import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
-import {
-  FormStatus as PrismaFormStatus,
-  // FormStatusasPrismaFormStatus,
-  QuestionOnMedia,
-} from '@prisma/client';
+
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { plainToClass, plainToInstance } from 'class-transformer';
-import { SurveyFeedbackResponse } from 'src/response-customization/surveyfeedback.response';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
-import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
-import { SurveyFeedback } from 'src/models/SurveyFeedback';
-import { BusinessSurveyFeedbackSettings } from 'src/models/BusinessSurveyFeedbackSettings';
-import { Question } from 'src/models/Question';
-import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
-import { url } from 'inspector';
-import { config } from 'process';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -104,7 +92,6 @@ export class SurveyFeedackFormService {
         })),
         configuration: {
           id: question.businessQuestionConfiguration.id,
-          key: question.businessQuestionConfiguration.key,
           setting: question.businessQuestionConfiguration.settings,
         },
       })),
