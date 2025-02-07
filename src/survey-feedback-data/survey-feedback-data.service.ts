@@ -27,7 +27,7 @@ export class SurveyFeedbackDataService {
 
   async getStatusAnonymous(formId: number) {
     const form = await this.formRepository.getsurveyFeedbackById(formId);
-    if(!form){
+    if (!form) {
       throw new BadRequestException(this.i18n.translate('errors.'));
     }
     return form.allowAnonymous;
@@ -49,9 +49,9 @@ export class SurveyFeedbackDataService {
       );
     }
 
-    if (existingForm.status == 'DRAFT' || existingForm.status == 'COMPLETED') {
-      throw new BadRequestException('');
-    }
+    // if (existingForm.status == 'DRAFT' || existingForm.status == 'COMPLETED') {
+    //   throw new BadRequestException('');
+    // }
 
     const settings = await this.formSetting.getAllFormSettingBusiness(
       businessId,
@@ -128,35 +128,6 @@ export class SurveyFeedbackDataService {
       await Promise.all(responsePromises);
     });
   }
-
-  // async saveGuestInfoAndResponsesAllowAnonymous(
-  //   businessId: number,
-  //   formId: number,
-  //   createResponse: CreateResponseOnQuestionDto,
-  // ) {
-  //   const existingForm =
-  //     await this.formRepository.getsurveyFeedbackById(formId);
-  //   if (!existingForm.allowAnonymous) {
-  //     throw new BadRequestException(
-  //       this.i18n.translate('errors.NOTALLOWANONYMOUSE'),
-  //     );
-  //   }
-  //   return this.saveGuestInfoAndResponses(businessId, formId, createResponse);
-  // }
-
-  // async saveGuestInfoAndResponsesNotAllowAnonymous(
-  //   businessId: number,
-  //   formId: number,
-  //   createResponse: CreateResponseOnQuestionDto,
-  //   userId: number,
-  // ) {
-  //   return this.saveGuestInfoAndResponses(
-  //     businessId,
-  //     formId,
-  //     createResponse,
-  //     userId,
-  //   );
-  // }
 
   async validateResponseOptions(
     formId: number,
@@ -361,7 +332,10 @@ export class SurveyFeedbackDataService {
     const detailedResponses = questions.map((question) => {
       const responses = [];
       let totalQuestionResponses = 0;
-
+      let mediaUrl = null;
+      if (question.questionOnMedia.length > 0) {
+        mediaUrl = question.questionOnMedia[0].media.url;
+      }
       if (
         question.questionType === 'SINGLE_CHOICE' ||
         question.questionType === 'MULTI_CHOICE' ||
@@ -385,9 +359,9 @@ export class SurveyFeedbackDataService {
           };
 
           if (question.questionType === 'PICTURE_SELECTION') {
-            responseObj.mediaUrls = option.answerOptionOnMedia.map(
-              (media) => media.media.url,
-            );
+            if (option.answerOptionOnMedia.length > 0) {
+              responseObj.mediaUrls = option.answerOptionOnMedia[0].media.url;
+            }
           }
 
           responses.push(responseObj);
@@ -451,6 +425,7 @@ export class SurveyFeedbackDataService {
         questionId: question.id,
         type: question.questionType,
         headline: question.headline,
+        mediaUrl,
         responses,
         totalQuestionResponses,
       };
@@ -477,7 +452,11 @@ export class SurveyFeedbackDataService {
     return surveyResponseQuestions;
   }
 
-  async getUserResponseDetails(formId: number) {
+  async getUserResponseDetails(
+    formId: number,
+    cursor?: number,
+    limit: number = 10,
+  ) {
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
@@ -486,11 +465,14 @@ export class SurveyFeedbackDataService {
       );
     }
 
-    const userResponses =
-      await this.userResponseRepository.getAllDetailResponesFromUser(formId);
-    console.log(userResponses);
+    const userResponsesPage =
+      await this.userResponseRepository.getAllDetailResponesFromUser(
+        formId,
+        cursor,
+        limit,
+      );
 
-    const formattedData = userResponses.map((userResponse) => ({
+    const formattedData = userResponsesPage.data.map((userResponse) => ({
       sentAt: userResponse.sentAt,
       user:
         userResponse.userId !== null && userResponse.user
@@ -499,41 +481,64 @@ export class SurveyFeedbackDataService {
               email: userResponse.user.email || null,
             }
           : null,
-      guest:
-        userResponse.guest && typeof userResponse.guest === 'object'
-          ? {
-              name: (userResponse.guest as { name?: string }).name || '',
-              address:
-                (userResponse.guest as { address?: string }).address || '',
-              phoneNumber:
-                (userResponse.guest as { phoneNumber?: string }).phoneNumber ||
-                '',
-            }
-          : null,
+      guest: userResponse.guest
+        ? {
+            name:
+              typeof userResponse.guest === 'object' &&
+              'name' in userResponse.guest
+                ? userResponse.guest.name || ''
+                : '',
+            address:
+              typeof userResponse.guest === 'object' &&
+              'address' in userResponse.guest
+                ? userResponse.guest.address || ''
+                : '',
+            phoneNumber:
+              typeof userResponse.guest === 'object' &&
+              'phoneNumber' in userResponse.guest
+                ? userResponse.guest.phoneNumber || ''
+                : '',
+          }
+        : null,
+      responseOnQuestions: userResponse.responseOnQuestions.map((response) => {
+        let answer: any = null;
 
-      responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
-        questionId: response.question.id,
-        headline: response.question.headline,
-        questionType: response.question.questionType,
-        answerText: response.answerText,
-        ratingValue: response.ratingValue,
+        // ✅ Kiểm tra nếu có `answerOptionId` và câu hỏi có `answerOptions`
+        if (
+          response.answerOptionId &&
+          response.question.answerOptions.length > 0
+        ) {
+          answer = response.question.answerOptions
+            .filter((option) => option.id === response.answerOptionId)
+            .flatMap((option) =>
+              option.answerOptionOnMedia.map((media) => media.media.url),
+            );
+        }
+        // ✅ Nếu là câu hỏi nhập văn bản (INPUT_TEXT)
+        else if (response.question.questionType === 'INPUT_TEXT') {
+          answer = response.answerText ?? null;
+        }
+        // ✅ Nếu là câu hỏi đánh giá (RATING_SCALE)
+        else if (response.question.questionType === 'RATING_SCALE') {
+          answer = response.ratingValue ?? null;
+        }
 
-        answerOptions: response.question.answerOptions
-          .filter((option) => option.id === response.answerOptionId)
-          .map((option) => ({
-            answerOptionId: option.id,
-            label: option.label,
-            mediaUrl: option.answerOptionOnMedia.map(
-              (media) => media.media.url,
-            ),
-          })),
-      })),
+        return {
+          questionId: response.question.id,
+          headline: response.question.headline,
+          questionType: response.question.questionType,
+          answer, // 🔥 Đảm bảo luôn có answer
+        };
+      }),
     }));
 
-    // Transform the formatted data into the proper DTO using plainToInstance
     return plainToInstance(
       FormResponse,
-      { formId, userResponses: formattedData },
+      {
+        formId,
+        userResponses: formattedData,
+        nextCursor: userResponsesPage.nextCursor,
+      },
       { excludeExtraneousValues: true },
     );
   }

@@ -35,8 +35,19 @@ export class SurveyFeedbackFormController {
   }
 
   @Get(':id/business/:businessId')
-  findOne(@Param('id') id: number, @Param('businessId') businessId: number) {
-    return this.surveyFeedbackFormService.getFormById(id);
+  getFormByIdForBusiness(
+    @Param('id') id: number,
+    @Param('businessId') businessId: number,
+  ) {
+    return this.surveyFeedbackFormService.getFormByIdForBusiness(id);
+  }
+
+  @Get(':id/business/:businessId/client')
+  getFormByIdForClient(
+    @Param('id') id: number,
+    @Param('businessId') businessId: number,
+  ) {
+    return this.surveyFeedbackFormService.getFormByIdForClient(id);
   }
 
   @Put(':formId/business/:businessId/status')

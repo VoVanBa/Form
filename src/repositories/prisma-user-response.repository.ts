@@ -52,14 +52,13 @@ export class PrismaUserResponseRepository {
     });
   }
 
-  async getAllDetailResponesFromUser(formId: number) {
-    return this.prisma.userOnResponse.findMany({
-      where: {
-        formId: formId,
-      },
-      orderBy: {
-        sentAt: 'desc',
-      },
+  async getAllDetailResponesFromUser(formId: number, cursor?: number, limit: number = 10) {
+    const data = await this.prisma.userOnResponse.findMany({
+      where: { formId },
+      orderBy: { sentAt: 'desc' },
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
       include: {
         user: true,
         responseOnQuestions: {
@@ -67,13 +66,7 @@ export class PrismaUserResponseRepository {
             question: {
               include: {
                 answerOptions: {
-                  include: {
-                    answerOptionOnMedia: {
-                      include: {
-                        media: true,
-                      },
-                    },
-                  },
+                  include: { answerOptionOnMedia: { include: { media: true } } },
                 },
               },
             },
@@ -81,8 +74,13 @@ export class PrismaUserResponseRepository {
         },
       },
     });
+  
+    return {
+      data,
+      nextCursor: data.length === limit ? data[data.length - 1].id : null,
+    };
   }
-
+  
   async getDetailResponsesByUsername(username: string, formId: number) {
     return this.prisma.userOnResponse.findMany({
       where: {

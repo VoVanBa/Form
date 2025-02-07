@@ -61,8 +61,12 @@ export class SurveyFeedbackDataController {
   }
 
   @Get(':formId/detail')
-  async getDetailResponesFromUser(@Param('formId') formId: number) {
-    return this.responseService.getUserResponseDetails(formId);
+  async getDetailResponsesFromUser(
+    @Param('formId') formId: number,
+    @Query('cursor') cursor?: number,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.responseService.getUserResponseDetails(formId, cursor, limit);
   }
 
   @Get(':formId/feedback-responses')

@@ -35,14 +35,7 @@ export class QuestionResponse {
   questionType: string;
 
   @Expose()
-  @Type(() => AnswerOptionResponse)
-  answerOptions: AnswerOptionResponse[];
-
-  @Expose()
-  answerText: string | null;
-
-  @Expose()
-  ratingValue: number | null;
+  answer: string | number | string[] | null; // ✅ Chỉ chứa câu trả lời
 }
 
 export class GuestResponse {

@@ -45,7 +45,7 @@ export class SurveyFeedackFormService {
     return this.formRepository.getAllsurveyFeedbacks(businessId);
   }
 
-  async getFormById(id: number) {
+  async getFormByIdForBusiness(id: number) {
     // Kiểm tra xem surveyFeedback có được tìm thấy hay không
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
@@ -73,10 +73,17 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        media: question.questionOnMedia.map((media) => ({
-          id: media.id,
-          url: media.media.url,
-        })),
+        mediaUrls:
+          question.questionOnMedia.length > 0
+            ? {
+                id: question.questionOnMedia[0].id,
+                url: question.questionOnMedia[0].media.url,
+              }
+            : null,
+        // .map((media) => ({
+        //   id: media.id,
+        //   url: media.media.url,
+        // })),
         // media: question.questionOnMedia.url,
         answerOptions: question.answerOptions.map((answerOption) => ({
           id: answerOption.id,
@@ -90,10 +97,64 @@ export class SurveyFeedackFormService {
                 }
               : null, // Chỉ lấy 1 media cho mỗi AnswerOption
         })),
-        configuration: {
-          id: question.businessQuestionConfiguration.id,
-          setting: question.businessQuestionConfiguration.settings,
-        },
+
+        setting: question.businessQuestionConfiguration.settings,
+      })),
+    };
+
+    return surveyFeedbackDto;
+  }
+
+  async getFormByIdForClient(id: number) {
+    // Kiểm tra xem surveyFeedback có được tìm thấy hay không
+    const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
+
+    if (!surveyFeedback) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+
+    console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
+
+    const surveyFeedbackDto = {
+      id: surveyFeedback.id,
+      name: surveyFeedback.name,
+      description: surveyFeedback.description,
+      createdBy: surveyFeedback.createdBy,
+      type: surveyFeedback.type,
+      businessId: surveyFeedback.businessId,
+      questions: surveyFeedback.questions.map((question) => ({
+        id: question.id,
+        text: question.headline,
+        type: question.questionType,
+        index: question.index,
+        mediaUrls:
+          question.questionOnMedia.length > 0
+            ? {
+                id: question.questionOnMedia[0].id,
+                url: question.questionOnMedia[0].media.url,
+              }
+            : null,
+        // .map((media) => ({
+        //   id: media.id,
+        //   url: media.media.url,
+        // })),
+        // media: question.questionOnMedia.url,
+        answerOptions: question.answerOptions.map((answerOption) => ({
+          id: answerOption.id,
+          label: answerOption.label,
+          index: answerOption.index,
+          mediaUrls:
+            answerOption.answerOptionOnMedia.length > 0
+              ? {
+                  id: answerOption.answerOptionOnMedia[0].id,
+                  url: answerOption.answerOptionOnMedia[0].media.url,
+                }
+              : null, // Chỉ lấy 1 media cho mỗi AnswerOption
+        })),
+
+        setting: question.businessQuestionConfiguration.settings,
       })),
     };
 
@@ -131,7 +192,7 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const existingForm = await this.getFormById(formId);
+    const existingForm = await this.getFormByIdForBusiness(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
