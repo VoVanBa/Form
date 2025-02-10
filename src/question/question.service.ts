@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { AddQuestionDto } from './dtos/add.question.dto';
 import { v2 as cloudinary } from 'cloudinary';
 import { Prisma, QuestionType } from '@prisma/client';
@@ -435,7 +430,7 @@ export class QuestionService {
     const questions = await this.getAllQuestion(formId);
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
-      throw new NotFoundException(
+      throw new BadRequestException(
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
@@ -452,7 +447,7 @@ export class QuestionService {
     const questions = await this.getAllQuestion(formId);
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
-      throw new NotFoundException(
+      throw new BadRequestException(
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }

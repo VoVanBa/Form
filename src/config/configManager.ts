@@ -71,7 +71,7 @@ class ConfigManager {
 
   transformSettings(settings: any[]): FormSettingDto[] {
     return settings.map((setting) => {
-      const { enabled, limit, date, position } = setting.value || {}; // Giữ an toàn nếu value không tồn tại
+      const { enabled, limit, date, position } = setting.value || {};
       return {
         key: setting.key,
         settings: { enabled, limit, date, position },
@@ -79,7 +79,7 @@ class ConfigManager {
     });
   }
 
-  static mapGuestDataToJson(guestData: any) {
+  mapGuestDataToJson(guestData: any) {
     if (!guestData || typeof guestData !== 'object') {
       return { name: '', address: '', phoneNumber: '' };
     }
@@ -89,6 +89,45 @@ class ConfigManager {
       address: guestData.address || '',
       phoneNumber: guestData.phoneNumber || '',
     };
+  }
+
+  getSettingValue<T>(configurations: any, key: string, defaultValue: T): T {
+    // Nếu `configurations` là một mảng
+    if (Array.isArray(configurations)) {
+      const settingItem = configurations.find(
+        (config) =>
+          config?.settings?.[key] !== undefined &&
+          config?.settings?.[key] !== null,
+      );
+
+      console.log(settingItem ?? `Không tìm thấy ${key}`, `${key}Setting`);
+
+      let value = settingItem?.settings?.[key];
+
+      // Nếu `defaultValue` là số, cố gắng chuyển đổi giá trị thành số
+      if (typeof defaultValue === 'number' && typeof value === 'string') {
+        const parsedValue = Number(value);
+        return isNaN(parsedValue) ? defaultValue : (parsedValue as T);
+      }
+
+      return value ?? defaultValue;
+    }
+
+    // Nếu `configurations` là một object chứa settings trực tiếp
+    if (typeof configurations === 'object' && configurations?.settings) {
+      let value = configurations.settings[key];
+
+      // Nếu `defaultValue` là số, cố gắng chuyển đổi giá trị thành số
+      if (typeof defaultValue === 'number' && typeof value === 'string') {
+        const parsedValue = Number(value);
+        return isNaN(parsedValue) ? defaultValue : (parsedValue as T);
+      }
+
+      return value ?? defaultValue;
+    }
+
+    console.warn(`Configurations không hợp lệ.`);
+    return defaultValue;
   }
 }
 

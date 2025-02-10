@@ -13,6 +13,7 @@ import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.rep
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from 'src/config/prisma.service';
 import ConfigManager from 'src/config/configManager';
+import { QuestionType } from 'src/models/enums/QuestionType';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -30,7 +31,9 @@ export class SurveyFeedbackDataService {
   async getStatusAnonymous(formId: number) {
     const form = await this.formRepository.getsurveyFeedbackById(formId);
     if (!form) {
-      throw new BadRequestException(this.i18n.translate('errors.'));
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
     }
     return form.allowAnonymous;
   }
@@ -47,7 +50,7 @@ export class SurveyFeedbackDataService {
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYNOTFOUNDFORTHISBUSINESS'),
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
 
@@ -59,6 +62,7 @@ export class SurveyFeedbackDataService {
       businessId,
       formId,
     );
+    console.log(settings, 'settings');
     const transformedSettings = this.configManager.transformSettings(settings);
 
     const validationFormErrors = await this.validateResponseOptions(
@@ -329,14 +333,14 @@ export class SurveyFeedbackDataService {
     const detailedResponses = questions.map((question) => {
       const responses = [];
       let totalQuestionResponses = 0;
-      let mediaUrl = null;
+      let media = null;
       if (question.questionOnMedia) {
-        mediaUrl = question.questionOnMedia.media.url;
+        media = question.questionOnMedia.media.url;
       }
       if (
-        question.questionType === 'SINGLE_CHOICE' ||
-        question.questionType === 'MULTI_CHOICE' ||
-        question.questionType === 'PICTURE_SELECTION'
+        question.questionType === QuestionType.SINGLE_CHOICE.toString() ||
+        question.questionType === QuestionType.MULTI_CHOICE.toString() ||
+        question.questionType === QuestionType.PICTURE_SELECTION.toString()
       ) {
         const totalQuestion = question.responseOnQuestions.length;
 
@@ -355,32 +359,29 @@ export class SurveyFeedbackDataService {
             percentage: percentage,
           };
 
-          if (question.questionType === 'PICTURE_SELECTION') {
+          if (
+            question.questionType === QuestionType.PICTURE_SELECTION.toString()
+          ) {
             if (option.answerOptionOnMedia) {
-              responseObj.mediaUrls = option.answerOptionOnMedia.media.url;
+              responseObj.media = option.answerOptionOnMedia.media.url;
             }
           }
 
           responses.push(responseObj);
         });
         totalQuestionResponses = totalQuestion;
-      } else if (question.questionType === 'RATING_SCALE') {
+      } else if (
+        question.questionType === QuestionType.RATING_SCALE.toString()
+      ) {
         const configurations = question.businessQuestionConfiguration;
 
-        let range = 0;
-        if (Array.isArray(configurations)) {
-          const rangeSetting = configurations.find((config) => {
-            const settings = config.settings as any;
-            return parseInt(settings.range);
-          });
-
-          console.log(rangeSetting, 'rangeSetting');
-
-          if (rangeSetting) {
-            const settings = rangeSetting.settings as any;
-            range = parseInt(settings.range);
-          }
-        }
+        console.log(configurations, 'configurations');
+        const range = this.configManager.getSettingValue(
+          configurations,
+          'range',
+          0,
+        );
+        // range = ConfigManager.getSettingValue(configurations, 'range', 0);
 
         console.log(range, 'range');
 
@@ -409,7 +410,7 @@ export class SurveyFeedbackDataService {
             percentage: percentage,
           });
         }
-      } else if (question.questionType === 'INPUT_TEXT') {
+      } else if (question.questionType === QuestionType.INPUT_TEXT.toString()) {
         const texts = question.responseOnQuestions
           .filter((response) => response.answerText)
           .map((response) => response.answerText);
@@ -422,7 +423,7 @@ export class SurveyFeedbackDataService {
         questionId: question.id,
         type: question.questionType,
         headline: question.headline,
-        mediaUrl,
+        media,
         responses,
         totalQuestionResponses,
       };
@@ -451,7 +452,10 @@ export class SurveyFeedbackDataService {
 
   async getUserResponseDetails(
     formId: number,
-    cursor?: number,
+    option?: string,
+    customStartDate?: string,
+    customEndDate?: string,
+    page: number = 1,
     limit: number = 10,
   ) {
     const existingForm =
@@ -462,10 +466,24 @@ export class SurveyFeedbackDataService {
       );
     }
 
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    if (option) {
+      const dateRange = this.getDateRange(
+        option,
+        customStartDate,
+        customEndDate,
+      );
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    }
+
     const userResponsesPage =
-      await this.userResponseRepository.getAllDetailResponesFromUser(
+      await this.userResponseRepository.getUserResponses(
         formId,
-        cursor,
+        startDate,
+        endDate,
+        page,
         limit,
       );
 
@@ -479,7 +497,7 @@ export class SurveyFeedbackDataService {
             }
           : null,
       guest: userResponse.guest
-        ? ConfigManager.mapGuestDataToJson(userResponse.guest)
+        ? this.configManager.mapGuestDataToJson(userResponse.guest)
         : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => {
         let answer: any = null;
@@ -518,7 +536,7 @@ export class SurveyFeedbackDataService {
       {
         formId,
         userResponses: formattedData,
-        nextCursor: userResponsesPage.nextCursor,
+        meta: userResponsesPage.meta,
       },
       { excludeExtraneousValues: true },
     );
@@ -551,7 +569,7 @@ export class SurveyFeedbackDataService {
           : null,
       guest:
         userResponse.guest && typeof userResponse.guest === 'object'
-          ? ConfigManager.mapGuestDataToJson(userResponse.guest)
+          ? this.configManager.mapGuestDataToJson(userResponse.guest)
           : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
         questionId: response.question.id,
@@ -564,7 +582,7 @@ export class SurveyFeedbackDataService {
           .map((option) => ({
             answerOptionId: option.id,
             label: option.label,
-            mediaUrl: option.answerOptionOnMedia?.media?.url,
+            media: option.answerOptionOnMedia?.media?.url,
           })),
       })),
     }));
@@ -574,5 +592,92 @@ export class SurveyFeedbackDataService {
       { formId, userResponses: formattedData },
       { excludeExtraneousValues: true },
     );
+  }
+  async filterResponsesByOption(
+    formId: number,
+    option: string,
+    page: number,
+    pageSize: number,
+  ) {
+    const form = await this.formRepository.getsurveyFeedbackById(formId);
+    if (!form) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+    const { startDate, endDate } = this.getDateRange(option);
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+    return this.userResponseRepository.filterResponsesByDateRange(
+      form.id,
+      startDate,
+      endDate,
+      skip,
+      take,
+    );
+  }
+
+  private getDateRange(
+    option: string,
+    customStartDate?: string,
+    customEndDate?: string,
+  ): { startDate: Date; endDate: Date } {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    switch (option) {
+      case 'Last 7 days':
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'Last 30 days':
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case 'This month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'Last month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'This quarter':
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
+        break;
+      case 'Last quarter':
+        const lastQuarter = Math.floor(now.getMonth() / 3) - 1;
+        const lastQuarterStartMonth = lastQuarter * 3;
+        startDate = new Date(now.getFullYear(), lastQuarterStartMonth, 1);
+        endDate = new Date(now.getFullYear(), lastQuarterStartMonth + 3, 0);
+        break;
+      case 'Last 6 months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+        break;
+      case 'This year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'Last year':
+        startDate = new Date(now.getFullYear() - 1, 0, 1);
+        endDate = new Date(now.getFullYear() - 1, 11, 31);
+        break;
+      case 'All time':
+        startDate = new Date(0); // Represents the earliest possible date
+        break;
+      case 'Custom': // Người dùng nhập vào ngày bắt đầu và kết thúc
+        if (!customStartDate || !customEndDate) {
+          throw new Error(
+            'Custom date range requires both startDate and endDate',
+          );
+        }
+        startDate = new Date(customStartDate);
+        endDate = new Date(customEndDate);
+        break;
+      default:
+        throw new Error(`Invalid date range option: ${option}`);
+    }
+
+    return { startDate, endDate };
   }
 }

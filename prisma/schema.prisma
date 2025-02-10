@@ -64,18 +64,18 @@ model UserOnResponse {
 }
 
 model ResponseOnQuestion {
-  id               Int             @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   useronResponseId Int
   questionId       Int
   formId           Int
   answerOptionId   Int?
-  answerText       String?         @db.Text
+  answerText       String? @db.Text
   ratingValue      Int?
-  createdAt        DateTime        @default(now())
-  answerOption     AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
-  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  userResponse     UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
-  form             SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  answerOption AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
+  question     Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userResponse UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
+  form         SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model SettingTypes {
@@ -116,7 +116,7 @@ model Question {
   questionType                  QuestionType
   formId                        Int
   index                         Int
-  isDeleted                     Boolean                        @default(false)
+  deletedAt                     DateTime?
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])

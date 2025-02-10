@@ -15,7 +15,7 @@ export class AnswerOptionResponse {
 
   @Expose()
   @Type(() => AnswerOptionOnMediaResponse)
-  mediaUrl: AnswerOptionOnMediaResponse[];
+  media: AnswerOptionOnMediaResponse[];
 }
 
 export class AnswerOptionOnMediaResponse {
@@ -80,4 +80,7 @@ export class FormResponse {
   @Expose()
   @Type(() => UserResponse)
   userResponses: UserResponse[];
+
+  @Expose()
+  meta: string;
 }

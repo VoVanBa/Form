@@ -30,7 +30,7 @@ export class SurveyFeedbackDataController {
     @Param('formId') formId: number,
   ): Promise<any> {
     let userId: number | null = null;
-    const allowAnonymous = this.responseService.getStatusAnonymous(formId);
+    const allowAnonymous =await this.responseService.getStatusAnonymous(formId);
     if (!allowAnonymous) {
       if (!jwt) {
         throw new UnauthorizedException(
@@ -63,10 +63,20 @@ export class SurveyFeedbackDataController {
   @Get(':formId/detail')
   async getDetailResponsesFromUser(
     @Param('formId') formId: number,
-    @Query('cursor') cursor?: number,
+    @Query('option') option?: string,
+    @Query('customStartDate') customStartDate?: string,
+    @Query('customEndDate') customEndDate?: string,
+    @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    return this.responseService.getUserResponseDetails(formId, cursor, limit);
+    return this.responseService.getUserResponseDetails(
+      formId,
+      option,
+      customStartDate,
+      customEndDate,
+      page,
+      limit,
+    );
   }
 
   @Get(':formId/feedback-responses')
@@ -79,5 +89,22 @@ export class SurveyFeedbackDataController {
     }
 
     return this.responseService.getDetailResponsesByUsername(username, formId);
+  }
+
+  @Get(':formId/filter')
+  async filterResponses(
+    @Param('formId') formId: number,
+    @Query('range') range: string,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '10',
+  ) {
+    const pageNum = parseInt(page, 10) || 1; // Default to page 1
+    const pageSizeNum = parseInt(pageSize, 10) || 10; // Default to 10 items per page
+    return this.responseService.filterResponsesByOption(
+      formId,
+      range,
+      pageNum,
+      pageSizeNum,
+    );
   }
 }

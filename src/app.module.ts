@@ -29,14 +29,14 @@ import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback
     AdminModule,
     SurveyFeedbackDataModule,
     I18nModule.forRoot({
-      fallbackLanguage: 'en',
+      fallbackLanguage: 'vi',
       loaderOptions: {
-        path: path.join(__dirname, '/i18n/'),
+        path: path.join(process.cwd(), 'src', 'i18n'),
         watch: true,
       },
       resolvers: [
-        { use: QueryResolver, options: ['lang'] },
-        AcceptLanguageResolver,
+        { use: QueryResolver, options: ['lang'] }, // Lấy từ query ?lang=vi
+        AcceptLanguageResolver, // Lấy từ headers
       ],
     }),
   ],

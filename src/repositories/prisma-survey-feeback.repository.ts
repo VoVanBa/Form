@@ -26,11 +26,11 @@ export class PrismasurveyFeedbackRepository
     });
   }
   async getsurveyFeedbackById(id: number): Promise<any> {
-    const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
+    const surveyFeedback = this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
         questions: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
           orderBy: { index: 'asc' },
           include: {
             questionOnMedia: {

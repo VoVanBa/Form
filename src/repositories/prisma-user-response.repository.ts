@@ -52,44 +52,11 @@ export class PrismaUserResponseRepository {
     });
   }
 
-  async getAllDetailResponesFromUser(formId: number, cursor?: number, limit: number = 10) {
-    const data = await this.prisma.userOnResponse.findMany({
-      where: { formId },
-      orderBy: { sentAt: 'desc' },
-      take: limit,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      include: {
-        user: true,
-        responseOnQuestions: {
-          include: {
-            question: {
-              include: {
-                answerOptions: {
-                  include: { answerOptionOnMedia: { include: { media: true } } },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-  
-    return {
-      data,
-      nextCursor: data.length === limit ? data[data.length - 1].id : null,
-    };
-  }
-  
-  async getDetailResponsesByUsername(username: string, formId: number) {
+  async getDetailResponsesByUsername(username: string | null, formId: number) {
     return this.prisma.userOnResponse.findMany({
       where: {
         formId: formId,
-        user: {
-          username: {
-            contains: username,
-          },
-        },
+        ...(username ? { user: { username: { contains: username } } } : {}), // Nếu username không null thì lọc, ngược lại bỏ lọc
       },
       orderBy: {
         sentAt: 'desc',
@@ -115,5 +82,123 @@ export class PrismaUserResponseRepository {
         },
       },
     });
+  }
+  async getUserResponses(
+    formId: number,
+    startDate?: Date, // Receive preprocessed date filters from the service
+    endDate?: Date,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Build dynamic filter
+    let filter: any = { formId };
+
+    if (startDate && endDate) {
+      filter.sentAt = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
+
+    // Get total count based on filters
+    const totalCount = await this.prisma.userOnResponse.count({
+      where: filter,
+    });
+
+    // Fetch paginated data
+    const data = await this.prisma.userOnResponse.findMany({
+      where: filter,
+      orderBy: { sentAt: 'desc' },
+      take: limit,
+      skip,
+      include: {
+        user: true,
+        responseOnQuestions: {
+          include: {
+            question: {
+              include: {
+                answerOptions: {
+                  include: {
+                    answerOptionOnMedia: { include: { media: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+    };
+  }
+
+  async filterResponsesByDateRange(
+    formId: number,
+    startDate: Date,
+    endDate: Date,
+    page: number = 1, // Default to page 1
+    limit: number = 10, // Default to 10 items per page
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Total count of responses for the given filters
+    const totalCount = await this.prisma.userOnResponse.count({
+      where: {
+        formId: formId,
+        sentAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    // Fetch the data with pagination
+    const data = await this.prisma.userOnResponse.findMany({
+      where: {
+        formId: formId,
+        sentAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        user: true,
+        responseOnQuestions: {
+          include: {
+            question: {
+              include: {
+                answerOptions: {
+                  include: {
+                    answerOptionOnMedia: { include: { media: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      skip,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+    };
   }
 }

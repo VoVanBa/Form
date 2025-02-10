@@ -64,7 +64,7 @@ export class PrismaResponseQuestionRepository {
 
   async getAll(formId: number) {
     return await this.prisma.question.findMany({
-      where: { formId: formId, isDeleted: false },
+      where: { formId: formId, deletedAt: null },
       include: {
         questionOnMedia: {
           include: {

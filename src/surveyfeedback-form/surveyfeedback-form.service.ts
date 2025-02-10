@@ -73,7 +73,7 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        mediaUrl: question.questionOnMedia?.media
+        media: question.questionOnMedia?.media
           ? {
               id: question.questionOnMedia.media.id,
               url: question.questionOnMedia.media.url,
@@ -88,10 +88,12 @@ export class SurveyFeedackFormService {
           id: answerOption.id,
           label: answerOption.label,
           index: answerOption.index,
-          mediaUrl: {
-            id: answerOption.answerOptionOnMedia?.media?.id || null,
-            url: answerOption.answerOptionOnMedia?.media?.url || null,
-          }, // Chỉ lấy 1 media cho mỗi AnswerOption
+          media: answerOption.answerOptionOnMedia?.media
+            ? {
+                id: answerOption.answerOptionOnMedia.media.id,
+                url: answerOption.answerOptionOnMedia.media.url,
+              }
+            : null, // Chỉ lấy 1 media cho mỗi AnswerOption
         })),
 
         setting: question.businessQuestionConfiguration.settings,
@@ -125,7 +127,7 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        mediaUrl: question.questionOnMedia?.media
+        media: question.questionOnMedia?.media
           ? {
               id: question.questionOnMedia.media.id,
               url: question.questionOnMedia.media.url,
@@ -136,10 +138,12 @@ export class SurveyFeedackFormService {
           id: answerOption.id,
           label: answerOption.label,
           index: answerOption.index,
-          mediaUrl: {
-            id: answerOption.answerOptionOnMedia?.media?.id || null,
-            url: answerOption.answerOptionOnMedia?.media?.url || null,
-          },
+          media: answerOption.answerOptionOnMedia?.media
+            ? {
+                id: answerOption.answerOptionOnMedia.media.id,
+                url: answerOption.answerOptionOnMedia.media.url,
+              }
+            : null,
         })),
 
         setting: question.businessQuestionConfiguration.settings,
@@ -147,20 +151,6 @@ export class SurveyFeedackFormService {
     };
 
     return surveyFeedbackDto;
-  }
-
-  // return surveyFeedbackDto;
-  // }
-
-  /**
-   * Utility function to safely parse JSON strings
-   */
-  private parseJsonValue(value: any): any {
-    try {
-      return typeof value === 'string' ? JSON.parse(value) : value;
-    } catch (error) {
-      return value; // Return original value if parsing fails
-    }
   }
 
   async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {

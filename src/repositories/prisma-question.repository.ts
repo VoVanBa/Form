@@ -174,7 +174,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
   async deleteQuestionById(questionId: number): Promise<void> {
     await this.prismaService.question.update({
       where: { id: questionId },
-      data: { isDeleted: true },
+      data: { deletedAt: new Date() },
     });
   }
 
