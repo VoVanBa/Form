@@ -131,7 +131,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return question;
   }
 
-  getQuessionById(questionId: number) {
+  async getQuessionById(questionId: number) {
     return this.prismaService.question.findUnique({
       where: { id: questionId },
     });

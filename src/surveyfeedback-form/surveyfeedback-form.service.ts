@@ -73,13 +73,12 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        mediaUrls:
-          question.questionOnMedia.length > 0
-            ? {
-                id: question.questionOnMedia[0].id,
-                url: question.questionOnMedia[0].media.url,
-              }
-            : null,
+        mediaUrl: question.questionOnMedia?.media
+          ? {
+              id: question.questionOnMedia.media.id,
+              url: question.questionOnMedia.media.url,
+            }
+          : null,
         // .map((media) => ({
         //   id: media.id,
         //   url: media.media.url,
@@ -89,13 +88,10 @@ export class SurveyFeedackFormService {
           id: answerOption.id,
           label: answerOption.label,
           index: answerOption.index,
-          mediaUrls:
-            answerOption.answerOptionOnMedia.length > 0
-              ? {
-                  id: answerOption.answerOptionOnMedia[0].id,
-                  url: answerOption.answerOptionOnMedia[0].media.url,
-                }
-              : null, // Chỉ lấy 1 media cho mỗi AnswerOption
+          mediaUrl: {
+            id: answerOption.answerOptionOnMedia?.media?.id || null,
+            url: answerOption.answerOptionOnMedia?.media?.url || null,
+          }, // Chỉ lấy 1 media cho mỗi AnswerOption
         })),
 
         setting: question.businessQuestionConfiguration.settings,
@@ -129,29 +125,21 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        mediaUrls:
-          question.questionOnMedia.length > 0
-            ? {
-                id: question.questionOnMedia[0].id,
-                url: question.questionOnMedia[0].media.url,
-              }
-            : null,
-        // .map((media) => ({
-        //   id: media.id,
-        //   url: media.media.url,
-        // })),
-        // media: question.questionOnMedia.url,
+        mediaUrl: question.questionOnMedia?.media
+          ? {
+              id: question.questionOnMedia.media.id,
+              url: question.questionOnMedia.media.url,
+            }
+          : null,
+
         answerOptions: question.answerOptions.map((answerOption) => ({
           id: answerOption.id,
           label: answerOption.label,
           index: answerOption.index,
-          mediaUrls:
-            answerOption.answerOptionOnMedia.length > 0
-              ? {
-                  id: answerOption.answerOptionOnMedia[0].id,
-                  url: answerOption.answerOptionOnMedia[0].media.url,
-                }
-              : null, // Chỉ lấy 1 media cho mỗi AnswerOption
+          mediaUrl: {
+            id: answerOption.answerOptionOnMedia?.media?.id || null,
+            url: answerOption.answerOptionOnMedia?.media?.url || null,
+          },
         })),
 
         setting: question.businessQuestionConfiguration.settings,

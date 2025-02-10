@@ -12,6 +12,7 @@ import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repos
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from 'src/config/prisma.service';
+import ConfigManager from 'src/config/configManager';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -23,6 +24,7 @@ export class SurveyFeedbackDataService {
     private formSetting: PrismaFormSettingRepository,
     private readonly i18n: I18nService,
     private prisma: PrismaService,
+    private configManager: ConfigManager,
   ) {}
 
   async getStatusAnonymous(formId: number) {
@@ -57,16 +59,7 @@ export class SurveyFeedbackDataService {
       businessId,
       formId,
     );
-    const transformedSettings: FormSettingDto[] = settings.map((setting) => ({
-      key: setting.key,
-      settings: {
-        enabled: (setting.value as any)?.enabled,
-        limit: (setting.value as any)?.limit,
-        date: (setting.value as any)?.date,
-        position: (setting.value as any)?.position,
-      },
-    }));
-    console.log(settings);
+    const transformedSettings = this.configManager.transformSettings(settings);
 
     const validationFormErrors = await this.validateResponseOptions(
       formId,
@@ -90,7 +83,7 @@ export class SurveyFeedbackDataService {
     await this.prisma.$transaction(async (tx) => {
       const userSurveyResponse = await this.userResponseRepository.create(
         formId,
-        createResponse,
+        guestData,
         userId,
         tx,
       );
@@ -202,9 +195,13 @@ export class SurveyFeedbackDataService {
   ) {
     const errors: string[] = [];
 
-    responses.forEach((response) => {
+    responses.forEach(async (response) => {
+      const type = await this.questionRepository.getQuessionById(
+        response.questionId,
+      );
+
       const questionSetting = settings.find(
-        (setting) => setting.key === response.questionType,
+        (setting) => setting.key === type.questionType,
       );
 
       if (!questionSetting) {
@@ -233,7 +230,7 @@ export class SurveyFeedbackDataService {
       }
 
       // Kiểm tra loại câu hỏi
-      switch (response.questionType) {
+      switch (type.questionType) {
         case 'SINGLE_CHOICE':
         case 'PICTURE_SELECTION':
           if (questionSettings.require && !response.answerOptionId) {
@@ -333,8 +330,8 @@ export class SurveyFeedbackDataService {
       const responses = [];
       let totalQuestionResponses = 0;
       let mediaUrl = null;
-      if (question.questionOnMedia.length > 0) {
-        mediaUrl = question.questionOnMedia[0].media.url;
+      if (question.questionOnMedia) {
+        mediaUrl = question.questionOnMedia.media.url;
       }
       if (
         question.questionType === 'SINGLE_CHOICE' ||
@@ -359,8 +356,8 @@ export class SurveyFeedbackDataService {
           };
 
           if (question.questionType === 'PICTURE_SELECTION') {
-            if (option.answerOptionOnMedia.length > 0) {
-              responseObj.mediaUrls = option.answerOptionOnMedia[0].media.url;
+            if (option.answerOptionOnMedia) {
+              responseObj.mediaUrls = option.answerOptionOnMedia.media.url;
             }
           }
 
@@ -482,44 +479,28 @@ export class SurveyFeedbackDataService {
             }
           : null,
       guest: userResponse.guest
-        ? {
-            name:
-              typeof userResponse.guest === 'object' &&
-              'name' in userResponse.guest
-                ? userResponse.guest.name || ''
-                : '',
-            address:
-              typeof userResponse.guest === 'object' &&
-              'address' in userResponse.guest
-                ? userResponse.guest.address || ''
-                : '',
-            phoneNumber:
-              typeof userResponse.guest === 'object' &&
-              'phoneNumber' in userResponse.guest
-                ? userResponse.guest.phoneNumber || ''
-                : '',
-          }
+        ? ConfigManager.mapGuestDataToJson(userResponse.guest)
         : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => {
         let answer: any = null;
 
-        // ✅ Kiểm tra nếu có `answerOptionId` và câu hỏi có `answerOptions`
         if (
           response.answerOptionId &&
           response.question.answerOptions.length > 0
         ) {
-          answer = response.question.answerOptions
-            .filter((option) => option.id === response.answerOptionId)
-            .flatMap((option) =>
-              option.answerOptionOnMedia.map((media) => media.media.url),
-            );
-        }
-        // ✅ Nếu là câu hỏi nhập văn bản (INPUT_TEXT)
-        else if (response.question.questionType === 'INPUT_TEXT') {
+          const option = response.question.answerOptions.find(
+            (opt) => opt.id === response.answerOptionId,
+          );
+
+          if (option) {
+            answer =
+              option.answerOptionOnMedia?.media?.url ?? option.label ?? null;
+          } else {
+            answer = null;
+          }
+        } else if (response.question.questionType === 'INPUT_TEXT') {
           answer = response.answerText ?? null;
-        }
-        // ✅ Nếu là câu hỏi đánh giá (RATING_SCALE)
-        else if (response.question.questionType === 'RATING_SCALE') {
+        } else if (response.question.questionType === 'RATING_SCALE') {
           answer = response.ratingValue ?? null;
         }
 
@@ -527,7 +508,7 @@ export class SurveyFeedbackDataService {
           questionId: response.question.id,
           headline: response.question.headline,
           questionType: response.question.questionType,
-          answer, // 🔥 Đảm bảo luôn có answer
+          answer,
         };
       }),
     }));
@@ -570,14 +551,7 @@ export class SurveyFeedbackDataService {
           : null,
       guest:
         userResponse.guest && typeof userResponse.guest === 'object'
-          ? {
-              name: (userResponse.guest as { name?: string }).name || '',
-              address:
-                (userResponse.guest as { address?: string }).address || '',
-              phoneNumber:
-                (userResponse.guest as { phoneNumber?: string }).phoneNumber ||
-                '',
-            }
+          ? ConfigManager.mapGuestDataToJson(userResponse.guest)
           : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
         questionId: response.question.id,
@@ -590,14 +564,11 @@ export class SurveyFeedbackDataService {
           .map((option) => ({
             answerOptionId: option.id,
             label: option.label,
-            mediaUrl: option.answerOptionOnMedia.map(
-              (media) => media.media.url,
-            ),
+            mediaUrl: option.answerOptionOnMedia?.media?.url,
           })),
       })),
     }));
 
-    // Chuyển đổi dữ liệu sang DTO bằng `plainToInstance`
     return plainToInstance(
       FormResponse,
       { formId, userResponses: formattedData },

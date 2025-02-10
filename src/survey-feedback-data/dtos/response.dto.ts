@@ -10,8 +10,6 @@ export class ResponseDto {
   @IsInt()
   questionId: number;
 
-  questionType: QuestionType;
-
   @IsOptional()
   @IsInt()
   answerOptionId?: number[];

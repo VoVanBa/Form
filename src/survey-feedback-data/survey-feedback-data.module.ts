@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';
 import { PrismaService } from 'src/config/prisma.service';
+import ConfigManager from 'src/config/configManager';
 
 @Module({
   controllers: [SurveyFeedbackDataController],
@@ -22,6 +23,7 @@ import { PrismaService } from 'src/config/prisma.service';
     JwtService,
     PrismaFormSettingRepository,
     SurveyFeedbackDataService,
+    ConfigManager,
   ],
 })
 export class SurveyFeedbackDataModule {}
