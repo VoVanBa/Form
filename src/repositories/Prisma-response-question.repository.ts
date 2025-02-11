@@ -62,9 +62,21 @@ export class PrismaResponseQuestionRepository {
     });
   }
 
-  async getAll(formId: number) {
+  async getAll(
+    formId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    let filter: any = { formId };
+
+    if (startDate && endDate) {
+      filter.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
     return await this.prisma.question.findMany({
-      where: { formId: formId, deletedAt: null },
+      where: { ...filter, deletedAt: null },
       include: {
         questionOnMedia: {
           include: {

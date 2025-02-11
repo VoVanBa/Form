@@ -1,4 +1,3 @@
-import { QuestionType } from '@prisma/client';
 import {
   IsInt,
   IsOptional,

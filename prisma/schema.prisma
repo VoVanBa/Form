@@ -117,6 +117,7 @@ model Question {
   formId                        Int
   index                         Int
   deletedAt                     DateTime?
+  // createdAt                     DateTime                       @default(now())
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])

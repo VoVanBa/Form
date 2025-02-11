@@ -79,7 +79,7 @@ export class FormResponse {
 
   @Expose()
   @Type(() => UserResponse)
-  userResponses: UserResponse[];
+  data: UserResponse[];
 
   @Expose()
   meta: string;

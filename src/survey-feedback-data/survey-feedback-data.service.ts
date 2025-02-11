@@ -311,25 +311,43 @@ export class SurveyFeedbackDataService {
               }),
             );
           }
-
           break;
-
         default:
           errors.push(
             `Unknown question type for question ID ${response.questionId}.`,
           );
       }
     });
-
     return errors;
   }
 
-  async getFormRate(formId: number): Promise<any> {
+  async getFormRate(
+    formId: number,
+    option?: string,
+    customStartDate?: string,
+    customEndDate?: string,
+  ): Promise<any> {
     const totalResponses =
       await this.responseQuestionRepository.totalResponses(formId);
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
 
-    const questions = await this.responseQuestionRepository.getAll(formId);
+    if (option) {
+      const dateRange = this.getDateRange(
+        option,
+        customStartDate,
+        customEndDate,
+      );
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+      console.log(startDate, endDate, 'startDate, endDate');
+    }
 
+    const questions = await this.responseQuestionRepository.getAll(
+      formId,
+      startDate,
+      endDate,
+    );
     const detailedResponses = questions.map((question) => {
       const responses = [];
       let totalQuestionResponses = 0;
@@ -381,7 +399,6 @@ export class SurveyFeedbackDataService {
           'range',
           0,
         );
-        // range = ConfigManager.getSettingValue(configurations, 'range', 0);
 
         console.log(range, 'range');
 
@@ -457,7 +474,7 @@ export class SurveyFeedbackDataService {
     customEndDate?: string,
     page: number = 1,
     limit: number = 10,
-  ) {
+  ): Promise<FormResponse> {
     const existingForm =
       await this.formRepository.getsurveyFeedbackById(formId);
     if (!existingForm) {
@@ -476,6 +493,7 @@ export class SurveyFeedbackDataService {
       );
       startDate = dateRange.startDate;
       endDate = dateRange.endDate;
+      console.log(startDate, endDate, 'startDate, endDate');
     }
 
     const userResponsesPage =
@@ -535,7 +553,7 @@ export class SurveyFeedbackDataService {
       FormResponse,
       {
         formId,
-        userResponses: formattedData,
+        data: formattedData,
         meta: userResponsesPage.meta,
       },
       { excludeExtraneousValues: true },
@@ -606,6 +624,9 @@ export class SurveyFeedbackDataService {
       );
     }
     const { startDate, endDate } = this.getDateRange(option);
+
+    console.log(startDate, endDate, 'startDate, endDate');
+
     const skip = (page - 1) * pageSize;
     const take = pageSize;
     return this.userResponseRepository.filterResponsesByDateRange(

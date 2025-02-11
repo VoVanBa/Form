@@ -81,12 +81,6 @@ export class PrismasurveyFeedbackRepository
     });
 
     return surveyFeedback;
-
-    // return {
-    //   ...surveyFeedback,
-    //   type: surveyFeedback.type as SurveyFeedbackType,
-    //   status: surveyFeedback.status as FormStatus,
-    // };
   }
 
   async getAllsurveyFeedbacks(businessId: number) {

@@ -30,7 +30,8 @@ export class SurveyFeedbackDataController {
     @Param('formId') formId: number,
   ): Promise<any> {
     let userId: number | null = null;
-    const allowAnonymous =await this.responseService.getStatusAnonymous(formId);
+    const allowAnonymous =
+      await this.responseService.getStatusAnonymous(formId);
     if (!allowAnonymous) {
       if (!jwt) {
         throw new UnauthorizedException(
@@ -51,8 +52,18 @@ export class SurveyFeedbackDataController {
   }
 
   @Get(':formId/get-ratio')
-  async getRatioSurveyResponse(@Param('formId') formId: number) {
-    return this.responseService.getFormRate(formId);
+  async getRatioSurveyResponse(
+    @Param('formId') formId: number,
+    @Query('option') option?: string,
+    @Query('customStartDate') customStartDate?: string,
+    @Query('customEndDate') customEndDate?: string,
+  ) {
+    return this.responseService.getFormRate(
+      formId,
+      option,
+      customStartDate,
+      customEndDate,
+    );
   }
 
   @Get(':formId')
