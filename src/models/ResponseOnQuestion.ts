@@ -3,7 +3,7 @@ import { Question } from './Question';
 import { SurveyFeedback } from './SurveyFeedback';
 import { UserOnResponse } from './UserOnResponse';
 
-export interface ResponseOnQuestion {
+export class ResponseOnQuestion {
   id: number;
 
   useronResponseId: number;
@@ -25,4 +25,8 @@ export interface ResponseOnQuestion {
   userResponse: UserOnResponse;
 
   form: SurveyFeedback;
+
+  constructor(data: Partial<ResponseOnQuestion>) {
+    Object.assign(this, data);
+  }
 }

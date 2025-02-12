@@ -1,4 +1,3 @@
-import { QuestionType } from '@prisma/client';
 import {
   IsInt,
   IsString,
@@ -9,6 +8,7 @@ import {
 } from 'class-validator';
 import { AddAnswerOptionDto } from './add.answer.option.dto';
 import { Type } from 'class-transformer';
+import { QuestionType } from 'src/models/enums/QuestionType';
 
 export class UpdateQuestionDto {
   // formId: number;

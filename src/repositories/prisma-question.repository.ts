@@ -3,9 +3,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AddQuestionDto } from '../question/dtos/add.question.dto';
 import { QuestionRepository } from './i-repositories/question.repository';
-import { Question, QuestionType } from '@prisma/client';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { PrismaService } from 'src/config/prisma.service';
+import { Question } from 'src/models/Question';
+import { QuestionType } from 'src/models/enums/QuestionType';
 
 @Injectable()
 export class PrismaQuestionRepository implements QuestionRepository {
@@ -136,14 +137,10 @@ export class PrismaQuestionRepository implements QuestionRepository {
       where: { id: questionId },
     });
   }
-  async findAllQuestion(formId: number) {
-    return this.prismaService.question.findMany({
+  async findAllQuestion(formId: number): Promise<any> {
+    const questions = await this.prismaService.question.findMany({
       where: { formId },
-      select: {
-        id: true,
-        headline: true,
-        questionType: true,
-        index: true,
+      include: {
         answerOptions: {
           include: {
             answerOptionOnMedia: true,
@@ -153,7 +150,11 @@ export class PrismaQuestionRepository implements QuestionRepository {
       },
       orderBy: { index: 'asc' },
     });
+
+    return questions;
   }
+
+
   async uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any> {
     const uploadPromises = files.map((file) => this.uploadImage(file));
     return await Promise.all(uploadPromises);

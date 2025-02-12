@@ -1,7 +1,7 @@
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { AddQuestionDto } from './dtos/add.question.dto';
 import { v2 as cloudinary } from 'cloudinary';
-import { Prisma, QuestionType } from '@prisma/client';
+import { Prisma,  } from '@prisma/client';
 import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
@@ -12,6 +12,7 @@ import { I18nService } from 'nestjs-i18n';
 import { CloudinaryUploadResult } from './dtos/cloudinary.upload.result';
 import { PrismaService } from 'src/config/prisma.service';
 import { defaultQuestionSettings } from 'src/config/default.question.settings';
+import { QuestionType } from 'src/models/enums/QuestionType';
 
 @Injectable()
 export class QuestionService {

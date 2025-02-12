@@ -1,8 +1,9 @@
+import { Question } from 'src/models/Question';
 import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 
 export interface QuestionRepository {
-  findAllQuestion(formId: number): Promise<any>;
+  findAllQuestion(formId: number): Promise<Partial<Question>[]>;
   uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any>;
   uploadImage(image: Express.Multer.File): Promise<number>;
   deleteQuestionById(questionId: number): Promise<void>;
@@ -17,12 +18,7 @@ export interface QuestionRepository {
   ): Promise<any>;
   getSettingByQuestionType(questionType: string): Promise<any>;
   createDefaultQuestionConfigByAdmin(key: any, settings: any): Promise<any>;
-  createQuestion(
-    formId: number,
-    data: AddQuestionDto,
-    // settingId: number,
-    sortOrder: number,
-  );
+  createQuestion(formId: number, data: AddQuestionDto, sortOrder: number);
   getBusinessQuestionConfigurationByQuestionId(
     questionId: number,
     formId: number,

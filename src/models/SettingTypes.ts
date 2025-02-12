@@ -1,6 +1,6 @@
 import { SurveyFeedbackSettings } from './SurveyFeedbackSettings';
 
-export interface SettingTypes {
+export class SettingTypes {
   id: number;
 
   name: string;
@@ -8,4 +8,8 @@ export interface SettingTypes {
   description: string;
 
   settings: SurveyFeedbackSettings[];
+
+  constructor(data: Partial<SettingTypes>) {
+    Object.assign(this, data);
+  }
 }

@@ -1,6 +1,6 @@
 import { ResponseOnQuestion, SurveyFeedback, User } from '@prisma/client';
 
-export interface UserOnResponse {
+export class UserOnResponse {
   id: number;
   formId: number;
   userId: number | null;
@@ -9,4 +9,8 @@ export interface UserOnResponse {
   responseOnQuestions: ResponseOnQuestion[];
   form: SurveyFeedback;
   user: User | null;
+
+  constructor(data: Partial<UserOnResponse>) {
+    Object.assign(this, data);
+  }
 }

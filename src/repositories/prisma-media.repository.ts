@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { IMediaRepository } from './i-repositories/media.repository';
-import { Media, QuestionOnMedia } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma.service';
+import { Media } from 'src/models/Media';
+import { QuestionOnMedia } from 'src/models/QuestionOnMedia';
 
 @Injectable()
 export class PrismaMediaRepository implements IMediaRepository {
@@ -12,7 +13,7 @@ export class PrismaMediaRepository implements IMediaRepository {
     fileName: string,
     mimeType: string,
     size: number,
-  ) {
+  ): Promise<Partial<Media>> {
     return this.prisma.media.create({
       data: {
         url,
@@ -37,7 +38,7 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async getMediaById(id: number): Promise<Media | null> {
+  async getMediaById(id: number): Promise<Partial<Media> | null> {
     return this.prisma.media.findUnique({
       where: { id },
     });
@@ -45,7 +46,7 @@ export class PrismaMediaRepository implements IMediaRepository {
 
   async getQuestionOnMediaByMediaId(
     mediaId: number,
-  ): Promise<QuestionOnMedia | null> {
+  ): Promise<Partial<QuestionOnMedia> | null> {
     return this.prisma.questionOnMedia.findFirst({
       where: { mediaId: mediaId },
     });
@@ -59,14 +60,6 @@ export class PrismaMediaRepository implements IMediaRepository {
       },
     });
   }
-
-  async updateMedia(id: number, media: Partial<Media>): Promise<Media> {
-    return this.prisma.media.update({
-      where: { id },
-      data: media,
-    });
-  }
-
   async deleteMediaById(id: number): Promise<void> {
     await this.prisma.media.delete({
       where: { id },

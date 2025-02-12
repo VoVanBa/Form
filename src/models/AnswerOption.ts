@@ -1,7 +1,7 @@
 import { AnswerOptionOnMedia } from './AnswerOptionOnMedia';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 
-export interface AnswerOption {
+export class AnswerOption {
   id: number;
   label: string;
   index: number;
@@ -9,4 +9,9 @@ export interface AnswerOption {
   questionId: number;
   answerOptionOnMedia: AnswerOptionOnMedia[];
   responseOnQuestions: ResponseOnQuestion[];
+
+  constructor(data: Partial<AnswerOption>) {
+    Object.assign(this, data);
+  }
+
 }

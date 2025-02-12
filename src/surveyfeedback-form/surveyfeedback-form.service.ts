@@ -38,7 +38,7 @@ export class SurveyFeedackFormService {
 
     await Promise.all(saveSettingsPromises);
 
-    return save;
+    return this.i18n.translate('success.SURVEYFEEDBACKCREATED');
   }
 
   async getForms(businessId: number) {
@@ -226,7 +226,7 @@ export class SurveyFeedackFormService {
         return this.formSetting.upsertSetting(
           formId,
           businessId,
-          formSetting.id, // Sử dụng id từ formSetting
+          formSetting.id,
           newSetting.key,
           newSetting.value,
         );

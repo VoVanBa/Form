@@ -1,7 +1,7 @@
 import { Media } from './Media';
 import { Question } from './Question';
 
-export interface QuestionOnMedia {
+export class QuestionOnMedia {
   id: number;
 
   questionId: number;
@@ -11,4 +11,8 @@ export interface QuestionOnMedia {
   media: Media;
 
   question: Question;
+
+  constructor(data: Partial<QuestionOnMedia>) {
+    Object.assign(this, data);
+  }
 }

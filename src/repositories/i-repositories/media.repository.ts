@@ -1,4 +1,5 @@
-import { Media, QuestionOnMedia } from '@prisma/client';
+import { Media } from 'src/models/Media';
+import { QuestionOnMedia } from 'src/models/QuestionOnMedia';
 
 export interface IMediaRepository {
   createMedia(
@@ -6,11 +7,12 @@ export interface IMediaRepository {
     fileName: string,
     mimeType: string,
     size: number,
-  ): Promise<Media>;
-  getMediaById(id: number): Promise<Media | null>;
-  updateMedia(id: number, media: Partial<Media>): Promise<Media>;
+  ): Promise<Partial<Media>>;
+  getMediaById(id: number): Promise<Partial<Media> | null>;
   deleteMediaById(id: number): Promise<void>;
-  getQuestionOnMediaByMediaId(mediaId: number): Promise<QuestionOnMedia | null>;
+  getQuestionOnMediaByMediaId(
+    mediaId: number,
+  ): Promise<Partial<QuestionOnMedia> | null>;
   updateQuestionOnMedia(questionId: number, mediaId: number);
   updateAnswerOptionOnMedia(
     mediaId: number,

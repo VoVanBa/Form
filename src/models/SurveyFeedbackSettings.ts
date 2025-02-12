@@ -1,7 +1,7 @@
 import { BusinessSurveyFeedbackSettings } from './BusinessSurveyFeedbackSettings';
 import { SettingTypes } from './SettingTypes';
 
-export interface SurveyFeedbackSettings {
+export class SurveyFeedbackSettings {
   id: number;
   key: string;
   value: object;
@@ -10,4 +10,8 @@ export interface SurveyFeedbackSettings {
   formSettingTypesId?: number;
   formSettingTypes?: SettingTypes;
   BusinessSurveyFeedbackSettings: BusinessSurveyFeedbackSettings[];
+
+  constructor(data: Partial<SurveyFeedbackSettings>) {
+    Object.assign(this, data);
+  }
 }

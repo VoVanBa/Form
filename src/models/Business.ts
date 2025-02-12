@@ -1,4 +1,4 @@
-export interface Business {
+export class Business {
   id: number;
 
   name: string;
@@ -10,4 +10,8 @@ export interface Business {
   address: string;
 
   userId: number;
+
+  constructor(data: Partial<Business>) {
+    Object.assign(this, data);
+  }
 }

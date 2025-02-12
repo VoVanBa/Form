@@ -4,9 +4,8 @@ import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.for
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
 import { PrismaService } from 'src/config/prisma.service';
-import { SurveyFeedback } from 'src/models/SurveyFeedback';
-import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
 import { FormStatus } from 'src/models/enums/FormStatus';
+import { SurveyFeedback } from 'src/models/SurveyFeedback';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -83,7 +82,7 @@ export class PrismasurveyFeedbackRepository
     return surveyFeedback;
   }
 
-  async getAllsurveyFeedbacks(businessId: number) {
+  async getAllsurveyFeedbacks(businessId: number): Promise<SurveyFeedback[]> {
     return this.prisma.surveyFeedback.findMany({
       where: {
         businessId,

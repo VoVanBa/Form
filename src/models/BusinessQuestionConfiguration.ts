@@ -1,6 +1,6 @@
 import { Expose } from 'class-transformer';
 
-export interface BusinessQuestionConfiguration {
+export class BusinessQuestionConfiguration {
   id: number;
 
   key: string;
@@ -12,4 +12,8 @@ export interface BusinessQuestionConfiguration {
   description: string | null;
 
   formSettingTypesId: number | null;
+
+  constructor(data: Partial<BusinessQuestionConfiguration>) {
+    Object.assign(this, data);
+  }
 }
