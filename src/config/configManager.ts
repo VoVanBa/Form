@@ -92,7 +92,6 @@ class ConfigManager {
   }
 
   getSettingValue<T>(configurations: any, key: string, defaultValue: T): T {
-    // Nếu `configurations` là một mảng
     if (Array.isArray(configurations)) {
       const settingItem = configurations.find(
         (config) =>
@@ -104,7 +103,6 @@ class ConfigManager {
 
       let value = settingItem?.settings?.[key];
 
-      // Nếu `defaultValue` là số, cố gắng chuyển đổi giá trị thành số
       if (typeof defaultValue === 'number' && typeof value === 'string') {
         const parsedValue = Number(value);
         return isNaN(parsedValue) ? defaultValue : (parsedValue as T);
@@ -113,11 +111,9 @@ class ConfigManager {
       return value ?? defaultValue;
     }
 
-    // Nếu `configurations` là một object chứa settings trực tiếp
     if (typeof configurations === 'object' && configurations?.settings) {
       let value = configurations.settings[key];
 
-      // Nếu `defaultValue` là số, cố gắng chuyển đổi giá trị thành số
       if (typeof defaultValue === 'number' && typeof value === 'string') {
         const parsedValue = Number(value);
         return isNaN(parsedValue) ? defaultValue : (parsedValue as T);

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
@@ -42,7 +46,23 @@ export class SurveyFeedackFormService {
   }
 
   async getForms(businessId: number) {
-    return this.formRepository.getAllsurveyFeedbacks(businessId);
+    const form = await this.formRepository.getAllsurveyFeedbacks(businessId);
+    if (form.length === 0) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+    return {
+      data: form.map((form) => ({
+        id: form.id,
+        name: form.name,
+        description: form.description,
+        type: form.type,
+        status: form.status,
+        allowAnonymous: form.allowAnonymous,
+        createdAt: form.createdAt,
+      })),
+    };
   }
 
   async getFormByIdForBusiness(id: number) {
@@ -50,7 +70,7 @@ export class SurveyFeedackFormService {
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
     if (!surveyFeedback) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
@@ -79,11 +99,6 @@ export class SurveyFeedackFormService {
               url: question.questionOnMedia.media.url,
             }
           : null,
-        // .map((media) => ({
-        //   id: media.id,
-        //   url: media.media.url,
-        // })),
-        // media: question.questionOnMedia.url,
         answerOptions: question.answerOptions.map((answerOption) => ({
           id: answerOption.id,
           label: answerOption.label,
@@ -108,7 +123,7 @@ export class SurveyFeedackFormService {
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
     if (!surveyFeedback) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
@@ -165,14 +180,14 @@ export class SurveyFeedackFormService {
     const existingBusiness =
       await this.businessRepository.getbusinessbyId(businessId);
     if (!existingBusiness) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.BUSINESSNOTFOUND'),
       );
     }
 
     const existingForm = await this.getFormByIdForBusiness(formId);
     if (!existingForm) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
@@ -183,7 +198,7 @@ export class SurveyFeedackFormService {
   async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
     const survey = await this.formRepository.getsurveyFeedbackById(surveyId);
     if (!survey) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
       );
     }
@@ -216,7 +231,6 @@ export class SurveyFeedackFormService {
       ) {
         return null;
       } else {
-        // Tìm formSetting dựa trên key
         const formSetting = allFormSettings.find(
           (setting) => setting.key === newSetting.key,
         );

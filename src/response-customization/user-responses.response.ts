@@ -35,7 +35,9 @@ export class QuestionResponse {
   questionType: string;
 
   @Expose()
-  answer: string | number | string[] | null; // ✅ Chỉ chứa câu trả lời
+  answer: string | number | string[] | null;
+  @Expose()
+  severity: string;
 }
 
 export class GuestResponse {
@@ -67,6 +69,9 @@ export class UserResponse {
 
   @Expose()
   sentAt: Date;
+
+  @Expose()
+  severityScores: string;
 
   @Expose()
   @Type(() => QuestionResponse)

@@ -7,7 +7,7 @@ import { Question } from './Question';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 import { UserOnResponse } from './UserOnResponse';
 
-export class SurveyFeedback {
+export interface SurveyFeedback {
   readonly id: number;
 
   readonly name: string;
@@ -39,8 +39,4 @@ export class SurveyFeedback {
   readonly configurations: BusinessQuestionConfiguration[];
 
   readonly responses: ResponseOnQuestion[];
-
-  constructor(data: Partial<SurveyFeedback>) {
-    Object.assign(this, data);
-  }
 }

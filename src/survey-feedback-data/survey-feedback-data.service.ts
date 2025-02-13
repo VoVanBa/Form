@@ -326,7 +326,7 @@ export class SurveyFeedbackDataService {
     option?: string,
     customStartDate?: string,
     customEndDate?: string,
-  ): Promise<any> {
+  ) {
     const totalResponses =
       await this.responseQuestionRepository.totalResponses(formId);
     let startDate: Date | undefined;
@@ -517,6 +517,7 @@ export class SurveyFeedbackDataService {
       guest: userResponse.guest
         ? this.configManager.mapGuestDataToJson(userResponse.guest)
         : null,
+      severityScores: this.calculateSeverity(userResponse),
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => {
         let answer: any = null;
 
@@ -548,6 +549,12 @@ export class SurveyFeedbackDataService {
         };
       }),
     }));
+
+    // const caculSeverity = formattedData.map((format) => {
+    //   const severityScores = this.calculateSeverity(format);
+    //   return severityScores;
+    // });
+    // console.log(caculSeverity, 'severityScores');
 
     return plainToInstance(
       FormResponse,
@@ -700,5 +707,46 @@ export class SurveyFeedbackDataService {
     }
 
     return { startDate, endDate };
+  }
+
+  private calculateSeverity(form: any): string {
+    const negativeWords = ['tệ', 'không hài lòng', 'kém', 'tồi tệ', 'quá tệ'];
+    let severityScores: number[] = [];
+
+    for (const response of form.responseOnQuestions) {
+      let score = 1; // Mặc định là "low"
+
+      console.log(response, 'response');
+      if (
+        response.question.questionType === 'RATING_SCALE' &&
+        response.answer
+      ) {
+        if (response.answer <= 2)
+          score = 3; // High severity
+        else if (response.answer === 3) score = 2; // Medium severity
+      }
+
+      if (response.question.questionType === 'INPUT_TEXT' && response.answer) {
+        const answerText = response.answer.toLowerCase().trim();
+        if (negativeWords.some((word) => answerText.includes(word))) {
+          score = 3; // High severity nếu có từ tiêu cực
+        }
+      }
+
+      severityScores.push(score);
+    }
+
+    if (severityScores.length === 0) return 'low'; // Nếu không có câu trả lời nào
+
+    // Tính trung bình điểm severity
+    const avgSeverity =
+      severityScores.reduce((a, b) => a + b, 0) / severityScores.length;
+
+    // Quy đổi điểm trung bình về mức độ nghiêm trọng
+    if (avgSeverity >= 2.5) return 'high';
+    if (avgSeverity >= 1.5) return 'medium';
+
+    console.log(avgSeverity, 'avgSeverity');
+    return 'low';
   }
 }

@@ -6,9 +6,9 @@ export interface AnswerOptionRepository {
     questionId: number,
     answerOptions: AddAnswerOptionDto,
     index: number,
-  ) : Promise<Partial<AnswerOption>>;
+  ): Promise<Partial<AnswerOption>>;
   getQuantityAnserOptionbyQuestionId(questionId: number);
   getAllAnserOptionbyQuestionId(questionId: number);
-  deleteAnserOption(ids: number);
+  deleteAnserOption(ids: number, questionId: number);
   findanswerOptionsByQuestionId(questionId);
 }

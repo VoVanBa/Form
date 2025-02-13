@@ -1,3 +1,5 @@
+import { UpdateQuestionDto } from './../question/dtos/update.question.dto';
+import { Question } from 'src/models/Question';
 import { Injectable } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { AnswerOptionRepository } from './i-repositories/anwser-option.repository';
@@ -17,7 +19,7 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     answerOptions: AddAnswerOptionDto,
     index: number,
   ): Promise<Partial<AnswerOption>> {
-    const createdOption = await this.prismaService.answerOption.create({
+    const createdOption = this.prismaService.answerOption.create({
       data: {
         questionId,
         label: answerOptions.label,
@@ -30,24 +32,35 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
   }
 
   async getQuantityAnserOptionbyQuestionId(questionId: number) {
-    return await this.prismaService.answerOption.count({
+    return this.prismaService.answerOption.count({
       where: {
         questionId: questionId,
       },
     });
   }
 
-  async deleteAnserOption(id: number) {
-    return await this.prismaService.answerOption.delete({
+  async deleteAnserOption(id: number, questionId: number) {
+    return this.prismaService.answerOption.delete({
       where: {
         id: id,
+        questionId: questionId,
       },
     });
   }
   async findanswerOptionsByQuestionId(questionId) {
-    return await this.prismaService.answerOption.findMany({
+    return this.prismaService.answerOption.findMany({
       where: {
         questionId: questionId,
+      },
+    });
+  }
+  async updateAnswerOptions(answerOptionId: number, data: AddAnswerOptionDto) {
+    return this.prismaService.answerOption.update({
+      where: {
+        id: answerOptionId,
+      },
+      data: {
+        ...data,
       },
     });
   }

@@ -4,7 +4,7 @@ import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 
 export interface QuestionRepository {
   findAllQuestion(formId: number): Promise<Partial<Question>[]>;
-  uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<any>;
+  uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<void>;
   uploadImage(image: Express.Multer.File): Promise<number>;
   deleteQuestionById(questionId: number): Promise<void>;
   findQuestionBySortOrder(questionId: number): Promise<any>;

@@ -1,7 +1,11 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AddQuestionDto } from './dtos/add.question.dto';
 import { v2 as cloudinary } from 'cloudinary';
-import { Prisma,  } from '@prisma/client';
 import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
@@ -67,12 +71,10 @@ export class QuestionService {
 
     await this.validateQuestion(questionId);
 
-    return this.prismaService.answerOption.delete({
-      where: {
-        questionId,
-        id: optionAnwerId,
-      },
-    });
+    return this.prismaAnswerOptionRepository.deleteAnserOption(
+      optionAnwerId,
+      questionId,
+    );
   }
 
   async getAllQuestion(formId: number) {
@@ -158,10 +160,10 @@ export class QuestionService {
       await Promise.all(
         updateQuestionDto.answerOptions.map(async (option) => {
           if (option.answerOptionId) {
-            await this.prismaService.answerOption.update({
-              where: { id: option.answerOptionId },
-              data: option,
-            });
+            await this.prismaAnswerOptionRepository.updateAnswerOptions(
+              option.answerOptionId,
+              option,
+            );
             answerOptionsId.push(option.answerOptionId);
             if (option.imageIds) {
               await this.updateAnswerOptionImages(
@@ -181,11 +183,15 @@ export class QuestionService {
                 index,
               );
             answerOptionsId.push(createdOption.id);
-            if (option.imageIds) {
-              await this.updateAnswerOptionImages(
-                createdOption.id,
-                option.imageIds,
-              );
+            if (
+              updateQuestionDto.questionType === QuestionType.PICTURE_SELECTION
+            ) {
+              if (option.imageIds) {
+                await this.updateAnswerOptionImages(
+                  createdOption.id,
+                  option.imageIds,
+                );
+              }
             }
           }
         }),
@@ -210,7 +216,7 @@ export class QuestionService {
     if (idsToDelete.length > 0) {
       await Promise.all(
         idsToDelete.map((id) =>
-          this.prismaAnswerOptionRepository.deleteAnserOption(id),
+          this.prismaAnswerOptionRepository.deleteAnserOption(id, questionId),
         ),
       );
     }
@@ -220,9 +226,7 @@ export class QuestionService {
     const existingImage =
       await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId);
     if (!existingImage) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.IMAGENOTFOUND'),
-      );
+      throw new NotFoundException(this.i18n.translate('errors.IMAGENOTFOUND'));
     }
     await this.prismaMediaRepository.updateQuestionOnMedia(
       questionId,
@@ -431,7 +435,7 @@ export class QuestionService {
     const questions = await this.getAllQuestion(formId);
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
@@ -448,7 +452,7 @@ export class QuestionService {
     const questions = await this.getAllQuestion(formId);
     const questionIndex = questions.findIndex((q) => q.id === questionId);
     if (questionIndex === -1) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
