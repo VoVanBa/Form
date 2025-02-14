@@ -93,7 +93,7 @@ model SurveyFeedbackSettings {
   description                    String?
   formSettingTypesId             Int?
   formSettingTypes               SettingTypes?                    @relation(fields: [formSettingTypesId], references: [id], onDelete: Cascade)
-  BusinessSurveyFeedbackSettings BusinessSurveyFeedbackSettings[]
+  businessSurveyFeedbackSettings BusinessSurveyFeedbackSettings[]
 }
 
 model BusinessSurveyFeedbackSettings {
@@ -117,7 +117,6 @@ model Question {
   formId                        Int
   index                         Int
   deletedAt                     DateTime?
-  // createdAt                     DateTime                       @default(now())
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])

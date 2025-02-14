@@ -3,13 +3,20 @@ import { SettingTypes } from './SettingTypes';
 
 export class SurveyFeedbackSettings {
   id: number;
+
   key: string;
-  value: object;
-  label?: string;
-  description?: string;
-  formSettingTypesId?: number;
-  formSettingTypes?: SettingTypes;
-  BusinessSurveyFeedbackSettings: BusinessSurveyFeedbackSettings[];
+
+  value: any;
+
+  formSettingId: number;
+
+  formId: number;
+
+  businessId: number;
+
+  formSettingTypes: SettingTypes;
+
+  businessSurveyFeedbackSettings: BusinessSurveyFeedbackSettings[];
 
   constructor(data: Partial<SurveyFeedbackSettings>) {
     Object.assign(this, data);

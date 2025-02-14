@@ -1,4 +1,5 @@
 import { AnswerOptionOnMedia } from './AnswerOptionOnMedia';
+import { Question } from './Question';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 
 export class AnswerOption {
@@ -7,11 +8,12 @@ export class AnswerOption {
   index: number;
   description: string;
   questionId: number;
-  answerOptionOnMedia: AnswerOptionOnMedia[];
+  answerOptionOnMedia?: AnswerOptionOnMedia;
   responseOnQuestions: ResponseOnQuestion[];
+
+  question: Question;
 
   constructor(data: Partial<AnswerOption>) {
     Object.assign(this, data);
   }
-
 }

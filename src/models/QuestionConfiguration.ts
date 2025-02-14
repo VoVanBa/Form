@@ -3,7 +3,7 @@ export class QuestionConfiguration {
 
   key: string;
 
-  settings: object;
+  settings: any;
 
   constructor(data: Partial<QuestionConfiguration>) {
     Object.assign(this, data);

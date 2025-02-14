@@ -6,7 +6,8 @@ export class AnswerOptionOnMedia {
   answerOptionId: number;
   mediaId: number;
   media: Media;
-  answerOption: AnswerOption;
+  index: number;
+  answerOption?: AnswerOption;
 
   constructor(data: Partial<AnswerOptionOnMedia>) {
     Object.assign(this, data);

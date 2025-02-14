@@ -93,7 +93,7 @@ export class PrismaUserResponseRepository {
     const skip = (page - 1) * limit;
 
     // Build dynamic filter
-    let filter: any = { formId };
+    const filter: any = { formId };
 
     if (startDate && endDate) {
       filter.sentAt = {

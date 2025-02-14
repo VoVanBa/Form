@@ -22,7 +22,7 @@ export class ResponseOnQuestion {
 
   question: Question;
 
-  userResponse: UserOnResponse;
+  userResponse?: UserOnResponse;
 
   form: SurveyFeedback;
 

@@ -144,7 +144,7 @@ export class PrismaFormSettingRepository implements IFormSettingRepository {
       include: {
         settings: {
           include: {
-            BusinessSurveyFeedbackSettings: {
+            businessSurveyFeedbackSettings: {
               where: {
                 businessId: businessId,
                 formId: formId,

@@ -10,7 +10,7 @@ export class QuestionOnMedia {
 
   media: Media;
 
-  question: Question;
+  question?: Question;
 
   constructor(data: Partial<QuestionOnMedia>) {
     Object.assign(this, data);

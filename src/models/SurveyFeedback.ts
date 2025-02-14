@@ -6,37 +6,45 @@ import { SurveyFeedbackType } from './enums/SurveyFeedbackType';
 import { Question } from './Question';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 import { UserOnResponse } from './UserOnResponse';
+export class SurveyFeedback {
+  constructor(
+    public id: number,
+    public name: string,
+    public description: string,
+    public createdBy: string,
+    public createdAt: Date,
+    public updatedAt: Date,
+    public type: SurveyFeedbackType,
+    public allowAnonymous: boolean,
+    public status: FormStatus,
+    public businessId: number,
+    public businessSettings?: BusinessSurveyFeedbackSettings[],
+    public business?: Business,
+    public questions?: Question[], // Quan hệ mới
+    public userFormResponses?: UserOnResponse[],
+    public configurations?: BusinessQuestionConfiguration[],
+    public responses?: ResponseOnQuestion[],
+  ) {}
 
-export interface SurveyFeedback {
-  readonly id: number;
-
-  readonly name: string;
-
-  readonly description?: string;
-
-  readonly createdBy: string;
-
-  readonly createdAt: Date;
-
-  readonly updatedAt: Date;
-
-  readonly type: SurveyFeedbackType;
-
-  readonly allowAnonymous: boolean;
-
-  readonly status: FormStatus;
-
-  readonly businessId: number;
-
-  readonly businessSettings: BusinessSurveyFeedbackSettings[];
-
-  readonly business: Business;
-
-  readonly questions: Question[];
-
-  readonly userFormResponses: UserOnResponse[];
-
-  readonly configurations: BusinessQuestionConfiguration[];
-
-  readonly responses: ResponseOnQuestion[];
+  static fromPrisma(data: any): SurveyFeedback {
+    if (!data) return null;
+    return new SurveyFeedback(
+      data.id,
+      data.name,
+      data.description,
+      data.createdBy,
+      data.createdAt,
+      data.updatedAt,
+      data.type,
+      data.allowAnonymous,
+      data.status,
+      data.businessId,
+      data.businessSettings || [],
+      data.business || null,
+      data.questions?.map(Question.fromPrisma) || [], // Ánh xạ questions
+      data.userFormResponses || [],
+      data.configurations || [],
+      data.responses || [],
+    );
+  }
 }

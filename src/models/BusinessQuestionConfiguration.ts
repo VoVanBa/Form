@@ -1,18 +1,19 @@
-import { Expose } from 'class-transformer';
+import { Question } from './Question';
+import { SurveyFeedback } from './SurveyFeedback';
 
 export class BusinessQuestionConfiguration {
   id: number;
 
+  questionId: number;
+
+  formId: number;
   key: string;
 
-  value: any;
+  settings: any;
 
-  label: string | null;
+  question: Question;
 
-  description: string | null;
-
-  formSettingTypesId: number | null;
-
+  form: SurveyFeedback;
   constructor(data: Partial<BusinessQuestionConfiguration>) {
     Object.assign(this, data);
   }

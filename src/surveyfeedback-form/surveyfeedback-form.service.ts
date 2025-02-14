@@ -270,7 +270,7 @@ export class SurveyFeedackFormService {
       settings: type.settings.map((setting) => ({
         label: setting.label,
         description: setting.description,
-        businessSettings: setting.BusinessSurveyFeedbackSettings.map(
+        businessSettings: setting.businessSurveyFeedbackSettings.map(
           (businessSetting) => ({
             key: businessSetting.key,
             value: businessSetting.value,

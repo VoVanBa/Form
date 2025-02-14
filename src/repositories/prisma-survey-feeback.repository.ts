@@ -1,4 +1,3 @@
-import { QuestionMedia } from '../response-customization/surveyfeedback.response';
 import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
@@ -7,6 +6,13 @@ import { PrismaService } from 'src/config/prisma.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
+import { Question } from 'src/models/Question';
+import { QuestionOnMedia } from 'src/models/QuestionOnMedia';
+import { AnswerOption } from 'src/models/AnswerOption';
+import { AnswerOptionOnMedia } from 'src/models/AnswerOptionOnMedia';
+import { Media } from 'src/models/Media';
+import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
+import { console } from 'inspector';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -18,15 +24,77 @@ export class PrismasurveyFeedbackRepository
     data: CreatesurveyFeedbackDto,
     businessId: number,
   ) {
-    return this.prisma.surveyFeedback.create({
+    return await this.prisma.surveyFeedback.create({
       data: {
         ...data,
         businessId: businessId,
       },
     });
   }
-  async getsurveyFeedbackById(id: number): Promise<any> {
-    const surveyFeedback = this.prisma.surveyFeedback.findUnique({
+  // async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
+  //   const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
+  //     where: { id },
+  //     include: {
+  //       questions: {
+  //         where: { deletedAt: null },
+  //         orderBy: { index: 'asc' },
+  //         include: {
+  //           questionOnMedia: {
+  //             include: {
+  //               media: true,
+  //             },
+  //           },
+  //           answerOptions: {
+  //             orderBy: { index: 'asc' },
+  //             include: {
+  //               answerOptionOnMedia: {
+  //                 include: {
+  //                   media: true,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //           businessQuestionConfiguration: true,
+  //         },
+  //       },
+  //       business: true,
+  //       businessSettings: {
+  //         include: {
+  //           formSetting: true,
+  //           business: true,
+  //           form: true,
+  //         },
+  //       },
+  //       userFormResponses: {
+  //         include: {
+  //           responseOnQuestions: true,
+  //           user: true,
+  //         },
+  //       },
+  //       configurations: {
+  //         include: {
+  //           question: true,
+  //         },
+  //       },
+  //       responses: {
+  //         include: {
+  //           question: true,
+  //           answerOption: true,
+  //           userResponse: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   return new SurveyFeedback({
+  //     ...surveyFeedback,
+  //     type: surveyFeedback.type as SurveyFeedbackType,
+  //     status: surveyFeedback.status as FormStatus,
+  //   });
+  // }
+
+  async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
+    const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
         questions: {
@@ -34,53 +102,49 @@ export class PrismasurveyFeedbackRepository
           orderBy: { index: 'asc' },
           include: {
             questionOnMedia: {
-              include: {
-                media: true,
-              },
+              include: { media: true },
             },
             answerOptions: {
               orderBy: { index: 'asc' },
               include: {
                 answerOptionOnMedia: {
-                  include: {
-                    media: true,
-                  },
+                  include: { media: true },
                 },
               },
             },
             businessQuestionConfiguration: true,
           },
         },
-        business: true,
-        businessSettings: {
-          include: {
-            formSetting: true,
-            business: true,
-            form: true,
-          },
-        },
-        userFormResponses: {
-          include: {
-            responseOnQuestions: true,
-            user: true,
-          },
-        },
-        configurations: {
-          include: {
-            question: true,
-          },
-        },
-        responses: {
-          include: {
-            question: true,
-            answerOption: true,
-            userResponse: true,
-          },
-        },
+        // business: true,
+        // businessSettings: {
+        //   include: {
+        //     formSetting: {
+        //       include: {
+        //         businessSurveyFeedbackSettings: true,
+        //         formSettingTypes: true, // Include SettingTypes here
+        //       },
+        //     },
+        //     business: true,
+        //     form: true,
+        //   },
+        // },
+        // userFormResponses: {
+        //   include: { responseOnQuestions: true, user: true },
+        // },
+        // configurations: {
+        //   include: { question: true },
+        // },
+        // responses: {
+        //   include: { question: true, answerOption: true, userResponse: true },
+        // },
       },
     });
 
-    return surveyFeedback;
+    return new SurveyFeedback({
+      ...surveyFeedback,
+      type: surveyFeedback.type as SurveyFeedbackType,
+      status: surveyFeedback.status as FormStatus,
+    });
   }
 
   async getAllsurveyFeedbacks(businessId: number): Promise<SurveyFeedback[]> {
@@ -89,31 +153,18 @@ export class PrismasurveyFeedbackRepository
         businessId,
       },
     });
-    return prismaData.map(this.mapSurveyFeedback);
+    return prismaData.map(
+      (data) =>
+        new SurveyFeedback({
+          ...data,
+          type: data.type as SurveyFeedbackType,
+          status: data.status as FormStatus,
+        }),
+    );
   }
 
-  private mapSurveyFeedback(data: any): SurveyFeedback {
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      createdBy: data.createdBy,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
-      type: data.type as SurveyFeedbackType,
-      allowAnonymous: data.allowAnonymous,
-      status: data.status as FormStatus,
-      businessId: data.businessId,
-      businessSettings: data.businessSettings,
-      business: data.business,
-      questions: data.questions,
-      userFormResponses: data.userFormResponses,
-      configurations: data.configurations,
-      responses: data.responses,
-    };
-  }
   async updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto) {
-    return this.prisma.surveyFeedback.update({
+    return await this.prisma.surveyFeedback.update({
       where: { id },
       data,
     });

@@ -9,15 +9,16 @@ export class BusinessSurveyFeedbackSettings {
 
   value: any;
 
+  formId: number;
+  formSettingId: number;
+  businessId: number;
   formSetting: SurveyFeedbackSettings;
 
   business: Business;
 
   form: SurveyFeedback;
 
-  formSettingId: number;
-
-  constructor(data: Partial<BusinessSurveyFeedbackSettings>) {  
+  constructor(data: Partial<BusinessSurveyFeedbackSettings>) {
     Object.assign(this, data);
-  } 
+  }
 }
