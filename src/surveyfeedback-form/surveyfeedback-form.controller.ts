@@ -11,6 +11,7 @@ import {
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
+import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -50,17 +51,12 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getFormByIdForClient(id);
   }
 
-  @Put(':formId/business/:businessId/status')
-  updateStatus(
-    @Query('status') status: FormStatus,
+  @Put(':formId')
+  updateForm(
     @Param('formId') formId: number,
-    @Param('businessId') businessId: number,
+    @Body() data: UpdatesurveyFeedbackDto,
   ) {
-    return this.surveyFeedbackFormService.updateStatus(
-      status,
-      formId,
-      businessId,
-    );
+    return this.surveyFeedbackFormService.updateForm(formId, data);
   }
 
   @Delete(':formId')

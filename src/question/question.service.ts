@@ -88,31 +88,41 @@ export class QuestionService {
   ) {
     await this.validateForm(formId);
 
-    const results = await Promise.all(
-      updateQuestionsDto.map(async (updateQuestionDto) => {
-        const { questionType, questionId } = updateQuestionDto;
-        let handler;
+    // Lấy max index hiện tại
+    const currentMaxIndex =
+      await this.prismaQuestionRepository.getMaxQuestionIndex(formId);
 
-        if (questionId) {
-          const question = await this.validateQuestion(questionId);
+    let nextIndex = currentMaxIndex + 1;
 
-          if (questionType !== question.questionType) {
-            await this.prismaQuestionRepository.deleteQuestionById(questionId);
-            handler = this.getHandlerForQuestionType(questionType);
-          } else {
-            return await this.updateQuestion(
-              questionId,
-              formId,
-              updateQuestionDto,
-            );
-          }
+    // Xử lý tuần tự để đảm bảo index đúng thứ tự
+    const results = [];
+    for (const updateQuestionDto of updateQuestionsDto) {
+      const { questionType, questionId } = updateQuestionDto;
+
+      if (questionId) {
+        const question = await this.validateQuestion(questionId);
+
+        if (questionType !== question.questionType) {
+          await this.prismaQuestionRepository.deleteQuestionById(questionId);
+          const handler = this.getHandlerForQuestionType(questionType);
+          const result = await handler(formId, updateQuestionDto, nextIndex);
+          results.push(result);
+          nextIndex++;
         } else {
-          handler = this.getHandlerForQuestionType(questionType);
+          const result = await this.updateQuestion(
+            questionId,
+            formId,
+            updateQuestionDto,
+          );
+          results.push(result);
         }
-
-        return handler(formId, updateQuestionDto);
-      }),
-    );
+      } else {
+        const handler = this.getHandlerForQuestionType(questionType);
+        const result = await handler(formId, updateQuestionDto, nextIndex);
+        results.push(result);
+        nextIndex++;
+      }
+    }
 
     return results;
   }
@@ -258,27 +268,25 @@ export class QuestionService {
   private handleRating = async (
     formId: number,
     addQuestionDto: AddQuestionDto,
+    sortOrder: number,
   ) => {
-    const sortOrder =
-      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
+    (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
     return this.createQuestion(formId, addQuestionDto);
   };
 
   private handleInputText = async (
     formId: number,
     addQuestionDto: AddQuestionDto,
+    sortOrder: number,
   ) => {
-    const sortOrder =
-      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
     return this.createQuestion(formId, addQuestionDto);
   };
 
   private handleChoiceQuestion = async (
     formId: number,
     addQuestionDto: AddQuestionDto,
+    sortOrder: number,
   ) => {
-    const sortOrder =
-      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
     return this.createQuestion(formId, addQuestionDto);
   };
 
@@ -291,7 +299,11 @@ export class QuestionService {
     return this.createQuestion(formId, addQuestionDto);
   };
 
-  private async createQuestion(formId: number, addQuestionDto: AddQuestionDto) {
+  private async createQuestion(
+    formId: number,
+    addQuestionDto: AddQuestionDto,
+    sortOrder?: number, // Làm sortOrder optional để backward compatible
+  ) {
     const { answerOptions, imageId } = addQuestionDto;
 
     if (answerOptions && answerOptions.length < 2) {
@@ -300,15 +312,18 @@ export class QuestionService {
       );
     }
 
-    const sortOrder =
+    // Sử dụng sortOrder được truyền vào nếu có
+    const questionIndex =
+      sortOrder ||
       (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
 
     const question = await this.prismaQuestionRepository.createQuestion(
       formId,
       addQuestionDto,
-      sortOrder,
+      questionIndex,
     );
 
+    // Phần còn lại giữ nguyên
     if (answerOptions) {
       await this.createAnswerOptions(question.id, answerOptions);
     }
@@ -335,7 +350,7 @@ export class QuestionService {
       await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
         questionId,
       );
-    await Promise.all(
+    const data = await Promise.all(
       answerOptions.map(async (option, idx) => {
         const newIndex = index + idx + 1;
         const createdOption =

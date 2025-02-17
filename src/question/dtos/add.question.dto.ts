@@ -11,37 +11,9 @@ import {
 } from 'class-validator';
 import { QuestionType } from '@prisma/client';
 import { AddAnswerOptionDto } from './add.answer.option.dto';
+import { BaseQuestionDto } from './base.question.dto';
 
-export class AddQuestionDto {
-  @IsString()
-  @IsNotEmpty()
-  headline: string;
-
-  @IsNotEmpty()
-  questionType: QuestionType;
-
+export class AddQuestionDto extends BaseQuestionDto{
   @IsOptional()
-  imageId?: number;
-
   questionId?: number;
-
-  key: string;
-  settings?: any;
-
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => AddAnswerOptionDto)
-  answerOptions?: AddAnswerOptionDto[];
-
-  // @IsOptional()
-  // @IsInt()
-  // range?: number;
-
-  // @IsOptional()
-  // @IsString()
-  // lowerLabel?: string;
-
-  // @IsOptional()
-  // @IsString()
-  // upperLabel?: string;
 }

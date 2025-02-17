@@ -4,6 +4,7 @@ import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 import { SurveyFeedback } from './SurveyFeedback';
 import { QuestionType } from './enums/QuestionType';
+import { isArray } from 'class-validator';
 
 export class Question {
   id: number;
@@ -22,11 +23,9 @@ export class Question {
     Object.assign(this, data);
   }
 
-  /**
-   * Ánh xạ dữ liệu từ Prisma sang model này.
-   */
   static fromPrisma(data: any): Question {
     if (!data) return null;
+    console.log(data.responseOnQuestions, ' data ansseroption');
     return new Question({
       id: data.id,
       headline: data.headline,
@@ -34,11 +33,21 @@ export class Question {
       formId: data.formId,
       index: data.index,
       deletedAt: data.deletedAt || null,
-      answerOptions: data.answerOptions || [],
-      responseOnQuestions: data.responseOnQuestions || [],
+      answerOptions: isArray(data.answerOptions)
+        ? data.answerOptions.map(AnswerOption.fromPrisma)
+        : [],
+      responseOnQuestions: isArray(data.responseOnQuestions)
+        ? data.responseOnQuestions.map(ResponseOnQuestion.fromPrisma)
+        : [],
       form: data.form ? SurveyFeedback.fromPrisma(data.form) : null,
-      questionOnMedia: data.questionOnMedia || null,
-      businessQuestionConfiguration: data.businessQuestionConfiguration || null,
+      questionOnMedia: data.questionOnMedia
+        ? QuestionOnMedia.fromPrisma(data.questionOnMedia)
+        : null,
+      businessQuestionConfiguration: data.businessQuestionConfiguration
+        ? BusinessQuestionConfiguration.fromPrisma(
+            data.businessQuestionConfiguration,
+          )
+        : null,
     });
   }
 }

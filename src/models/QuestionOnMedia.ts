@@ -15,4 +15,15 @@ export class QuestionOnMedia {
   constructor(data: Partial<QuestionOnMedia>) {
     Object.assign(this, data);
   }
+
+  static fromPrisma(data: any): QuestionOnMedia {
+    if (!data) return null;
+    return new QuestionOnMedia({
+      id: data.id,
+      questionId: data.questionId,
+      mediaId: data.mediaId,
+      media: data.media ? Media.fromPrisma(data.media) : null,
+      question: data.question ? Question.fromPrisma(data.question) : null,
+    });
+  }
 }

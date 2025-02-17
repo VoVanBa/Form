@@ -8,4 +8,13 @@ export class QuestionConfiguration {
   constructor(data: Partial<QuestionConfiguration>) {
     Object.assign(this, data);
   }
+
+  static fromPrisma(data: any): QuestionConfiguration {
+    if (!data) return null;
+    return new QuestionConfiguration({
+      id: data.id,
+      key: data.key,
+      settings: data.settings,
+    });
+  }
 }

@@ -4,7 +4,7 @@ import { IBusinessRepository } from './i-repositories/business.repository';
 import { PrismaService } from 'src/config/prisma.service';
 import { Business } from 'src/models/Business';
 
-@Injectable()
+Injectable();
 export class PrismaBusinessRepository implements IBusinessRepository {
   constructor(private prisma: PrismaService) {}
 
@@ -26,18 +26,9 @@ export class PrismaBusinessRepository implements IBusinessRepository {
       userId: business.userId,
     };
   }
-  // async create(data: CreateBusinessDto, userId: number) {
-  //   return this.prisma.business.create({
-  //     data: {
-  //       name: data.name,
-  //       address: data.address,
-  //       userId: userId,
-  //     },
-  //   });
-  // }
 
   async deleteById(businessId: number) {
-    return this.prisma.business.delete({
+    return await this.prisma.business.delete({
       where: {
         id: businessId,
       },
@@ -45,7 +36,7 @@ export class PrismaBusinessRepository implements IBusinessRepository {
   }
 
   async getbusinessbyId(businessId: number) {
-    return this.prisma.business.findFirst({
+    return await this.prisma.business.findFirst({
       where: {
         id: businessId,
       },

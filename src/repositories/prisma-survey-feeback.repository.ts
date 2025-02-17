@@ -1,3 +1,4 @@
+import { name } from 'ejs';
 import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
@@ -93,7 +94,7 @@ export class PrismasurveyFeedbackRepository
   //   });
   // }
 
-  async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
+  async getsurveyFeedbackById(id: number): Promise<any> {
     const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
@@ -115,19 +116,19 @@ export class PrismasurveyFeedbackRepository
             businessQuestionConfiguration: true,
           },
         },
-        // business: true,
-        // businessSettings: {
-        //   include: {
-        //     formSetting: {
-        //       include: {
-        //         businessSurveyFeedbackSettings: true,
-        //         formSettingTypes: true, // Include SettingTypes here
-        //       },
-        //     },
-        //     business: true,
-        //     form: true,
-        //   },
-        // },
+        business: true,
+        businessSettings: {
+          include: {
+            formSetting: {
+              include: {
+                businessSurveyFeedbackSettings: true,
+                formSettingTypes: true, // Include SettingTypes here
+              },
+            },
+            business: true,
+            form: true,
+          },
+        },
         // userFormResponses: {
         //   include: { responseOnQuestions: true, user: true },
         // },
@@ -140,27 +141,19 @@ export class PrismasurveyFeedbackRepository
       },
     });
 
-    return new SurveyFeedback({
-      ...surveyFeedback,
-      type: surveyFeedback.type as SurveyFeedbackType,
-      status: surveyFeedback.status as FormStatus,
-    });
+    console.log(surveyFeedback, 'surbeyfeddback');
+
+    const data = SurveyFeedback.fromPrisma(surveyFeedback);
+    return data;
   }
 
-  async getAllsurveyFeedbacks(businessId: number): Promise<SurveyFeedback[]> {
+  async getAllsurveyFeedbacks(businessId: number): Promise<any> {
     const prismaData = await this.prisma.surveyFeedback.findMany({
       where: {
         businessId,
       },
     });
-    return prismaData.map(
-      (data) =>
-        new SurveyFeedback({
-          ...data,
-          type: data.type as SurveyFeedbackType,
-          status: data.status as FormStatus,
-        }),
-    );
+    return prismaData.map((data) => SurveyFeedback.fromPrisma(data));
   }
 
   async updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto) {

@@ -204,9 +204,11 @@ export class SurveyFeedbackDataService {
         response.questionId,
       );
 
+      
       const questionSetting = settings.find(
         (setting) => setting.key === type.questionType,
       );
+      console.log(questionSetting, 'questionSetting');
 
       if (!questionSetting) {
         errors.push(

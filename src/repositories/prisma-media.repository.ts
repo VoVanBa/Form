@@ -14,7 +14,7 @@ export class PrismaMediaRepository implements IMediaRepository {
     mimeType: string,
     size: number,
   ): Promise<Partial<Media>> {
-    return this.prisma.media.create({
+    return await this.prisma.media.create({
       data: {
         url,
         fileName,
@@ -24,8 +24,11 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async createQuestionOnMedia(data: { mediaId: number; questionId: number }) {
-    return this.prisma.questionOnMedia.create({
+  async createQuestionOnMedia(data: {
+    mediaId: number;
+    questionId: number;
+  }): Promise<Partial<QuestionOnMedia>> {
+    return await this.prisma.questionOnMedia.create({
       data,
     });
   }
@@ -33,13 +36,13 @@ export class PrismaMediaRepository implements IMediaRepository {
   async createAnswerOptionOnMedia(
     data: { mediaId: number; answerOptionId: number | null }[],
   ) {
-    return this.prisma.answerOptionOnMedia.createMany({
+    return await this.prisma.answerOptionOnMedia.createMany({
       data,
     });
   }
 
   async getMediaById(id: number): Promise<Partial<Media> | null> {
-    return this.prisma.media.findUnique({
+    return await this.prisma.media.findUnique({
       where: { id },
     });
   }
@@ -47,13 +50,13 @@ export class PrismaMediaRepository implements IMediaRepository {
   async getQuestionOnMediaByMediaId(
     mediaId: number,
   ): Promise<Partial<QuestionOnMedia> | null> {
-    return this.prisma.questionOnMedia.findFirst({
+    return await this.prisma.questionOnMedia.findFirst({
       where: { mediaId: mediaId },
     });
   }
 
   async updateQuestionOnMedia(questionId: number, mediaId: number) {
-    return this.prisma.questionOnMedia.update({
+    return await this.prisma.questionOnMedia.update({
       where: { id: mediaId },
       data: {
         questionId,
@@ -67,7 +70,7 @@ export class PrismaMediaRepository implements IMediaRepository {
   }
 
   async updateAnswerOptionOnMedia(mediaId: number, answerOptionId: number) {
-    return this.prisma.answerOptionOnMedia.updateMany({
+    return await this.prisma.answerOptionOnMedia.updateMany({
       where: { mediaId },
       data: {
         answerOptionId,
@@ -75,15 +78,15 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  getQuestionOnMediaByQuestionId(questionId: number) {
-    const media = this.prisma.questionOnMedia.findFirst({
+  async getQuestionOnMediaByQuestionId(questionId: number) {
+    const media = await this.prisma.questionOnMedia.findFirst({
       where: { questionId: questionId },
     });
     return media;
   }
 
-  getAnswerOptionByAnswerOptionId(answerOptionId: number) {
-    const media = this.prisma.answerOptionOnMedia.findFirst({
+  async getAnswerOptionByAnswerOptionId(answerOptionId: number) {
+    const media = await this.prisma.answerOptionOnMedia.findFirst({
       where: { answerOptionId: answerOptionId },
     });
     return media;

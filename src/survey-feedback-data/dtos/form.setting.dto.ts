@@ -1,4 +1,4 @@
-export interface FormSettingDto {
+export class FormSettingDto {
   key: string;
   settings: {
     enabled?: boolean;

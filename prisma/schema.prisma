@@ -29,8 +29,6 @@ model Business {
   user                   User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
   businessSurveySettings BusinessSurveyFeedbackSettings[]
   forms                  SurveyFeedback[]
-
-  // @@index([userId], map: "Business_userId_fkey")
 }
 
 model SurveyFeedback {

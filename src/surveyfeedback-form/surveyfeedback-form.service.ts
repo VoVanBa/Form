@@ -75,6 +75,8 @@ export class SurveyFeedackFormService {
       );
     }
 
+    console.log(surveyFeedback,'survey');
+
     console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
 
     const surveyFeedbackDto = {
@@ -82,8 +84,6 @@ export class SurveyFeedackFormService {
       name: surveyFeedback.name,
       description: surveyFeedback.description,
       createdBy: surveyFeedback.createdBy,
-      createdAt: surveyFeedback.createdAt,
-      updatedAt: surveyFeedback.updatedAt,
       type: surveyFeedback.type,
       allowAnonymous: surveyFeedback.allowAnonymous,
       status: surveyFeedback.status,
@@ -108,7 +108,7 @@ export class SurveyFeedackFormService {
                 id: answerOption.answerOptionOnMedia.media.id,
                 url: answerOption.answerOptionOnMedia.media.url,
               }
-            : null, // Chỉ lấy 1 media cho mỗi AnswerOption
+            : null,
         })),
 
         setting: question.businessQuestionConfiguration.settings,

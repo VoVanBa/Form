@@ -23,7 +23,7 @@ export class PrismaResponseQuestionRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.create({
+    return await prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId: questionId,
@@ -62,11 +62,7 @@ export class PrismaResponseQuestionRepository {
     });
   }
 
-  async getAll(
-    formId: number,
-    startDate?: Date,
-    endDate?: Date,
-  ) {
+  async getAll(formId: number, startDate?: Date, endDate?: Date) {
     let filter: any = { formId };
 
     if (startDate && endDate) {

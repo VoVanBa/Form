@@ -18,8 +18,8 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     questionId: number,
     answerOptions: AddAnswerOptionDto,
     index: number,
-  ): Promise<Partial<AnswerOption>> {
-    const createdOption = this.prismaService.answerOption.create({
+  ): Promise<AnswerOption> {
+    const createdOption = await this.prismaService.answerOption.create({
       data: {
         questionId,
         label: answerOptions.label,
@@ -28,7 +28,8 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
         description: answerOptions.description,
       },
     });
-    return createdOption;
+    const response = AnswerOption.fromPrisma(createdOption);
+    return response;
   }
 
   async getQuantityAnserOptionbyQuestionId(questionId: number) {

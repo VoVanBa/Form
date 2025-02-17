@@ -5,30 +5,15 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
+  IsNotEmpty,
 } from 'class-validator';
 import { AddAnswerOptionDto } from './add.answer.option.dto';
 import { Type } from 'class-transformer';
 import { QuestionType } from 'src/models/enums/QuestionType';
+import { BaseQuestionDto } from './base.question.dto';
 
-export class UpdateQuestionDto {
-  // formId: number;
-  @IsString()
-  @IsOptional()
-  headline?: string;
-
-  questionId: number;
-
-  @IsString()
-  questionType: QuestionType;
-
+export class UpdateQuestionDto extends BaseQuestionDto {
+  @IsNotEmpty()
   @IsInt()
-  @IsOptional()
-  imageId?: number;
-
-  settings: any;
-
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => AddAnswerOptionDto)
-  answerOptions?: AddAnswerOptionDto[];
+  questionId: number; 
 }
