@@ -294,108 +294,154 @@ export class SurveyFeedackFormService {
     });
   }
   async duplicateSurvey(id: number, businessId: number) {
+    // 1. Validate and fetch existing survey
     const formExisting = await this.formRepository.getsurveyFeedbackById(id);
     if (!formExisting) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
       );
     }
+    console.log(formExisting);
 
+    // 3. Create new survey
     const newForm = await this.formRepository.createsurveyFeedback(
       {
-        ...formExisting,
-        id: undefined, // Không sao chép ID cũ
         name: `${formExisting.name} (Copy)`,
+        description: formExisting.description,
+        createdBy: formExisting.createdBy,
+        type: formExisting.type,
+        allowAnonymous: formExisting.allowAnonymous,
         status: FormStatus.DRAFT,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
-      businessId,
+      formExisting.businessId,
     );
 
-    const questions = await this.questionRepository.findAllQuestion(
+    // 4. Duplicate questions and related data
+    await this.duplicateQuestions(
       formExisting.id,
+      newForm.id,
+      formExisting.businessId,
     );
+
+    // 5. Duplicate survey settings
+    await this.duplicateSurveySettings(
+      formExisting.id,
+      newForm.id,
+      formExisting.businessId,
+    );
+
+    return newForm;
+  }
+
+  private async duplicateQuestions(
+    originalFormId: number,
+    newFormId: number,
+    businessId: number,
+  ) {
+    const questions =
+      await this.questionRepository.findAllQuestion(originalFormId);
 
     for (const question of questions) {
+      // Create new question
       const addQuestionDto: AddQuestionDto = {
         headline: question.headline,
         questionType: question.questionType,
       };
 
       const newQuestion = await this.questionRepository.createQuestion(
-        newForm.id,
+        newFormId,
         addQuestionDto,
         question.index,
       );
 
-      const answerOptions =
-        await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
-          question.id,
-        );
+      // Duplicate answer options
+      await this.duplicateAnswerOptions(question, newQuestion, businessId);
 
-      // ✅ Tạo AnswerOptions mới song song
-      await Promise.all(
-        answerOptions.map(async (option) => {
-          // ✅ Nếu có media kèm theo, sao chép nó
-          if (option.answerOptionOnMedia) {
-            const media = await this.mediaRepository.getMediaById(
-              option.answerOptionOnMedia.mediaId,
-            );
-
-            await this.mediaRepository.createAnswerOptionOnMedia([
-              {
-                mediaId: media.id,
-                answerOptionId: newQuestion.id,
-              },
-            ]);
-          }
-
-          return this.answerOptionRepository.createAnswerOptions(
-            newQuestion.id,
-            {
-              ...option,
-              businessId: businessId,
-            },
-            option.index,
-          );
-        }),
-      );
-
-      if (question.questionOnMedia) {
-        const media = await this.mediaRepository.getQuestionOnMediaByMediaId(
-          question.questionOnMedia.id,
-        );
-
-        await this.mediaRepository.createQuestionOnMedia({
-          mediaId: media.id,
-          questionId: newQuestion.id,
-        });
-      }
-
-      // ✅ Nếu câu hỏi có cấu hình riêng, sao chép nó
+      console.log(question, 'question.businessQuestionConfiguration.settings');
       if (question.businessQuestionConfiguration) {
         await this.questionRepository.createQuestionSettings(
           newQuestion.id,
           question.businessQuestionConfiguration.settings,
           question.businessQuestionConfiguration.key,
-          newForm.id,
+          newFormId,
         );
       }
     }
+  }
 
-    // ✅ Lấy và sao chép tất cả cài đặt survey nếu có
+  private async duplicateAnswerOptions(
+    originalQuestion: any,
+    newQuestion: any,
+    businessId: number,
+  ) {
+    const answerOptions =
+      await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
+        originalQuestion.id,
+      );
+
+    return Promise.all(
+      answerOptions.map(async (option) => {
+        // Duplicate media if exists
+        if (option.answerOptionOnMedia) {
+          const media = await this.mediaRepository.getMediaById(
+            option.answerOptionOnMedia.mediaId,
+          );
+
+          // if (media) {
+          //   await this.mediaRepository.createAnswerOptionOnMedia([
+          //     {
+          //       mediaId: media.id,
+          //       answerOptionId: newQuestion.id,
+          //     },
+          //   ]);
+          // }
+        }
+
+        // Create new answer option
+        return this.answerOptionRepository.createAnswerOptions(
+          newQuestion.id,
+          {
+            ...option,
+            businessId: businessId,
+          },
+          option.index,
+        );
+      }),
+    );
+  }
+
+  private async duplicateQuestionMedia(
+    originalQuestion: any,
+    newQuestion: any,
+  ) {
+    const media = await this.mediaRepository.getQuestionOnMediaByMediaId(
+      originalQuestion.questionOnMedia.id,
+    );
+
+    if (media) {
+      await this.mediaRepository.createQuestionOnMedia({
+        mediaId: media.id,
+        questionId: newQuestion.id,
+      });
+    }
+  }
+
+  private async duplicateSurveySettings(
+    originalFormId: number,
+    newFormId: number,
+    businessId: number,
+  ) {
     const surveySettings =
       await this.settingRepository.getAllFormSettingBusiness(
         businessId,
-        formExisting.id,
+        originalFormId,
       );
 
     if (surveySettings.length > 0) {
       await Promise.all(
         surveySettings.map((setting) =>
           this.settingRepository.saveSetting(
-            newForm.id,
+            newFormId,
             businessId,
             setting.key,
             setting.value,
@@ -404,7 +450,5 @@ export class SurveyFeedackFormService {
         ),
       );
     }
-
-    return newForm;
   }
 }

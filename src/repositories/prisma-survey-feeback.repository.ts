@@ -1,4 +1,3 @@
-import { name } from 'ejs';
 import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { IsurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
@@ -6,14 +5,6 @@ import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.for
 import { PrismaService } from 'src/config/prisma.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
-import { SurveyFeedbackType } from 'src/models/enums/SurveyFeedbackType';
-import { Question } from 'src/models/Question';
-import { QuestionOnMedia } from 'src/models/QuestionOnMedia';
-import { AnswerOption } from 'src/models/AnswerOption';
-import { AnswerOptionOnMedia } from 'src/models/AnswerOptionOnMedia';
-import { Media } from 'src/models/Media';
-import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
-import { console } from 'inspector';
 
 @Injectable()
 export class PrismasurveyFeedbackRepository
@@ -94,7 +85,7 @@ export class PrismasurveyFeedbackRepository
   //   });
   // }
 
-  async getsurveyFeedbackById(id: number): Promise<any> {
+  async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
       where: { id },
       include: {
@@ -140,8 +131,6 @@ export class PrismasurveyFeedbackRepository
         // },
       },
     });
-
-    console.log(surveyFeedback, 'surbeyfeddback');
 
     const data = SurveyFeedback.fromPrisma(surveyFeedback);
     return data;

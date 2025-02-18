@@ -143,6 +143,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
       include: {
         answerOptions: { include: { answerOptionOnMedia: true } },
         questionOnMedia: true,
+        businessQuestionConfiguration:true
       },
       orderBy: { index: 'asc' },
     });

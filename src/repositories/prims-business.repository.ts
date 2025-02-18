@@ -8,10 +8,7 @@ Injectable();
 export class PrismaBusinessRepository implements IBusinessRepository {
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    data: CreateBusinessDto,
-    userId: number,
-  ): Promise<Partial<Business>> {
+  async create(data: CreateBusinessDto, userId: number): Promise<Business> {
     const business = await this.prisma.business.create({
       data: {
         name: data.name,
@@ -19,12 +16,7 @@ export class PrismaBusinessRepository implements IBusinessRepository {
         userId: userId,
       },
     });
-    return {
-      id: business.id,
-      name: business.name,
-      address: business.address,
-      userId: business.userId,
-    };
+    return Business.fromPrisma(business);
   }
 
   async deleteById(businessId: number) {
@@ -35,11 +27,12 @@ export class PrismaBusinessRepository implements IBusinessRepository {
     });
   }
 
-  async getbusinessbyId(businessId: number) {
-    return await this.prisma.business.findFirst({
+  async getbusinessbyId(businessId: number): Promise<Business> {
+    const data = await this.prisma.business.findFirst({
       where: {
         id: businessId,
       },
     });
+    return Business.fromPrisma(data);
   }
 }

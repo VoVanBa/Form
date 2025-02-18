@@ -355,7 +355,7 @@ export class SurveyFeedbackDataService {
       let totalQuestionResponses = 0;
       let media = null;
       if (question.questionOnMedia) {
-        media = question.questionOnMedia.media.url;
+        media = question.questionOnMedia[0]?.media.url;
       }
       if (
         question.questionType === QuestionType.SINGLE_CHOICE.toString() ||

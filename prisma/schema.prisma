@@ -118,7 +118,7 @@ model Question {
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
-  questionOnMedia               QuestionOnMedia?
+  questionOnMedia               QuestionOnMedia[]
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
 }
 
@@ -130,7 +130,7 @@ model QuestionConfiguration {
 
 model BusinessQuestionConfiguration {
   id         Int            @id @default(autoincrement())
-  questionId Int            @unique 
+  questionId Int            @unique
   formId     Int
   key        String
   settings   Json
@@ -140,43 +140,43 @@ model BusinessQuestionConfiguration {
 
 model QuestionOnMedia {
   id         Int       @id @default(autoincrement())
-  mediaId    Int       @unique
-  questionId Int?      @unique
+  mediaId    Int
+  questionId Int?
   media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model AnswerOption {
-  id                  Int                  @id @default(autoincrement())
-  questionId          Int
-  label               String?
-  isActive            Boolean              @default(true)
-  index               Int?
-  description         String?
+  id                    Int                  @id @default(autoincrement())
+  questionId            Int
+  label                 String?
+  isActive              Boolean              @default(true)
+  index                 Int?
+  description           String?
   //formResponseId      Int?
-  question            Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answerOptionOnMedia AnswerOptionOnMedia?
-  responseOnQuestions ResponseOnQuestion[]
+  question              Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerOptionOnMedia   AnswerOptionOnMedia?
+  answerOptionOnMediaid Int?
+  responseOnQuestions   ResponseOnQuestion[]
 }
 
 model AnswerOptionOnMedia {
   id             Int           @id @default(autoincrement())
-  mediaId        Int           @unique
+  mediaId        Int
   answerOptionId Int?          @unique
-  index          Int?
   answerOption   AnswerOption? @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
   media          Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 }
 
 model Media {
-  id                  Int                  @id @default(autoincrement())
+  id                  Int                   @id @default(autoincrement())
   url                 String
   fileName            String
   mimeType            String
   size                Int
-  createdAt           DateTime             @default(now())
-  answerOptionOnMedia AnswerOptionOnMedia?
-  questionOnMedia     QuestionOnMedia?
+  createdAt           DateTime              @default(now())
+  answerOptionOnMedia AnswerOptionOnMedia[]
+  questionOnMedia     QuestionOnMedia[]
 }
 
 enum FormStatus {

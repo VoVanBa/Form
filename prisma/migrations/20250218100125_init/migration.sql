@@ -109,7 +109,7 @@ CREATE TABLE `Question` (
     `questionType` ENUM('SINGLE_CHOICE', 'MULTI_CHOICE', 'INPUT_TEXT', 'RATING_SCALE', 'PICTURE_SELECTION') NOT NULL,
     `formId` INTEGER NOT NULL,
     `index` INTEGER NOT NULL,
-    `isDeleted` BOOLEAN NOT NULL DEFAULT false,
+    `deletedAt` DATETIME(3) NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -153,6 +153,7 @@ CREATE TABLE `AnswerOption` (
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `index` INTEGER NULL,
     `description` VARCHAR(191) NULL,
+    `answerOptionOnMediaid` INTEGER NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -162,8 +163,8 @@ CREATE TABLE `AnswerOptionOnMedia` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `mediaId` INTEGER NOT NULL,
     `answerOptionId` INTEGER NULL,
-    `index` INTEGER NULL,
 
+    UNIQUE INDEX `AnswerOptionOnMedia_answerOptionId_key`(`answerOptionId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
