@@ -21,8 +21,8 @@ export class BaseQuestionDto {
   @IsInt()
   imageId?: number;
 
-  @IsString()
-  key: string;
+  // @IsString()
+  // key: string;
 
   settings?: any; // Có thể tạo interface riêng cho settings
 

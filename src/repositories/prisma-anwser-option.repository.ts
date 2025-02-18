@@ -10,8 +10,16 @@ import { AnswerOption } from 'src/models/AnswerOption';
 @Injectable()
 export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
   constructor(private readonly prismaService: PrismaService) {}
-  getAllAnserOptionbyQuestionId(questionId: number) {
-    throw new Error('Method not implemented.');
+
+  async getAllAnserOptionbyQuestionId(
+    questionId: number,
+  ): Promise<AnswerOption[]> {
+    const answerOptions = await this.prismaService.answerOption.findMany({
+      where: {
+        questionId: questionId,
+      },
+    });
+    return answerOptions.map((data) => AnswerOption.fromPrisma(data));
   }
 
   async createAnswerOptions(

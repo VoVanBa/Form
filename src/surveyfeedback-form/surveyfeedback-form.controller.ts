@@ -104,4 +104,12 @@ export class SurveyFeedbackFormController {
       formId,
     );
   }
+
+  @Post(':formId/duplicate')
+  async duplicateSurvey(
+    @Param('formId') formId: number,
+    @Body('businessId') businessId: number,
+  ) {
+    return this.surveyFeedbackFormService.duplicateSurvey(formId, businessId);
+  }
 }

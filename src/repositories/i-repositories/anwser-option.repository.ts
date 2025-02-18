@@ -8,7 +8,7 @@ export interface AnswerOptionRepository {
     index: number,
   ): Promise<AnswerOption>;
   getQuantityAnserOptionbyQuestionId(questionId: number);
-  getAllAnserOptionbyQuestionId(questionId: number);
+  getAllAnserOptionbyQuestionId(questionId: number): Promise<AnswerOption[]>;
   deleteAnserOption(ids: number, questionId: number);
   findanswerOptionsByQuestionId(questionId);
 }

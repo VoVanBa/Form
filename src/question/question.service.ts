@@ -270,8 +270,7 @@ export class QuestionService {
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
   ) => {
-    (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
-    return this.createQuestion(formId, addQuestionDto);
+    return this.createQuestion(formId, addQuestionDto, sortOrder);
   };
 
   private handleInputText = async (
@@ -279,7 +278,7 @@ export class QuestionService {
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
   ) => {
-    return this.createQuestion(formId, addQuestionDto);
+    return this.createQuestion(formId, addQuestionDto, sortOrder);
   };
 
   private handleChoiceQuestion = async (
@@ -287,7 +286,7 @@ export class QuestionService {
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
   ) => {
-    return this.createQuestion(formId, addQuestionDto);
+    return this.createQuestion(formId, addQuestionDto, sortOrder);
   };
 
   private handlePictureSelectionQuestion = async (
@@ -331,7 +330,7 @@ export class QuestionService {
     await this.prismaQuestionRepository.createQuestionSettings(
       question.id,
       addQuestionDto.settings,
-      addQuestionDto.key,
+      addQuestionDto.questionType,
       formId,
     );
 

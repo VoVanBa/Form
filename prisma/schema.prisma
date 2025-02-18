@@ -130,7 +130,7 @@ model QuestionConfiguration {
 
 model BusinessQuestionConfiguration {
   id         Int            @id @default(autoincrement())
-  questionId Int            @unique // Đảm bảo mỗi Question chỉ có một BusinessQuestionConfiguration
+  questionId Int            @unique 
   formId     Int
   key        String
   settings   Json

@@ -13,6 +13,12 @@ import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.rep
 import { plainToClass, plainToInstance } from 'class-transformer';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
+import { SurveyFeedback } from 'src/models/SurveyFeedback';
+import { QuestionRepository } from 'src/repositories/i-repositories/question.repository';
+import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
+import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
+import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
+import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -20,6 +26,10 @@ export class SurveyFeedackFormService {
     private formRepository: PrismasurveyFeedbackRepository,
     private businessRepository: PrismaBusinessRepository,
     private formSetting: PrismaFormSettingRepository,
+    private questionRepository: PrismaQuestionRepository,
+    private answerOptionRepository: PrismaAnswerOptionRepository,
+    private mediaRepository: PrismaMediaRepository,
+    private settingRepository: PrismaFormSettingRepository,
     private readonly i18n: I18nService,
   ) {}
   async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
@@ -75,7 +85,7 @@ export class SurveyFeedackFormService {
       );
     }
 
-    console.log(surveyFeedback,'survey');
+    console.log(surveyFeedback, 'survey');
 
     console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
 
@@ -282,5 +292,119 @@ export class SurveyFeedackFormService {
     return plainToInstance(FormSettingTypeResponse, formattedData, {
       excludeExtraneousValues: true,
     });
+  }
+  async duplicateSurvey(id: number, businessId: number) {
+    const formExisting = await this.formRepository.getsurveyFeedbackById(id);
+    if (!formExisting) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
+      );
+    }
+
+    const newForm = await this.formRepository.createsurveyFeedback(
+      {
+        ...formExisting,
+        id: undefined, // Không sao chép ID cũ
+        name: `${formExisting.name} (Copy)`,
+        status: FormStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      businessId,
+    );
+
+    const questions = await this.questionRepository.findAllQuestion(
+      formExisting.id,
+    );
+
+    for (const question of questions) {
+      const addQuestionDto: AddQuestionDto = {
+        headline: question.headline,
+        questionType: question.questionType,
+      };
+
+      const newQuestion = await this.questionRepository.createQuestion(
+        newForm.id,
+        addQuestionDto,
+        question.index,
+      );
+
+      const answerOptions =
+        await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
+          question.id,
+        );
+
+      // ✅ Tạo AnswerOptions mới song song
+      await Promise.all(
+        answerOptions.map(async (option) => {
+          // ✅ Nếu có media kèm theo, sao chép nó
+          if (option.answerOptionOnMedia) {
+            const media = await this.mediaRepository.getMediaById(
+              option.answerOptionOnMedia.mediaId,
+            );
+
+            await this.mediaRepository.createAnswerOptionOnMedia([
+              {
+                mediaId: media.id,
+                answerOptionId: newQuestion.id,
+              },
+            ]);
+          }
+
+          return this.answerOptionRepository.createAnswerOptions(
+            newQuestion.id,
+            {
+              ...option,
+              businessId: businessId,
+            },
+            option.index,
+          );
+        }),
+      );
+
+      if (question.questionOnMedia) {
+        const media = await this.mediaRepository.getQuestionOnMediaByMediaId(
+          question.questionOnMedia.id,
+        );
+
+        await this.mediaRepository.createQuestionOnMedia({
+          mediaId: media.id,
+          questionId: newQuestion.id,
+        });
+      }
+
+      // ✅ Nếu câu hỏi có cấu hình riêng, sao chép nó
+      if (question.businessQuestionConfiguration) {
+        await this.questionRepository.createQuestionSettings(
+          newQuestion.id,
+          question.businessQuestionConfiguration.settings,
+          question.businessQuestionConfiguration.key,
+          newForm.id,
+        );
+      }
+    }
+
+    // ✅ Lấy và sao chép tất cả cài đặt survey nếu có
+    const surveySettings =
+      await this.settingRepository.getAllFormSettingBusiness(
+        businessId,
+        formExisting.id,
+      );
+
+    if (surveySettings.length > 0) {
+      await Promise.all(
+        surveySettings.map((setting) =>
+          this.settingRepository.saveSetting(
+            newForm.id,
+            businessId,
+            setting.key,
+            setting.value,
+            setting.formSettingId,
+          ),
+        ),
+      );
+    }
+
+    return newForm;
   }
 }

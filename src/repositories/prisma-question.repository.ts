@@ -74,7 +74,6 @@ export class PrismaQuestionRepository implements QuestionRepository {
     key: string,
     formId: number,
   ): Promise<BusinessQuestionConfiguration> {
-    console.log(questionId, key, settings, formId, 'serrign bussiness');
     const data = await this.prismaService.businessQuestionConfiguration.create({
       data: { questionId, key, settings, formId },
       include: { question: true },
