@@ -9,9 +9,6 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { Roles } from 'src/auth/decorater/role.customize';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/role-auth.guard';
 import { UsersService } from 'src/users/users.service';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';

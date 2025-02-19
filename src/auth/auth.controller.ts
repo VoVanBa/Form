@@ -13,10 +13,10 @@ import { AuthService } from './auth.service';
 import { RegisterUserDto } from 'src/users/dtos/register.user.dto';
 import { User } from '@prisma/client';
 import { LoginUserDto } from 'src/users/dtos/login.user.dto';
-import { Public } from './decorater/customize';
-import { LocalAuthGuard } from './local-auth.guard';
+import { Public } from '../common/decorater/customize';
+import { LocalAuthGuard } from '../common/guards/local-auth.guard';
 import { Response } from 'express';
-import { GoogleOauthGuard } from './google-oauth.guard';
+import { GoogleOauthGuard } from '../common/guards/google-oauth.guard';
 
 @Controller('auth')
 export class AuthController {

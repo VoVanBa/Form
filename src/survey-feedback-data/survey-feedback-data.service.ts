@@ -14,6 +14,8 @@ import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from 'src/config/prisma.service';
 import ConfigManager from 'src/config/configManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
+import { Transaction } from 'src/common/decorater/transaction.decorator';
+import { isArray } from 'class-validator';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -38,6 +40,7 @@ export class SurveyFeedbackDataService {
     return form.allowAnonymous;
   }
 
+  @Transaction()
   async saveGuestInfoAndResponses(
     businessId: number,
     formId: number,
@@ -53,10 +56,6 @@ export class SurveyFeedbackDataService {
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
-
-    // if (existingForm.status == 'DRAFT' || existingForm.status == 'COMPLETED') {
-    //   throw new BadRequestException('');
-    // }
 
     const settings = await this.formSetting.getAllFormSettingBusiness(
       businessId,
@@ -80,50 +79,46 @@ export class SurveyFeedbackDataService {
       responses,
       questionSettings,
     );
+
     if (validationErrors.length > 0) {
       throw new BadRequestException(validationErrors);
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      const userSurveyResponse = await this.userResponseRepository.create(
-        formId,
-        guestData,
-        userId,
-        tx,
-      );
+    const userSurveyResponse = await this.userResponseRepository.create(
+      formId,
+      guestData,
+      userId,
+    );
 
-      const responsePromises = responses.map((response) => {
-        const { questionId, answerOptionId, answerText, ratingValue } =
-          response;
+    const responsePromises = responses.map(async (response) => {
+      const { questionId, answerOptionId, answerText, ratingValue } = response;
 
-        if (Array.isArray(answerOptionId)) {
-          return Promise.all(
-            answerOptionId.map((optionId) =>
-              this.responseQuestionRepository.create(
-                questionId,
-                optionId,
-                userSurveyResponse.id,
-                answerText,
-                ratingValue,
-                formId,
-                tx, // Pass transaction context
-              ),
+      if (Array.isArray(answerOptionId)) {
+        return Promise.all(
+          answerOptionId.map((optionId) =>
+            this.responseQuestionRepository.create(
+              questionId,
+              optionId,
+              userSurveyResponse.id,
+              answerText,
+              ratingValue,
+              formId,
             ),
-          );
-        } else {
-          return this.responseQuestionRepository.create(
-            questionId,
-            answerOptionId,
-            userSurveyResponse.id,
-            answerText,
-            ratingValue,
-            formId,
-            tx, // Pass transaction context
-          );
-        }
-      });
-      await Promise.all(responsePromises);
+          ),
+        );
+      } else {
+        return this.responseQuestionRepository.create(
+          questionId,
+          answerOptionId,
+          userSurveyResponse.id,
+          answerText,
+          ratingValue,
+          formId,
+        );
+      }
     });
+
+    await Promise.all(responsePromises);
   }
 
   async validateResponseOptions(
@@ -170,8 +165,7 @@ export class SurveyFeedbackDataService {
         } else if (formSetting.key === 'closeOnDate') {
           if (enabled && date) {
             const closeDate = new Date(date);
-            console.log(closeDate, date, 'sddddd');
-            console.log(closeDate <= currentDate, 'jaksjsjạ');
+
             if (closeDate <= currentDate) {
               errors.push(
                 this.i18n.translate('errors.SURVEYCLOSED', {
@@ -204,7 +198,6 @@ export class SurveyFeedbackDataService {
         response.questionId,
       );
 
-      
       const questionSetting = settings.find(
         (setting) => setting.key === type.questionType,
       );
@@ -220,12 +213,17 @@ export class SurveyFeedbackDataService {
       }
 
       const { settings: questionSettings } = questionSetting;
+      console.log(type.questionType);
+      console.log('questionSettings.require:', questionSettings.require);
+      console.log('response.answerText:', response.answerText);
+      console.log('response.answerOptionId:', response.answerOptionId);
+      console.log('response.ratingValue:', response.ratingValue);
 
       if (
-        questionSettings.require &&
-        !response.answerText &&
-        !response.answerOptionId &&
-        response.ratingValue === undefined
+        questionSettings.require === true &&
+        response.answerText === null &&
+        response.answerOptionId === null &&
+        response.ratingValue === null
       ) {
         errors.push(
           this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
@@ -244,7 +242,10 @@ export class SurveyFeedbackDataService {
               `Question ID ${response.questionId} requires an answer.`,
             );
           }
-          if (response.answerOptionId.length > questionSettings.maxSelections) {
+          if (
+            isArray(response.answerOptionId) &&
+            response.answerOptionId.length > questionSettings.maxSelections
+          ) {
             errors.push(
               `Question ID ${response.questionId} requires at most 2 choices `,
             );

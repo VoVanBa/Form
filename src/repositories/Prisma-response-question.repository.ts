@@ -20,10 +20,8 @@ export class PrismaResponseQuestionRepository {
     answerText: string,
     ratingValue: number,
     formId: number,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return await prisma.responseOnQuestion.create({
+    return await this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId: questionId,

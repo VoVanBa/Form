@@ -9,8 +9,8 @@ export class Media {
   size: number;
 
   createdAt: Date;
-  answerOptionOnMedia?: AnswerOptionOnMedia;
-  questionOnMedia?: QuestionOnMedia;
+  answerOptionOnMedia?: AnswerOptionOnMedia[];
+  questionOnMedia?: QuestionOnMedia[];
 
   constructor(data: Partial<Media>) {
     Object.assign(this, data);
@@ -25,10 +25,10 @@ export class Media {
       size: data.size,
       createdAt: data.createdAt,
       answerOptionOnMedia: data.answerOptionOnMedia
-        ? AnswerOptionOnMedia.fromPrisma(data.answerOptionOnMedia)
+        ? data.answerOptionOnMedia.map((aom: any) => AnswerOptionOnMedia.fromPrisma(aom))
         : null,
       questionOnMedia: data.questionOnMedia
-        ? QuestionOnMedia.fromPrisma(data.questionOnMedia)
+        ? data.questionOnMedia.map((qom: any) => QuestionOnMedia.fromPrisma(qom))
         : null,
     });
   }

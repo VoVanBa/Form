@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common';
 import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dtos/business.dto';
-import { Roles } from 'src/auth/decorater/role.customize';
+import { Roles } from 'src/common/decorater/role.customize';
 import { UsersService } from 'src/users/users.service';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/role-auth.guard';
+import { RolesGuard } from 'src/common/guards/role-auth.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Controller('business')
 export class BusinessController {

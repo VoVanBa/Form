@@ -16,12 +16,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { QuestionService } from './question.service';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/role-auth.guard';
-import { Roles } from 'src/auth/decorater/role.customize';
+import { RolesGuard } from 'src/common/guards/role-auth.guard';
+import { Roles } from 'src/common/decorater/role.customize';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { QuestionType } from 'src/models/enums/QuestionType';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Controller('form')
 export class QuestionController {

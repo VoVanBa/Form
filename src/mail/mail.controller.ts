@@ -1,9 +1,8 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { SendMailDto } from './dtos/send.mail.dto';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { Role } from '@prisma/client';
-import { Roles } from 'src/auth/decorater/role.customize';
+import { Roles } from 'src/common/decorater/role.customize';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Controller('mail')
 export class MailController {

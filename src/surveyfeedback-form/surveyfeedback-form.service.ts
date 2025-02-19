@@ -20,6 +20,7 @@ import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repos
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { Question } from 'src/models/Question';
+import { Transaction } from 'src/common/decorater/transaction.decorator';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -153,7 +154,7 @@ export class SurveyFeedackFormService {
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        media: question.questionOnMedia?.media
+        media: question.questionOnMedia
           ? {
               id: question.questionOnMedia.media.id,
               url: question.questionOnMedia.media.url,
@@ -294,8 +295,9 @@ export class SurveyFeedackFormService {
       excludeExtraneousValues: true,
     });
   }
+
+  @Transaction()
   async duplicateSurvey(id: number, businessId: number) {
-    // 1. Validate and fetch existing survey
     const formExisting = await this.formRepository.getsurveyFeedbackById(id);
     if (!formExisting) {
       throw new NotFoundException(
@@ -355,12 +357,20 @@ export class SurveyFeedackFormService {
         question.index,
       );
 
-      await this.duplicateQuestionMedia(question.id, newQuestion.id);
+      if (question.questionOnMedia) {
+        await this.duplicateQuestionMedia(question.id, newQuestion.id);
+      }
 
-      // Duplicate answer options
-      await this.duplicateAnswerOptions(question, newQuestion, businessId);
+      if (question.answerOptions.length > 0) {
+        // question.answerOptions.map((data) => {
+        // });
+        await this.duplicateAnswerOptions(
+          question.id,
+          newQuestion.id,
+          businessId,
+        );
+      }
 
-      console.log(question, 'question.businessQuestionConfiguration.settings');
       if (question.businessQuestionConfiguration) {
         await this.questionRepository.createQuestionSettings(
           newQuestion.id,
@@ -373,42 +383,44 @@ export class SurveyFeedackFormService {
   }
 
   private async duplicateAnswerOptions(
-    originalQuestion: any,
-    newQuestion: any,
+    originalQuestionId: number,
+    newQuestionId: number,
     businessId: number,
   ) {
     const answerOptions =
       await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
-        originalQuestion.id,
+        originalQuestionId,
       );
 
     return Promise.all(
       answerOptions.map(async (option) => {
         // Duplicate media if exists
+        let newAnswerOption =
+          await this.answerOptionRepository.createAnswerOptions(
+            newQuestionId,
+            {
+              ...option,
+              businessId: businessId,
+            },
+            option.index,
+          );
+
         if (option.answerOptionOnMedia) {
           const media = await this.mediaRepository.getMediaById(
             option.answerOptionOnMedia.mediaId,
           );
 
-          // if (option.answerOptionOnMedia) {
-          //   await this.mediaRepository.createAnswerOptionOnMedia([
-          //     {
-          //       mediaId: media.id,
-          //       answerOptionId: newQuestion.id,
-          //     },
-          //   ]);
-          // }
+          if (media) {
+            await this.mediaRepository.createAnswerOptionOnMedia([
+              {
+                mediaId: media.id,
+                answerOptionId: newAnswerOption.id,
+              },
+            ]);
+          }
         }
 
-        // Create new answer option
-        return this.answerOptionRepository.createAnswerOptions(
-          newQuestion.id,
-          {
-            ...option,
-            businessId: businessId,
-          },
-          option.index,
-        );
+        return newAnswerOption;
       }),
     );
   }
@@ -418,7 +430,7 @@ export class SurveyFeedackFormService {
     newQuestionId: number,
   ) {
     const media =
-      await this.mediaRepository.getQuestionOnMediaByMediaId(
+      await this.mediaRepository.getQuestionOnMediaByQuestionId(
         originalQuestionId,
       );
 

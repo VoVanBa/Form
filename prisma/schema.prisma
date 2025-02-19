@@ -118,7 +118,7 @@ model Question {
   answerOptions                 AnswerOption[]
   responseOnQuestions           ResponseOnQuestion[]
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
-  questionOnMedia               QuestionOnMedia[]
+  questionOnMedia               QuestionOnMedia?
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
 }
 
@@ -141,7 +141,7 @@ model BusinessQuestionConfiguration {
 model QuestionOnMedia {
   id         Int       @id @default(autoincrement())
   mediaId    Int
-  questionId Int?
+  questionId Int?      @unique
   media      Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }

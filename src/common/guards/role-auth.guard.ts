@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from './decorater/role.customize'; // Tạo metadata key cho roles
+import { ROLES_KEY } from '../decorater/role.customize'; // Tạo metadata key cho roles
 
 @Injectable()
 export class RolesGuard implements CanActivate {
