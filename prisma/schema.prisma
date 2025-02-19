@@ -147,17 +147,16 @@ model QuestionOnMedia {
 }
 
 model AnswerOption {
-  id                    Int                  @id @default(autoincrement())
-  questionId            Int
-  label                 String?
-  isActive              Boolean              @default(true)
-  index                 Int?
-  description           String?
+  id                  Int                  @id @default(autoincrement())
+  questionId          Int
+  label               String?
+  isActive            Boolean              @default(true)
+  index               Int?
+  description         String?
   //formResponseId      Int?
-  question              Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answerOptionOnMedia   AnswerOptionOnMedia?
-  answerOptionOnMediaid Int?
-  responseOnQuestions   ResponseOnQuestion[]
+  question            Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerOptionOnMedia AnswerOptionOnMedia?
+  responseOnQuestions ResponseOnQuestion[]
 }
 
 model AnswerOptionOnMedia {

@@ -113,22 +113,14 @@ export class PrismasurveyFeedbackRepository
             formSetting: {
               include: {
                 businessSurveyFeedbackSettings: true,
-                formSettingTypes: true, // Include SettingTypes here
+                formSettingTypes: true,
               },
             },
             business: true,
             form: true,
           },
         },
-        // userFormResponses: {
-        //   include: { responseOnQuestions: true, user: true },
-        // },
-        // configurations: {
-        //   include: { question: true },
-        // },
-        // responses: {
-        //   include: { question: true, answerOption: true, userResponse: true },
-        // },
+      
       },
     });
 

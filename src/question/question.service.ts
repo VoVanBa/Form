@@ -138,7 +138,10 @@ export class QuestionService {
         await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
           questionId,
         );
-      if (updateQuestionDto.imageId !== questionOnMedia.mediaId) {
+      if (
+        updateQuestionDto.imageId !== questionOnMedia.mediaId ||
+        question.questionOnMedia === null
+      ) {
         await this.updateQuestionImage(questionId, updateQuestionDto.imageId);
         await this.prismaMediaRepository.deleteMediaById(
           questionOnMedia.mediaId,

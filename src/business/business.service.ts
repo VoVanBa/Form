@@ -12,4 +12,8 @@ export class BusinessService {
   async deleteById(businessId: number) {
     return await this.prismaBusinessRepository.deleteById(businessId);
   }
+
+  async getAll(businessId: number) {
+    return await this.prismaBusinessRepository.getbusinessbyId(businessId);
+  }
 }

@@ -3,6 +3,6 @@ import { Business } from 'src/models/Business';
 
 export interface IBusinessRepository {
   deleteById(id: number);
-  create(data: CreateBusinessDto, userId: number): Promise<Business>;
+  create(data: CreateBusinessDto, userId: number);
   getbusinessbyId(businesId: number): Promise<Business>;
 }

@@ -19,6 +19,7 @@ import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
+import { Question } from 'src/models/Question';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -354,6 +355,8 @@ export class SurveyFeedackFormService {
         question.index,
       );
 
+      await this.duplicateQuestionMedia(question.id, newQuestion.id);
+
       // Duplicate answer options
       await this.duplicateAnswerOptions(question, newQuestion, businessId);
 
@@ -387,7 +390,7 @@ export class SurveyFeedackFormService {
             option.answerOptionOnMedia.mediaId,
           );
 
-          // if (media) {
+          // if (option.answerOptionOnMedia) {
           //   await this.mediaRepository.createAnswerOptionOnMedia([
           //     {
           //       mediaId: media.id,
@@ -411,17 +414,20 @@ export class SurveyFeedackFormService {
   }
 
   private async duplicateQuestionMedia(
-    originalQuestion: any,
-    newQuestion: any,
+    originalQuestionId: number,
+    newQuestionId: number,
   ) {
-    const media = await this.mediaRepository.getQuestionOnMediaByMediaId(
-      originalQuestion.questionOnMedia.id,
-    );
+    const media =
+      await this.mediaRepository.getQuestionOnMediaByMediaId(
+        originalQuestionId,
+      );
+
+    console.log(media, 'mediaquession', newQuestionId);
 
     if (media) {
       await this.mediaRepository.createQuestionOnMedia({
         mediaId: media.id,
-        questionId: newQuestion.id,
+        questionId: newQuestionId,
       });
     }
   }

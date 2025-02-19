@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Headers,
   Param,
   Post,
@@ -29,12 +30,17 @@ export class BusinessController {
     @Headers('authorization') jwt: string,
   ) {
     const user = await this.userService.getUserByJwt(jwt);
-    return this.businessService.create(createBusinessDto, user.id);
+    return await this.businessService.create(createBusinessDto, user.id);
   }
   @Delete(':/businessId')
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteById(@Param() businessId: number) {
     return this.businessService.deleteById(businessId);
+  }
+
+  @Get(':businessId')
+  async getId(@Param() businessId: number) {
+    return this.businessService.getAll(businessId);
   }
 }

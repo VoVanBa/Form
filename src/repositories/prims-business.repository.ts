@@ -3,12 +3,12 @@ import { CreateBusinessDto } from 'src/business/dtos/business.dto';
 import { IBusinessRepository } from './i-repositories/business.repository';
 import { PrismaService } from 'src/config/prisma.service';
 import { Business } from 'src/models/Business';
+import { name } from 'ejs';
 
-Injectable();
+@Injectable()
 export class PrismaBusinessRepository implements IBusinessRepository {
   constructor(private prisma: PrismaService) {}
-
-  async create(data: CreateBusinessDto, userId: number): Promise<Business> {
+  async create(data: CreateBusinessDto, userId: number) {
     const business = await this.prisma.business.create({
       data: {
         name: data.name,
@@ -16,7 +16,11 @@ export class PrismaBusinessRepository implements IBusinessRepository {
         userId: userId,
       },
     });
-    return Business.fromPrisma(business);
+    return {
+      id: business.id,
+      name: business.name,
+      address: business.address,
+    };
   }
 
   async deleteById(businessId: number) {

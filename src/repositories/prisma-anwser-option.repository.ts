@@ -1,7 +1,4 @@
-import { UpdateQuestionDto } from './../question/dtos/update.question.dto';
-import { Question } from 'src/models/Question';
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
 import { AnswerOptionRepository } from './i-repositories/anwser-option.repository';
 import { AddAnswerOptionDto } from 'src/question/dtos/add.answer.option.dto';
 import { PrismaService } from 'src/config/prisma.service';
@@ -17,6 +14,9 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     const answerOptions = await this.prismaService.answerOption.findMany({
       where: {
         questionId: questionId,
+      },
+      include: {
+        answerOptionOnMedia: true,
       },
     });
     return answerOptions.map((data) => AnswerOption.fromPrisma(data));
@@ -69,7 +69,9 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
         id: answerOptionId,
       },
       data: {
-        ...data,
+        label: data.label,
+        isActive: data.isActive,
+        description: data.description,
       },
     });
   }

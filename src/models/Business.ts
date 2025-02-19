@@ -35,11 +35,13 @@ export class Business {
       userId: data.userId,
       user: data.user ? User.fromPrisma(data.user) : null,
       businessSurveySettings: data.businessSurveySettings
-        ? data.businessSurveySettings.map(
-            BusinessSurveyFeedbackSettings.fromPrisma,
+        ? data.businessSurveySettings.map((setting: any) =>
+            BusinessSurveyFeedbackSettings.fromPrisma(setting),
           )
         : [],
-      forms: data.forms ? data.forms.map(SurveyFeedback.fromPrisma) : [],
+      forms: data.forms
+        ? data.forms.map((form: any) => SurveyFeedback.fromPrisma(form))
+        : [],
     });
   }
 }
