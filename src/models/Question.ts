@@ -4,6 +4,7 @@ import { BusinessQuestionConfiguration } from './BusinessQuestionConfiguration';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 import { SurveyFeedback } from './SurveyFeedback';
 import { QuestionType } from './enums/QuestionType';
+import { QuestionCondition } from './QuestionCondition';
 import { isArray } from 'class-validator';
 
 export class Question {
@@ -19,13 +20,16 @@ export class Question {
   questionOnMedia?: QuestionOnMedia;
   businessQuestionConfiguration?: BusinessQuestionConfiguration;
 
+  conditions?: QuestionCondition[];
+  sourceForConditions?: QuestionCondition[];
+
   constructor(data: Partial<Question>) {
     Object.assign(this, data);
   }
 
   static fromPrisma(data: any): Question {
     if (!data) return null;
-    console.log(data.responseOnQuestions, ' data ansseroption');
+
     return new Question({
       id: data.id,
       headline: data.headline,
@@ -48,6 +52,12 @@ export class Question {
             data.businessQuestionConfiguration,
           )
         : null,
+      conditions: isArray(data.conditions)
+        ? data.conditions.map(QuestionCondition.fromPrisma)
+        : [],
+      sourceForConditions: isArray(data.sourceForConditions)
+        ? data.sourceForConditions.map(QuestionCondition.fromPrisma)
+        : [],
     });
   }
 }

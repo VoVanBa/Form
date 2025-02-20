@@ -25,6 +25,7 @@
   },
   "messages": {
     "QUESTIONMOVEDUP": "Question moved up successfully",
-    "QUESTIONMOVEDDOWN": "Question moved down successfully"
+    "QUESTIONMOVEDDOWN": "Question moved down successfully",
+    "RESPONSES_SAVED_SUCCESSFULLY":"Responses saved successfully"
   }
 }

@@ -15,7 +15,6 @@ import { PrismaService } from 'src/config/prisma.service';
 import ConfigManager from 'src/config/configManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { Transaction } from 'src/common/decorater/transaction.decorator';
-import { isArray } from 'class-validator';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -25,8 +24,7 @@ export class SurveyFeedbackDataService {
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     private questionRepository: PrismaQuestionRepository,
     private formSetting: PrismaFormSettingRepository,
-    private readonly i18n: I18nService,
-    private prisma: PrismaService,
+    private i18n: I18nService,
     private configManager: ConfigManager,
   ) {}
 
@@ -69,20 +67,12 @@ export class SurveyFeedbackDataService {
       transformedSettings,
     );
 
-    if (validationFormErrors.length > 0) {
-      throw new BadRequestException(validationFormErrors);
-    }
-
     const questionSettings =
       await this.questionRepository.getSettingByFormId(formId);
     const validationErrors = await this.validateQuestionResponses(
       responses,
       questionSettings,
     );
-
-    if (validationErrors.length > 0) {
-      throw new BadRequestException(validationErrors);
-    }
 
     const userSurveyResponse = await this.userResponseRepository.create(
       formId,
@@ -119,81 +109,88 @@ export class SurveyFeedbackDataService {
     });
 
     await Promise.all(responsePromises);
+
+    const successMessage = this.i18n.translate(
+      'messages.RESPONSES_SAVED_SUCCESSFULLY',
+    );
+
+    return { message: successMessage };
   }
 
   async validateResponseOptions(
     formId: number,
     responseOptions: FormSettingDto[],
   ) {
-    const errors: string[] = [];
     const currentDate = new Date();
-
     const totalResponses =
       await this.responseQuestionRepository.totalResponses(formId);
 
-    responseOptions.forEach((formSetting) => {
+    for (const formSetting of responseOptions) {
       const { enabled, limit, date } = formSetting.settings;
 
-      console.log(enabled, limit, date);
+      if (!enabled) continue;
 
-      if (enabled) {
-        if (formSetting.key === 'closeOnResponseLimit') {
-          if (enabled && totalResponses >= limit) {
-            errors.push(
-              this.i18n.translate('errors.RESPONSELIMITEXCEEDED', {
-                args: { key: formSetting.key },
-              }),
-            );
-          }
-        } else if (formSetting.key === 'releaseOnDate') {
-          if (enabled && date) {
-            const releaseDate = new Date(date);
-            if (releaseDate > currentDate) {
-              errors.push(
-                this.i18n.translate('errors.SURVEYNOTYETRELEASED', {
-                  args: { date, key: formSetting.key },
-                }),
-              );
-            }
-          } else if (enabled && !date) {
-            errors.push(
-              this.i18n.translate('errors.RELEASEONDATEWITHOUTDATE', {
-                args: { key: formSetting.key },
-              }),
-            );
-          }
-        } else if (formSetting.key === 'closeOnDate') {
-          if (enabled && date) {
-            const closeDate = new Date(date);
+      if (
+        formSetting.key === 'closeOnResponseLimit' &&
+        totalResponses >= limit
+      ) {
+        throw new BadRequestException({
+          message: this.i18n.translate('errors.RESPONSELIMITEXCEEDED', {
+            args: { key: formSetting.key },
+          }),
+          key: formSetting.key,
+        });
+      }
 
-            if (closeDate <= currentDate) {
-              errors.push(
-                this.i18n.translate('errors.SURVEYCLOSED', {
-                  args: { date, key: formSetting.key },
-                }),
-              );
-            }
-          } else if (enabled && !date) {
-            errors.push(
-              this.i18n.translate('errors.CLOSEONDATEWITHOUTDATE', {
-                args: { key: formSetting.key },
-              }),
-            );
-          }
+      if (formSetting.key === 'releaseOnDate') {
+        if (!date) {
+          throw new BadRequestException({
+            message: this.i18n.translate('errors.RELEASEONDATEWITHOUTDATE', {
+              args: { key: formSetting.key },
+            }),
+            key: formSetting.key,
+          });
+        }
+
+        const releaseDate = new Date(date);
+        if (releaseDate > currentDate) {
+          throw new BadRequestException({
+            message: this.i18n.translate('errors.SURVEYNOTYETRELEASED', {
+              args: { date, key: formSetting.key },
+            }),
+            key: formSetting.key,
+          });
         }
       }
-    });
 
-    return errors;
+      if (formSetting.key === 'closeOnDate') {
+        if (!date) {
+          throw new BadRequestException({
+            message: this.i18n.translate('errors.CLOSEONDATEWITHOUTDATE', {
+              args: { key: formSetting.key },
+            }),
+            key: formSetting.key,
+          });
+        }
+
+        const closeDate = new Date(date);
+        if (closeDate <= currentDate) {
+          throw new BadRequestException({
+            message: this.i18n.translate('errors.SURVEYCLOSED', {
+              args: { date, key: formSetting.key },
+            }),
+            key: formSetting.key,
+          });
+        }
+      }
+    }
   }
 
   async validateQuestionResponses(
     responses: ResponseDto[],
     settings: QuestionSetting[],
   ) {
-    const errors: string[] = [];
-
-    responses.forEach(async (response) => {
+    for (const response of responses) {
       const type = await this.questionRepository.getQuessionById(
         response.questionId,
       );
@@ -201,23 +198,16 @@ export class SurveyFeedbackDataService {
       const questionSetting = settings.find(
         (setting) => setting.key === type.questionType,
       );
-      console.log(questionSetting, 'questionSetting');
 
       if (!questionSetting) {
-        errors.push(
+        throw new Error(
           this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
             args: { questionId: response.questionId },
           }),
         );
-        return;
       }
 
       const { settings: questionSettings } = questionSetting;
-      console.log(type.questionType);
-      console.log('questionSettings.require:', questionSettings.require);
-      console.log('response.answerText:', response.answerText);
-      console.log('response.answerOptionId:', response.answerOptionId);
-      console.log('response.ratingValue:', response.ratingValue);
 
       if (
         questionSettings.require === true &&
@@ -225,12 +215,11 @@ export class SurveyFeedbackDataService {
         response.answerOptionId === null &&
         response.ratingValue === null
       ) {
-        errors.push(
+        throw new Error(
           this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
             args: { questionId: response.questionId },
           }),
         );
-        return;
       }
 
       // Kiểm tra loại câu hỏi
@@ -238,16 +227,13 @@ export class SurveyFeedbackDataService {
         case 'SINGLE_CHOICE':
         case 'PICTURE_SELECTION':
           if (questionSettings.require && !response.answerOptionId) {
-            errors.push(
+            throw new BadRequestException(
               `Question ID ${response.questionId} requires an answer.`,
             );
           }
-          if (
-            isArray(response.answerOptionId) &&
-            response.answerOptionId.length > questionSettings.maxSelections
-          ) {
-            errors.push(
-              `Question ID ${response.questionId} requires at most 2 choices `,
+          if (response.answerOptionId.length > questionSettings.maxSelections) {
+            throw new BadRequestException(
+              `Question ID ${response.questionId} requires at most ${questionSettings.maxSelections} choices.`,
             );
           }
           break;
@@ -258,7 +244,7 @@ export class SurveyFeedbackDataService {
               response.answerOptionId.length <
               (questionSettings.minSelections || 1)
             ) {
-              errors.push(
+              throw new BadRequestException(
                 this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
                   args: { questionId: response.questionId },
                 }),
@@ -268,12 +254,12 @@ export class SurveyFeedbackDataService {
               response.answerOptionId.length >
               (questionSettings.maxSelections || Infinity)
             ) {
-              errors.push(
+              throw new BadRequestException(
                 `Question ID ${response.questionId} allows a maximum of ${questionSettings.maxSelections} selections.`,
               );
             }
           } else if (questionSettings.require) {
-            errors.push(
+            throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
                 args: { questionId: response.questionId },
               }),
@@ -283,7 +269,7 @@ export class SurveyFeedbackDataService {
 
         case 'INPUT_TEXT':
           if (questionSettings.require && !response.answerText) {
-            errors.push(
+            throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
                 args: { questionId: response.questionId },
               }),
@@ -296,7 +282,7 @@ export class SurveyFeedbackDataService {
             questionSettings.isRequired &&
             response.ratingValue === undefined
           ) {
-            errors.push(
+            throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESRATINGVALUE', {
                 args: { questionId: response.questionId },
               }),
@@ -308,7 +294,7 @@ export class SurveyFeedbackDataService {
             (response.ratingValue > parseFloat(questionSettings.range) ||
               response.ratingValue <= 0)
           ) {
-            errors.push(
+            throw new BadRequestException(
               this.i18n.translate('errors.INVALIDRATINGVALUE', {
                 args: { questionId: response.questionId },
               }),
@@ -316,12 +302,11 @@ export class SurveyFeedbackDataService {
           }
           break;
         default:
-          errors.push(
+          throw new BadRequestException(
             `Unknown question type for question ID ${response.questionId}.`,
           );
       }
-    });
-    return errors;
+    }
   }
 
   async getFormRate(
@@ -528,16 +513,19 @@ export class SurveyFeedbackDataService {
           response.answerOptionId &&
           response.question.answerOptions.length > 0
         ) {
-          const option = response.question.answerOptions.find(
-            (opt) => opt.id === response.answerOptionId,
-          );
-
-          if (option) {
-            answer =
-              option.answerOptionOnMedia?.media?.url ?? option.label ?? null;
-          } else {
-            answer = null;
+          const answerQuestion =
+            response.question.answerOptions.find(
+              (opt) => opt.id === response.answerOptionId,
+            )?.answerOptionOnMedia?.media?.url ??
+            response.question.answerOptions.find(
+              (opt) => opt.id === response.answerOptionId,
+            )?.label ??
+            null;
+          if (response.question.answerOptions.length > 0) {
+            response.question.answerOptions.map((index) => {});
           }
+
+          answer = answerQuestion;
         } else if (response.question.questionType === 'INPUT_TEXT') {
           answer = response.answerText ?? null;
         } else if (response.question.questionType === 'RATING_SCALE') {
@@ -584,7 +572,6 @@ export class SurveyFeedbackDataService {
         username,
         formId,
       );
-    console.log(userResponses);
 
     const formattedData = userResponses.map((userResponse) => ({
       sentAt: userResponse.sentAt,

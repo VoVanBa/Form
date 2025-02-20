@@ -24,6 +24,7 @@
   },
   "messages": {
     "QUESTIONMOVEDUP": "Di chuyển câu hỏi lên thành công",
-    "QUESTIONMOVEDDOWN": "Di chuyển câu hỏi xuống thành công"
+    "QUESTIONMOVEDDOWN": "Di chuyển câu hỏi xuống thành công",
+    "RESPONSES_SAVED_SUCCESSFULLY": "Lưu phản hồi thành công'"
   }
 }

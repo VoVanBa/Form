@@ -120,6 +120,20 @@ model Question {
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia?
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
+  conditions                    QuestionCondition[]            @relation("TargetQuestion") // điều kiện áp dụng cho câu hỏi này
+  sourceForConditions           QuestionCondition[]            @relation("SourceQuestion")
+}
+
+model QuestionCondition {
+  id               Int             @id @default(autoincrement())
+  targetQuestionId Int // Câu hỏi bị áp điều kiện
+  sourceQuestionId Int // Câu hỏi điều kiện
+  conditionType    ConditionType
+  conditionValue   Json // Giá trị điều kiện
+  logicalOperator  LogicalOperator @default(AND)
+
+  targetQuestion Question @relation("TargetQuestion", fields: [targetQuestionId], references: [id], onDelete: Cascade)
+  sourceQuestion Question @relation("SourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
 }
 
 model QuestionConfiguration {
@@ -200,4 +214,19 @@ enum QuestionType {
 enum SurveyFeedbackType {
   SURVEY
   FEEDBACK
+}
+
+enum ConditionType {
+  EQUALS // Bằng chính xác (cho single choice, text)
+  NOT_EQUALS // Không bằng
+  CONTAINS // Chứa giá trị (cho multi choice)
+  NOT_CONTAINS // Không chứa giá trị
+  GREATER_THAN // Lớn hơn (cho rating)
+  LESS_THAN // Nhỏ hơn
+  BETWEEN // Nằm trong khoảng
+}
+
+enum LogicalOperator {
+  AND
+  OR
 }

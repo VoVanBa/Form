@@ -1,0 +1,8 @@
+export enum ConditionType {
+    EQUALS = 'EQUALS',
+    NOT_EQUALS = 'NOT_EQUALS',
+    GREATER_THAN = 'GREATER_THAN',
+    LESS_THAN = 'LESS_THAN',
+    INCLUDES = 'INCLUDES',
+    NOT_INCLUDES = 'NOT_INCLUDES',
+  }
