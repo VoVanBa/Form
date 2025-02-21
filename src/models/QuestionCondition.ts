@@ -1,6 +1,6 @@
 import { ConditionType } from './enums/ConditionType';
 import { LogicalOperator } from './enums/LogicalOperator';
-
+import { Question } from './Question';
 export class QuestionCondition {
   id: number;
   targetQuestionId: number;
@@ -8,6 +8,8 @@ export class QuestionCondition {
   conditionType: ConditionType;
   conditionValue: any;
   logicalOperator: LogicalOperator;
+  targetQuestion: Question;
+  sourceQuestion: Question;
 
   constructor(
     id: number,
@@ -16,6 +18,8 @@ export class QuestionCondition {
     conditionType: ConditionType,
     conditionValue: any,
     logicalOperator: LogicalOperator = LogicalOperator.AND,
+    targetQuestion?: Question,
+    sourceQuestion?: Question,
   ) {
     this.id = id;
     this.targetQuestionId = targetQuestionId;
@@ -23,6 +27,8 @@ export class QuestionCondition {
     this.conditionType = conditionType;
     this.conditionValue = conditionValue;
     this.logicalOperator = logicalOperator;
+    this.targetQuestion = targetQuestion;
+    this.sourceQuestion = sourceQuestion;
   }
 
   static fromPrisma(data: any): QuestionCondition {
@@ -33,6 +39,8 @@ export class QuestionCondition {
       data.conditionType,
       data.conditionValue,
       data.logicalOperator,
+      data.targetQuestion,
+      data.sourceQuestion,
     );
   }
 }

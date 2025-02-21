@@ -219,10 +219,10 @@ enum SurveyFeedbackType {
 enum ConditionType {
   EQUALS // Bằng chính xác (cho single choice, text)
   NOT_EQUALS // Không bằng
-  CONTAINS // Chứa giá trị (cho multi choice)
-  NOT_CONTAINS // Không chứa giá trị
   GREATER_THAN // Lớn hơn (cho rating)
   LESS_THAN // Nhỏ hơn
+  CONTAINS // Chứa giá trị (cho multi choice)
+  NOT_CONTAINS // Không chứa giá trị
   BETWEEN // Nằm trong khoảng
 }
 

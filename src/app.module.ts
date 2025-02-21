@@ -14,6 +14,7 @@ import * as path from 'path';
 import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n'; // Import I18nJsonLoader
 import { SurveyFeedbackDataService } from './survey-feedback-data/survey-feedback-data.service';
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
+import { QuestionConditionModule } from './question-condition/question-condition.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback
         AcceptLanguageResolver, // Lấy từ headers
       ],
     }),
+    QuestionConditionModule,
   ],
   controllers: [AppController],
   providers: [
