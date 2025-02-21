@@ -16,10 +16,16 @@ export class QuestionConditionService {
     private readonly questionConditionRepository: PrismaQuestionConditionRepository,
   ) {}
 
-  async findById(id: number): Promise<QuestionCondition> {
-    const condition = await this.questionConditionRepository.findById(id);
+  async findById(
+    targetQuestionId: number,
+    sourceQuestionId: number,
+  ): Promise<QuestionCondition> {
+    const condition = await this.questionConditionRepository.findById(
+      targetQuestionId,
+      sourceQuestionId,
+    );
     if (!condition) {
-      throw new NotFoundException(`Question condition with ID ${id} not found`);
+      throw new NotFoundException(`Question condition with ID not found`);
     }
     return condition;
   }
@@ -34,11 +40,11 @@ export class QuestionConditionService {
     return await this.questionConditionRepository.create(data);
   }
 
-  async update(
-    id: number,
-    data: UpdateQuestionConditionDto,
-  ): Promise<QuestionCondition> {
-    const existingCondition = await this.findById(id);
+  async update(data: UpdateQuestionConditionDto): Promise<QuestionCondition> {
+    const existingCondition = await this.findById(
+      data.targetQuestionId,
+      data.sourceQuestionId,
+    );
 
     if (this.shouldValidateQuestionOrder(data, existingCondition)) {
       await this.validateQuestionOrder(
@@ -55,7 +61,10 @@ export class QuestionConditionService {
       });
     }
 
-    return await this.questionConditionRepository.update(id, data);
+    return await this.questionConditionRepository.update(
+      existingCondition.id,
+      data,
+    );
   }
 
   private async validateQuestionOrder(

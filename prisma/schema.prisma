@@ -126,10 +126,10 @@ model Question {
 
 model QuestionCondition {
   id               Int             @id @default(autoincrement())
-  targetQuestionId Int // Câu hỏi bị áp điều kiện
-  sourceQuestionId Int // Câu hỏi điều kiện
+  targetQuestionId Int
+  sourceQuestionId Int
   conditionType    ConditionType
-  conditionValue   Json // Giá trị điều kiện
+  conditionValue   Json
   logicalOperator  LogicalOperator @default(AND)
 
   targetQuestion Question @relation("TargetQuestion", fields: [targetQuestionId], references: [id], onDelete: Cascade)

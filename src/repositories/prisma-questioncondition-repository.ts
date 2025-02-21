@@ -11,9 +11,15 @@ export class PrismaQuestionConditionRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: number): Promise<QuestionCondition> {
-    const condition = await this.prisma.questionCondition.findUnique({
-      where: { id },
+  async findById(
+    targetQuestionId: number,
+    sourceQuestionId: number,
+  ): Promise<QuestionCondition> {
+    const condition = await this.prisma.questionCondition.findFirst({
+      where: {
+        targetQuestionId: targetQuestionId,
+        sourceQuestionId: sourceQuestionId,
+      },
       include: { targetQuestion: true, sourceQuestion: true },
     });
 

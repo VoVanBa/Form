@@ -17,6 +17,10 @@ import { CloudinaryUploadResult } from './dtos/cloudinary.upload.result';
 import { PrismaService } from 'src/config/prisma.service';
 import { defaultQuestionSettings } from 'src/config/default.question.settings';
 import { QuestionType } from 'src/models/enums/QuestionType';
+import { QuestionConditionService } from 'src/question-condition/question-condition.service';
+import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
+import { UpdateQuestionConditionDto } from 'src/question-condition/dtos/update-question-condition-dto';
+import { Transaction } from 'src/common/decorater/transaction.decorator';
 
 @Injectable()
 export class QuestionService {
@@ -27,6 +31,7 @@ export class QuestionService {
     private prismaSurveuFeedBackRepository: PrismasurveyFeedbackRepository,
     private prismaMediaRepository: PrismaMediaRepository,
     private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
+    private questionConditionService: QuestionConditionService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -82,19 +87,18 @@ export class QuestionService {
     return this.prismaQuestionRepository.findAllQuestion(formId);
   }
 
+  @Transaction()
   async addAndUpdateQuestions(
     formId: number,
     updateQuestionsDto: UpdateQuestionDto[],
   ) {
     await this.validateForm(formId);
 
-    // Lấy max index hiện tại
     const currentMaxIndex =
       await this.prismaQuestionRepository.getMaxQuestionIndex(formId);
 
     let nextIndex = currentMaxIndex + 1;
 
-    // Xử lý tuần tự để đảm bảo index đúng thứ tự
     const results = [];
     for (const updateQuestionDto of updateQuestionsDto) {
       const { questionType, questionId } = updateQuestionDto;
@@ -126,6 +130,7 @@ export class QuestionService {
 
     return results;
   }
+
   private async updateQuestion(
     questionId: number,
     formId: number,
@@ -304,9 +309,9 @@ export class QuestionService {
   private async createQuestion(
     formId: number,
     addQuestionDto: AddQuestionDto,
-    sortOrder?: number, // Làm sortOrder optional để backward compatible
+    sortOrder?: number,
   ) {
-    const { answerOptions, imageId } = addQuestionDto;
+    const { answerOptions, imageId, conditions } = addQuestionDto;
 
     if (answerOptions && answerOptions.length < 2) {
       throw new BadRequestException(
@@ -314,7 +319,6 @@ export class QuestionService {
       );
     }
 
-    // Sử dụng sortOrder được truyền vào nếu có
     const questionIndex =
       sortOrder ||
       (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
@@ -325,7 +329,6 @@ export class QuestionService {
       questionIndex,
     );
 
-    // Phần còn lại giữ nguyên
     if (answerOptions) {
       await this.createAnswerOptions(question.id, answerOptions);
     }
@@ -339,6 +342,21 @@ export class QuestionService {
 
     if (addQuestionDto.questionType === QuestionType.PICTURE_SELECTION) {
       await this.updateQuestionImage(question.id, imageId);
+    }
+    // ----------------------------------------------------
+    if (conditions) {
+      for (const condition of conditions) {
+        condition.sourceQuestionId = question.id;
+        const existingCondition = await this.questionConditionService.findById(
+          condition.targetQuestionId,
+          condition.sourceQuestionId,
+        );
+        if (existingCondition) {
+          await this.questionConditionService.update(condition);
+        } else {
+          await this.questionConditionService.create(condition);
+        }
+      }
     }
 
     return question;

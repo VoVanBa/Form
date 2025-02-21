@@ -9,6 +9,7 @@ import {
 import { AnswerOption } from 'src/models/AnswerOption';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { AddAnswerOptionDto } from './add.answer.option.dto';
+import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
 
 export class BaseQuestionDto {
   @IsOptional()
@@ -30,4 +31,9 @@ export class BaseQuestionDto {
   @ValidateNested({ each: true })
   @Type(() => AddAnswerOptionDto)
   answerOptions?: AddAnswerOptionDto[];
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateQuestionConditionDto)
+  conditions?: CreateQuestionConditionDto[];
 }

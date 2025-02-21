@@ -4,10 +4,10 @@ import { LogicalOperator } from 'src/models/enums/LogicalOperator';
 
 export class QuestionConditionBaseDto {
   @IsInt()
-  targetQuestionId: number;
+  targetQuestionId?: number;
 
   @IsInt()
-  sourceQuestionId: number;
+  sourceQuestionId?: number;
 
   @IsEnum(ConditionType)
   conditionType: ConditionType;

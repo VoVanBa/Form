@@ -7,6 +7,8 @@ import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository'
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaService } from 'src/config/prisma.service';
 import { CloudinaryProvider } from 'src/config/cloudinary.provider';
+import { QuestionConditionService } from 'src/question-condition/question-condition.service';
+import { PrismaQuestionConditionRepository } from 'src/repositories/prisma-questioncondition-repository';
 
 @Module({
   controllers: [QuestionController],
@@ -18,6 +20,8 @@ import { CloudinaryProvider } from 'src/config/cloudinary.provider';
     PrismasurveyFeedbackRepository,
     PrismaMediaRepository,
     PrismaAnswerOptionRepository,
+    QuestionConditionService,
+    PrismaQuestionConditionRepository
   ],
 })
 export class QuestionModule {}
