@@ -465,54 +465,93 @@ export class QuestionService {
     return await this.prismaQuestionRepository.getSettingByQuestionType(type);
   }
 
-  async handleQuestionOrderUp(questionId: number, formId: number) {
-    await this.validateForm(formId);
-    const questions = await this.getAllQuestion(formId);
-    const questionIndex = questions.findIndex((q) => q.id === questionId);
-    if (questionIndex === -1) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+  // async handleQuestionOrderUp(questionId: number, formId: number) {
+  //   await this.validateForm(formId);
+  //   const questions = await this.getAllQuestion(formId);
+  //   const questionIndex = questions.findIndex((q) => q.id === questionId);
+  //   if (questionIndex === -1) {
+  //     throw new NotFoundException(
+  //       this.i18n.translate('errors.QUESTIONNOTFOUND'),
+  //     );
+  //   }
+  //   const prevQuestion = questions[questionIndex - 1];
+  //   if (!prevQuestion) {
+  //     return { message: this.i18n.translate('errors.ALREADYATTOP') };
+  //   }
+  //   await this.swapQuestionIndexes(questionId, prevQuestion.id);
+  //   return { message: this.i18n.translate('messages.QUESTIONMOVEDUP') };
+  // }
+
+  // async handleQuestionOrderDown(questionId: number, formId: number) {
+  //   await this.validateForm(formId);
+  //   const questions = await this.getAllQuestion(formId);
+  //   const questionIndex = questions.findIndex((q) => q.id === questionId);
+  //   if (questionIndex === -1) {
+  //     throw new NotFoundException(
+  //       this.i18n.translate('errors.QUESTIONNOTFOUND'),
+  //     );
+  //   }
+  //   const nextQuestion = questions[questionIndex + 1];
+  //   if (!nextQuestion) {
+  //     return { message: this.i18n.translate('errors.QUESTIONMOVEDDOWN') };
+  //   }
+  //   await this.swapQuestionIndexes(questionId, nextQuestion.id);
+  //   return { message: this.i18n.translate('messages.QUESTIONMOVEDDOWN') };
+  // }
+
+  // private async swapQuestionIndexes(questionId1: number, questionId2: number) {
+  //   const question1 =
+  //     await this.prismaQuestionRepository.getQuessionById(questionId1);
+  //   const question2 =
+  //     await this.prismaQuestionRepository.getQuessionById(questionId2);
+  //   await Promise.all([
+  //     this.prismaQuestionRepository.updateIndexQuestion(
+  //       questionId1,
+  //       question2.index,
+  //     ),
+  //     this.prismaQuestionRepository.updateIndexQuestion(
+  //       questionId2,
+  //       question1.index,
+  //     ),
+  //   ]);
+  // }
+
+  async reorderQuestion(
+    formId: number,
+    questionId: number,
+    newIndex: number,
+  ): Promise<void> {
+    const form =
+      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
+
+    console.log(form);
+    const question =
+      await this.prismaQuestionRepository.getQuessionById(questionId);
+    if (!question) throw new NotFoundException('Question not found');
+
+    const oldIndex = question.index;
+    if (oldIndex === newIndex) return; // Không cần xử lý
+
+    // 2️⃣ Xác định hướng di chuyển
+    if (newIndex < oldIndex) {
+      await this.prismaQuestionRepository.shiftIndexes(
+        form.id,
+        oldIndex,
+        newIndex,
+        'up',
+      );
+    } else {
+      await this.prismaQuestionRepository.shiftIndexes(
+        form.id,
+        oldIndex,
+        newIndex,
+        'down',
       );
     }
-    const prevQuestion = questions[questionIndex - 1];
-    if (!prevQuestion) {
-      return { message: this.i18n.translate('errors.ALREADYATTOP') };
-    }
-    await this.swapQuestionIndexes(questionId, prevQuestion.id);
-    return { message: this.i18n.translate('messages.QUESTIONMOVEDUP') };
-  }
 
-  async handleQuestionOrderDown(questionId: number, formId: number) {
-    await this.validateForm(formId);
-    const questions = await this.getAllQuestion(formId);
-    const questionIndex = questions.findIndex((q) => q.id === questionId);
-    if (questionIndex === -1) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
-      );
-    }
-    const nextQuestion = questions[questionIndex + 1];
-    if (!nextQuestion) {
-      return { message: this.i18n.translate('errors.QUESTIONMOVEDDOWN') };
-    }
-    await this.swapQuestionIndexes(questionId, nextQuestion.id);
-    return { message: this.i18n.translate('messages.QUESTIONMOVEDDOWN') };
-  }
-
-  private async swapQuestionIndexes(questionId1: number, questionId2: number) {
-    const question1 =
-      await this.prismaQuestionRepository.getQuessionById(questionId1);
-    const question2 =
-      await this.prismaQuestionRepository.getQuessionById(questionId2);
-    await Promise.all([
-      this.prismaQuestionRepository.updateIndexQuestion(
-        questionId1,
-        question2.index,
-      ),
-      this.prismaQuestionRepository.updateIndexQuestion(
-        questionId2,
-        question1.index,
-      ),
-    ]);
+    await this.prismaQuestionRepository.updateIndexQuestion(
+      questionId,
+      newIndex,
+    );
   }
 }

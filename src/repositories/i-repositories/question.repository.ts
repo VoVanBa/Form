@@ -60,4 +60,11 @@ export interface QuestionRepository {
   updateIndexQuestion(questionId: number, index: number): Promise<void>;
 
   getSettingByFormId(formId: number): Promise<BusinessQuestionConfiguration[]>;
+
+  shiftIndexes(
+    formId: number,
+    questionId: number,
+    newIndex: number,
+    direction: 'up' | 'down',
+  );
 }

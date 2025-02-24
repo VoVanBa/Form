@@ -120,21 +120,21 @@ model Question {
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia?
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
-  conditions                    QuestionCondition[]            @relation("TargetQuestion") // điều kiện áp dụng cho câu hỏi này
-  sourceForConditions           QuestionCondition[]            @relation("SourceQuestion")
+  // conditions                    QuestionCondition[]            @relation("TargetQuestion") // điều kiện áp dụng cho câu hỏi này
+  // sourceForConditions           QuestionCondition[]            @relation("SourceQuestion")
 }
 
-model QuestionCondition {
-  id               Int             @id @default(autoincrement())
-  targetQuestionId Int
-  sourceQuestionId Int
-  conditionType    ConditionType
-  conditionValue   Json
-  logicalOperator  LogicalOperator @default(AND)
+// model QuestionCondition {
+//   id               Int             @id @default(autoincrement())
+//   targetQuestionId Int
+//   sourceQuestionId Int
+//   conditionType    ConditionType
+//   conditionValue   Json
+//   logicalOperator  LogicalOperator @default(AND)
 
-  targetQuestion Question @relation("TargetQuestion", fields: [targetQuestionId], references: [id], onDelete: Cascade)
-  sourceQuestion Question @relation("SourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
-}
+//   targetQuestion Question @relation("TargetQuestion", fields: [targetQuestionId], references: [id], onDelete: Cascade)
+//   sourceQuestion Question @relation("SourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+// }
 
 model QuestionConfiguration {
   id       Int    @id @default(autoincrement())

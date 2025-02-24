@@ -6,9 +6,7 @@ import { Question } from 'src/models/Question';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { BusinessQuestionConfiguration } from 'src/models/BusinessQuestionConfiguration';
 import { SurveyFeedbackSettings } from 'src/models/SurveyFeedbackSettings';
-import { Media } from 'src/models/Media';
 import { QuestionRepository } from './i-repositories/question.repository';
-import { QuestionConfig } from 'src/response-customization/surveyfeedback.response';
 import { QuestionConfiguration } from 'src/models/QuestionConfiguration';
 
 @Injectable()
@@ -143,7 +141,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
       include: {
         answerOptions: { include: { answerOptionOnMedia: true } },
         questionOnMedia: true,
-        businessQuestionConfiguration:true
+        businessQuestionConfiguration: true,
       },
       orderBy: { index: 'asc' },
     });
@@ -188,5 +186,40 @@ export class PrismaQuestionRepository implements QuestionRepository {
       where: { id: questionId },
       data: { index },
     });
+  }
+
+  async shiftIndexes(
+    formId: number,
+    fromIndex: number,
+    toIndex: number,
+    direction: 'up' | 'down',
+  ) {
+    return await this.prismaService.question.updateMany({
+      where: {
+        formId,
+        index:
+          direction === 'up'
+            ? { gte: toIndex, lt: fromIndex } // Dời lên
+            : { gt: fromIndex, lte: toIndex }, // Dời xuống
+      },
+      data: {
+        index: direction === 'up' ? { increment: 1 } : { decrement: 1 },
+      },
+    });
+  }
+
+  async countQuestions(formId: number) {
+    return this.prismaService.question.count({ where: { formId } });
+  }
+
+  async bulkUpdateIndexes(questions: { id: number; index: number }[]) {
+    return Promise.all(
+      questions.map(({ id, index }) =>
+        this.prismaService.question.update({
+          where: { id },
+          data: { index },
+        }),
+      ),
+    );
   }
 }

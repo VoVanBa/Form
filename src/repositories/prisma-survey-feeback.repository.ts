@@ -23,70 +23,9 @@ export class PrismasurveyFeedbackRepository
       },
     });
   }
-  // async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
-  //   const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
-  //     where: { id },
-  //     include: {
-  //       questions: {
-  //         where: { deletedAt: null },
-  //         orderBy: { index: 'asc' },
-  //         include: {
-  //           questionOnMedia: {
-  //             include: {
-  //               media: true,
-  //             },
-  //           },
-  //           answerOptions: {
-  //             orderBy: { index: 'asc' },
-  //             include: {
-  //               answerOptionOnMedia: {
-  //                 include: {
-  //                   media: true,
-  //                 },
-  //               },
-  //             },
-  //           },
-  //           businessQuestionConfiguration: true,
-  //         },
-  //       },
-  //       business: true,
-  //       businessSettings: {
-  //         include: {
-  //           formSetting: true,
-  //           business: true,
-  //           form: true,
-  //         },
-  //       },
-  //       userFormResponses: {
-  //         include: {
-  //           responseOnQuestions: true,
-  //           user: true,
-  //         },
-  //       },
-  //       configurations: {
-  //         include: {
-  //           question: true,
-  //         },
-  //       },
-  //       responses: {
-  //         include: {
-  //           question: true,
-  //           answerOption: true,
-  //           userResponse: true,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   return new SurveyFeedback({
-  //     ...surveyFeedback,
-  //     type: surveyFeedback.type as SurveyFeedbackType,
-  //     status: surveyFeedback.status as FormStatus,
-  //   });
-  // }
 
   async getsurveyFeedbackById(id: number): Promise<SurveyFeedback> {
-    const surveyFeedback = await this.prisma.surveyFeedback.findUnique({
+    const surveyFeedback = await this.prisma.surveyFeedback.findFirst({
       where: { id },
       include: {
         questions: {
