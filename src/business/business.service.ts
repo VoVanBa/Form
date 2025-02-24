@@ -1,4 +1,4 @@
-import { PrismaBusinessRepository } from './../repositories/prims-business.repository';
+import { PrismaBusinessRepository } from '../repositories/prsima-business.repository';
 import { Injectable } from '@nestjs/common';
 import { CreateBusinessDto } from './dtos/business.dto';
 

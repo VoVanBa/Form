@@ -1,6 +1,7 @@
 {
   "errors": {
     "SURVEYFEEDBACKNOTFOUND": "Survey feedback not found",
+    "SURVEYNOTAVAILABLE": "Survey not available",
     "QUESTIONNOTFOUND": "Question not found",
     "IMAGENOTFOUND": "Image not found or already associated with another question",
     "MUSTHAVEATLEASTTWOCHOICES": "Must have at least 2 choices",

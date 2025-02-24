@@ -6,7 +6,7 @@ import {
 import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
-import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
+import { PrismaBusinessRepository } from 'src/repositories/prsima-business.repository';
 
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';

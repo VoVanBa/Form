@@ -3,7 +3,7 @@ import { BusinessController } from './business.controller';
 import { BusinessService } from './business.service';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaBusinessRepository } from 'src/repositories/prims-business.repository';
+import { PrismaBusinessRepository } from 'src/repositories/prsima-business.repository';
 import { PrismaService } from 'src/config/prisma.service';
 
 @Module({

@@ -15,6 +15,7 @@ import { PrismaService } from 'src/config/prisma.service';
 import ConfigManager from 'src/config/configManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { Transaction } from 'src/common/decorater/transaction.decorator';
+import { FormStatus } from 'src/models/enums/FormStatus';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -52,6 +53,14 @@ export class SurveyFeedbackDataService {
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+    if (
+      existingForm.status === FormStatus.DRAFT ||
+      existingForm.status === FormStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
       );
     }
 
@@ -681,9 +690,9 @@ export class SurveyFeedbackDataService {
         endDate = new Date(now.getFullYear() - 1, 11, 31);
         break;
       case 'All time':
-        startDate = new Date(0); // Represents the earliest possible date
+        startDate = new Date(0); 
         break;
-      case 'Custom': // Người dùng nhập vào ngày bắt đầu và kết thúc
+      case 'Custom': 
         if (!customStartDate || !customEndDate) {
           throw new Error(
             'Custom date range requires both startDate and endDate',
@@ -709,15 +718,15 @@ export class SurveyFeedbackDataService {
       console.log(response, 'response');
       if (
         response.question.questionType === 'RATING_SCALE' &&
-        response.answer
+        response.ratingValue
       ) {
-        if (response.answer <= 2)
+        if (response.ratingValue <= 2)
           score = 3; // High severity
         else if (response.answer === 3) score = 2; // Medium severity
       }
 
-      if (response.question.questionType === 'INPUT_TEXT' && response.answer) {
-        const answerText = response.answer.toLowerCase().trim();
+      if (response.question.questionType === 'INPUT_TEXT' && response.answerText) {
+        const answerText = response.answerText.toLowerCase().trim();
         if (negativeWords.some((word) => answerText.includes(word))) {
           score = 3; // High severity nếu có từ tiêu cực
         }
@@ -732,6 +741,7 @@ export class SurveyFeedbackDataService {
     const avgSeverity =
       severityScores.reduce((a, b) => a + b, 0) / severityScores.length;
 
+      console.log(avgSeverity, 'avgSeverity');
     // Quy đổi điểm trung bình về mức độ nghiêm trọng
     if (avgSeverity >= 2.5) return 'high';
     if (avgSeverity >= 1.5) return 'medium';

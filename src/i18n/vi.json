@@ -1,6 +1,7 @@
 {
   "errors": {
     "SURVEYFEEDBACKNOTFOUND": "Không tìm thấy khảo sát",
+    "SURVEYNOTAVAILABLE": "Khảo sát không khả dụng",
     "QUESTIONNOTFOUND": "Không tìm thấy câu hỏi",
     "IMAGENOTFOUND": "Hình ảnh không tìm thấy hoặc đã được liên kết với câu hỏi khác",
     "MUSTHAVEATLEASTTWOCHOICES": "Phải có ít nhất 2 lựa chọn",

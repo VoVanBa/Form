@@ -1,13 +1,14 @@
+import { name } from 'ejs';
 export const defaultFormSettings = [
   {
-    name: 'Response Options',
-    description: 'Các tùy chọn phản hồi',
+    name: 'Tùy Chọn Phản Hồi',
+    description: 'Các tùy chọn liên quan đến phản hồi khảo sát',
     settings: [
       {
         key: 'closeOnResponseLimit',
-        label: 'Close survey on response limit',
+        label: 'Đóng khảo sát khi đạt giới hạn phản hồi',
         description:
-          'Automatically close the survey after a certain number of responses.',
+          'Tự động đóng khảo sát sau khi đạt đến một số lượng phản hồi nhất định.',
         value: {
           enabled: false, // Giá trị bật/tắt
           limit: 25, // Số lượng phản hồi giới hạn
@@ -15,9 +16,8 @@ export const defaultFormSettings = [
       },
       {
         key: 'releaseOnDate',
-        label: 'Release survey on date',
-        description:
-          'Automatically release the survey at the beginning of the day (UTC).',
+        label: 'Mở khảo sát vào ngày cụ thể',
+        description: 'Tự động mở khảo sát vào đầu ngày (theo giờ UTC).',
         value: {
           enabled: true, // Giá trị bật/tắt
           date: null, // Ngày được chọn
@@ -25,9 +25,8 @@ export const defaultFormSettings = [
       },
       {
         key: 'closeOnDate',
-        label: 'Close survey on date',
-        description:
-          'Automatically closes the survey at the beginning of the day (UTC).',
+        label: 'Đóng khảo sát vào ngày cụ thể',
+        description: 'Tự động đóng khảo sát vào đầu ngày (theo giờ UTC).',
         value: {
           enabled: false, // Giá trị bật/tắt
           date: null, // Ngày được chọn
@@ -36,49 +35,49 @@ export const defaultFormSettings = [
     ],
   },
   {
-    name: 'Recontact Options',
-    description: 'Tùy chọn liên hệ lại',
+    name: 'Tùy Chọn Liên Hệ Lại',
+    description: 'Các tùy chọn hiển thị lại khảo sát',
     settings: [
       {
         key: 'showOnlyOnce',
-        label: 'Show only once',
+        label: 'Chỉ hiển thị một lần',
         description:
-          "The survey will be shown once, even if person doesn't respond.",
+          'Khảo sát sẽ chỉ hiển thị một lần, ngay cả khi người dùng không phản hồi.',
         value: {
           enabled: false, // Giá trị bật/tắt
         },
       },
       {
         key: 'showMultipleTimes',
-        label: 'Show multiple times',
+        label: 'Hiển thị nhiều lần',
         description:
-          'The survey will be shown multiple times until they respond.',
+          'Khảo sát sẽ được hiển thị nhiều lần cho đến khi người dùng phản hồi.',
         value: {
           enabled: false,
         },
       },
       {
         key: 'untilSubmitResponse',
-        label: 'Until they submit a response',
-        description: 'If you really want that answer, ask until you get it.',
+        label: 'Cho đến khi họ gửi phản hồi',
+        description:
+          'Nếu bạn thực sự cần phản hồi, hãy tiếp tục hỏi cho đến khi nhận được.',
         value: {
           enabled: true, // Giá trị bật/tắt
         },
       },
       {
         key: 'keepShowingWhileConditionsMatch',
-        label: 'Keep showing while conditions match',
-        description:
-          'Even after they submitted a response (e.g., Feedback Box).',
+        label: 'Tiếp tục hiển thị nếu điều kiện vẫn phù hợp',
+        description: 'Ngay cả khi họ đã gửi phản hồi (ví dụ: Hộp Phản Hồi).',
         value: {
           enabled: false,
         },
       },
       {
         key: 'ignoreWaitingTime',
-        label: 'Ignore waiting time between surveys',
+        label: 'Bỏ qua thời gian chờ giữa các khảo sát',
         description:
-          'This setting overwrites your waiting period. Use with caution.',
+          'Cài đặt này sẽ ghi đè khoảng thời gian chờ của bạn. Hãy sử dụng cẩn thận.',
         value: {
           enabled: false,
         },
@@ -86,15 +85,58 @@ export const defaultFormSettings = [
     ],
   },
   {
-    name: 'Survey Placement',
-    description: 'Vị trí khảo sát',
+    name: 'Vị Trí Hiển Thị Khảo Sát',
+    description: 'Cài đặt vị trí khảo sát trên màn hình',
     settings: [
       {
         key: 'position',
-        label: 'Survey position',
-        description: 'Set where the survey appears on the screen.',
+        label: 'Vị trí khảo sát',
+        description: 'Chọn vị trí khảo sát sẽ xuất hiện trên màn hình.',
         value: {
           position: 'top', // Vị trí hiển thị
+        },
+      },
+    ],
+  },
+
+  {
+    name: 'Tùy Chọn Thông Báo',
+    description: 'Các tùy chọn liên quan đến thông báo',
+    settings: [
+      {
+        key: 'email_notification',
+        label: 'Thông Báo Qua Email',
+        description: 'Cấu hình thông báo qua email cho phản hồi khảo sát',
+        value: {
+          enabled: false,
+          recipients: ['manager@company.com'], // Danh sách email nhận thông báo
+        },
+      },
+    ],
+  },
+
+  {
+    name: 'Hoàn Thành',
+    description: 'Cài đặt hoàn thành khảo sát',
+    settings: [
+      {
+        key: 'redirectUrl',
+        label: 'Chuyển hướng URL',
+        description:
+          'Chuyển hướng người dùng đến URL cụ thể sau khi hoàn thành khảo sát.',
+        value: {
+          enabled: false,
+          url: null,
+        },
+      },
+      {
+        key: 'showThankYouMessage',
+        label: 'Hiển thị thông báo cảm ơn',
+        description:
+          'Hiển thị thông báo cảm ơn người dùng sau khi hoàn thành khảo sát.',
+        value: {
+          enabled: true,
+          message: 'Cảm ơn bạn đã hoàn thành khảo sát!',
         },
       },
     ],
