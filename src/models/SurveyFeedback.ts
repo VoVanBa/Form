@@ -7,6 +7,7 @@ import { SurveyFeedbackType } from './enums/SurveyFeedbackType';
 import { Question } from './Question';
 import { ResponseOnQuestion } from './ResponseOnQuestion';
 import { UserOnResponse } from './UserOnResponse';
+import { SurveyFeedbackEnding } from './SurveyFeedbackEnding';
 export class SurveyFeedback {
   id: number;
   name: string;
@@ -24,6 +25,7 @@ export class SurveyFeedback {
   userFormResponses?: UserOnResponse[];
   configurations?: BusinessQuestionConfiguration[];
   responses?: ResponseOnQuestion[];
+  ending?: SurveyFeedbackEnding;
 
   constructor(data: Partial<SurveyFeedback>) {
     Object.assign(this, data);
@@ -56,6 +58,7 @@ export class SurveyFeedback {
       responses: data.responses
         ? data.responses.map(ResponseOnQuestion.fromPrisma)
         : [],
+      ending: data.ending ? SurveyFeedbackEnding.fromPrisma(data.ending) : null,
     });
   }
 }

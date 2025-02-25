@@ -59,6 +59,11 @@ export class PrismasurveyFeedbackRepository
             form: true,
           },
         },
+        SurveyFeedbackEnding: {
+          include: {
+            media: true,
+          },
+        },
       },
     });
 

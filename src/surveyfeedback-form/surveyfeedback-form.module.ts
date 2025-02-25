@@ -8,6 +8,7 @@ import { PrismaService } from 'src/config/prisma.service';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
+import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
 
 @Module({
   controllers: [SurveyFeedbackFormController],
@@ -20,6 +21,7 @@ import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository'
     PrismaQuestionRepository,
     PrismaAnswerOptionRepository,
     PrismaMediaRepository,
+    PrismaSurveyEndingRepository,
   ],
 })
 export class SurveyFeedbackFormModule {}

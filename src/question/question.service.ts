@@ -343,21 +343,21 @@ export class QuestionService {
     if (addQuestionDto.questionType === QuestionType.PICTURE_SELECTION) {
       await this.updateQuestionImage(question.id, imageId);
     }
-    // ----------------------------------------------------
-    if (conditions) {
-      for (const condition of conditions) {
-        condition.sourceQuestionId = question.id;
-        const existingCondition = await this.questionConditionService.findById(
-          condition.targetQuestionId,
-          condition.sourceQuestionId,
-        );
-        if (existingCondition) {
-          await this.questionConditionService.update(condition);
-        } else {
-          await this.questionConditionService.create(condition);
-        }
-      }
-    }
+    // // ----------------------------------------------------
+    // if (conditions) {
+    //   for (const condition of conditions) {
+    //     condition.sourceQuestionId = question.id;
+    //     const existingCondition = await this.questionConditionService.findById(
+    //       condition.targetQuestionId,
+    //       condition.sourceQuestionId,
+    //     );
+    //     if (existingCondition) {
+    //       await this.questionConditionService.update(condition);
+    //     } else {
+    //       await this.questionConditionService.create(condition);
+    //     }
+    //   }
+    // }
 
     return question;
   }

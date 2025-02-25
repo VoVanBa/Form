@@ -21,6 +21,7 @@ import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-opt
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { Question } from 'src/models/Question';
 import { Transaction } from 'src/common/decorater/transaction.decorator';
+import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -32,6 +33,7 @@ export class SurveyFeedackFormService {
     private answerOptionRepository: PrismaAnswerOptionRepository,
     private mediaRepository: PrismaMediaRepository,
     private settingRepository: PrismaFormSettingRepository,
+    private surveyEndingRepository: PrismaSurveyEndingRepository,
     private readonly i18n: I18nService,
   ) {}
   async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
@@ -39,6 +41,11 @@ export class SurveyFeedackFormService {
       createFormDto,
       businessId,
     );
+
+    await this.surveyEndingRepository.createSurveyEnding({
+      surveyId: save.id,
+      message: 'Cảm ơn quý khách đã trả lời khảo sát',
+    });
 
     const formSetting = await this.formSetting.getAllFormSetting();
 
@@ -78,7 +85,6 @@ export class SurveyFeedackFormService {
   }
 
   async getFormByIdForBusiness(id: number) {
-    // Kiểm tra xem surveyFeedback có được tìm thấy hay không
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
     if (!surveyFeedback) {
@@ -87,19 +93,18 @@ export class SurveyFeedackFormService {
       );
     }
 
-    console.log(surveyFeedback, 'survey');
-
-    console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
+    const surveyEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
     const surveyFeedbackDto = {
       id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
-      createdBy: surveyFeedback.createdBy,
+      createdBy: surveyFeedback.createdBy, // Thông tin người tạo, hữu ích cho quản lý
       type: surveyFeedback.type,
-      allowAnonymous: surveyFeedback.allowAnonymous,
-      status: surveyFeedback.status,
-      businessId: surveyFeedback.businessId,
+      allowAnonymous: surveyFeedback.allowAnonymous, // Cấu hình quản lý
+      status: surveyFeedback.status, // Trạng thái survey, cần cho doanh nghiệp
+      businessId: surveyFeedback.businessId, // ID doanh nghiệp, cần cho quản lý
       questions: surveyFeedback.questions.map((question) => ({
         id: question.id,
         text: question.headline,
@@ -122,16 +127,28 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-
-        setting: question.businessQuestionConfiguration.settings,
+        setting: question.businessQuestionConfiguration?.settings || {}, // Cấu hình câu hỏi chi tiết
       })),
+      ending: surveyEnding
+        ? {
+            message: surveyEnding.message,
+            redirectUrl: surveyEnding.redirectUrl || null,
+            media: surveyEnding.media
+              ? {
+                  id: surveyEnding.media.id,
+                  url: surveyEnding.media.url,
+                }
+              : null,
+          }
+        : null,
+      // Có thể thêm thông tin thống kê nếu cần
+      responseCount: surveyFeedback.userFormResponses.length, // Số lượng phản hồi
     };
 
     return surveyFeedbackDto;
   }
 
   async getFormByIdForClient(id: number) {
-    // Kiểm tra xem surveyFeedback có được tìm thấy hay không
     const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
 
     if (!surveyFeedback) {
@@ -140,27 +157,32 @@ export class SurveyFeedackFormService {
       );
     }
 
-    console.log('head', surveyFeedback.questions, 'surveyFeedback'); // Thêm log để kiểm tra dữ liệu của surveyFeedback
+    // Kiểm tra trạng thái survey (chỉ cho phép khi PUBLISHED)
+    if (surveyFeedback.status !== FormStatus.PUBLISHED) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
+      );
+    }
+
+    const surveyEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
     const surveyFeedbackDto = {
       id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
-      createdBy: surveyFeedback.createdBy,
-      type: surveyFeedback.type,
-      businessId: surveyFeedback.businessId,
+      type: surveyFeedback.type, // Loại survey, giúp client hiểu định dạng
       questions: surveyFeedback.questions.map((question) => ({
         id: question.id,
         text: question.headline,
         type: question.questionType,
         index: question.index,
-        media: question.questionOnMedia
+        media: question.questionOnMedia?.media
           ? {
               id: question.questionOnMedia.media.id,
               url: question.questionOnMedia.media.url,
             }
           : null,
-
         answerOptions: question.answerOptions.map((answerOption) => ({
           id: answerOption.id,
           label: answerOption.label,
@@ -172,9 +194,20 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-
-        setting: question.businessQuestionConfiguration.settings,
+        // Không trả về setting cho client, vì không cần thiết
       })),
+      ending: surveyEnding
+        ? {
+            message: surveyEnding.message,
+            redirectUrl: surveyEnding.redirectUrl || null,
+            media: surveyEnding.media
+              ? {
+                  id: surveyEnding.media.id,
+                  url: surveyEnding.media.url,
+                }
+              : null,
+          }
+        : null,
     };
 
     return surveyFeedbackDto;
@@ -318,6 +351,17 @@ export class SurveyFeedackFormService {
       },
       formExisting.businessId,
     );
+    //coppy ending
+    const existingEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+    if (existingEnding) {
+      await this.surveyEndingRepository.createSurveyEnding({
+        surveyId: newForm.id,
+        message: existingEnding.message,
+        redirectUrl: existingEnding.redirectUrl,
+        mediaId: existingEnding.mediaId,
+      });
+    }
 
     // 4. Duplicate questions and related data
     await this.duplicateQuestions(

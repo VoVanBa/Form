@@ -690,9 +690,9 @@ export class SurveyFeedbackDataService {
         endDate = new Date(now.getFullYear() - 1, 11, 31);
         break;
       case 'All time':
-        startDate = new Date(0); 
+        startDate = new Date(0);
         break;
-      case 'Custom': 
+      case 'Custom':
         if (!customStartDate || !customEndDate) {
           throw new Error(
             'Custom date range requires both startDate and endDate',
@@ -725,7 +725,10 @@ export class SurveyFeedbackDataService {
         else if (response.answer === 3) score = 2; // Medium severity
       }
 
-      if (response.question.questionType === 'INPUT_TEXT' && response.answerText) {
+      if (
+        response.question.questionType === 'INPUT_TEXT' &&
+        response.answerText
+      ) {
         const answerText = response.answerText.toLowerCase().trim();
         if (negativeWords.some((word) => answerText.includes(word))) {
           score = 3; // High severity nếu có từ tiêu cực
@@ -741,7 +744,7 @@ export class SurveyFeedbackDataService {
     const avgSeverity =
       severityScores.reduce((a, b) => a + b, 0) / severityScores.length;
 
-      console.log(avgSeverity, 'avgSeverity');
+    console.log(avgSeverity, 'avgSeverity');
     // Quy đổi điểm trung bình về mức độ nghiêm trọng
     if (avgSeverity >= 2.5) return 'high';
     if (avgSeverity >= 1.5) return 'medium';

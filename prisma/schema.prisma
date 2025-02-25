@@ -32,22 +32,33 @@ model Business {
 }
 
 model SurveyFeedback {
-  id                Int                              @id @default(autoincrement())
-  name              String
-  description       String?
-  createdBy         String
-  createdAt         DateTime                         @default(now())
-  updatedAt         DateTime                         @updatedAt
-  type              SurveyFeedbackType
-  allowAnonymous    Boolean                          @default(true)
-  status            FormStatus                       @default(DRAFT)
-  businessId        Int
-  businessSettings  BusinessSurveyFeedbackSettings[]
-  business          Business                         @relation(fields: [businessId], references: [id])
-  questions         Question[]
-  userFormResponses UserOnResponse[]
-  configurations    BusinessQuestionConfiguration[]
-  responses         ResponseOnQuestion[]
+  id                   Int                              @id @default(autoincrement())
+  name                 String
+  description          String?
+  createdBy            String
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+  type                 SurveyFeedbackType
+  allowAnonymous       Boolean                          @default(true)
+  status               FormStatus                       @default(DRAFT)
+  businessId           Int
+  businessSettings     BusinessSurveyFeedbackSettings[]
+  business             Business                         @relation(fields: [businessId], references: [id])
+  questions            Question[]
+  userFormResponses    UserOnResponse[]
+  configurations       BusinessQuestionConfiguration[]
+  responses            ResponseOnQuestion[]
+  SurveyFeedbackEnding SurveyFeedbackEnding?
+}
+
+model SurveyFeedbackEnding {
+  id          Int            @id @default(autoincrement())
+  surveyId    Int            @unique
+  message     String         @default("Cảm ơn quý khách đã trả lời khảo sát")
+  redirectUrl String?
+  mediaId     Int?
+  survey      SurveyFeedback @relation(fields: [surveyId], references: [id])
+  media       Media?         @relation(fields: [mediaId], references: [id])
 }
 
 model UserOnResponse {
@@ -182,14 +193,15 @@ model AnswerOptionOnMedia {
 }
 
 model Media {
-  id                  Int                   @id @default(autoincrement())
-  url                 String
-  fileName            String
-  mimeType            String
-  size                Int
-  createdAt           DateTime              @default(now())
-  answerOptionOnMedia AnswerOptionOnMedia[]
-  questionOnMedia     QuestionOnMedia[]
+  id                   Int                    @id @default(autoincrement())
+  url                  String
+  fileName             String
+  mimeType             String
+  size                 Int
+  createdAt            DateTime               @default(now())
+  answerOptionOnMedia  AnswerOptionOnMedia[]
+  questionOnMedia      QuestionOnMedia[]
+  SurveyFeedbackEnding SurveyFeedbackEnding[]
 }
 
 enum FormStatus {
