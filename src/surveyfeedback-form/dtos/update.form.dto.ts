@@ -5,4 +5,7 @@ export class UpdatesurveyFeedbackDto {
   description?: string;
   allowAnonymous?: boolean;
   status?: FormStatus;
+  endingMessage?: string;
+
+  endingRedirectUrl?: string;
 }

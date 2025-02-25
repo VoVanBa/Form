@@ -3,12 +3,31 @@ import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
 
-export interface IsurveyFeedbackRepository {
-  createsurveyFeedback(data: CreatesurveyFeedbackDto, businessId: number);
-  getsurveyFeedbackById(id: number);
-  getAllsurveyFeedbacks(id: number): Promise<SurveyFeedback[]>;
-  updatesurveyFeedback(id: number, data: UpdatesurveyFeedbackDto);
-  deletesurveyFeedback(id: number);
-  updateStatus(status: FormStatus, formId: number);
-  updateSurveyallowAnonymous(surveyId: number, active: boolean);
+export interface ISurveyFeedbackRepository {
+  createSurveyFeedback(
+    data: CreatesurveyFeedbackDto,
+    businessId: number,
+    tx?: any,
+  ): Promise<SurveyFeedback>;
+  getSurveyFeedbackById(id: number, tx?: any): Promise<SurveyFeedback>;
+  getAllSurveyFeedbacks(
+    businessId: number,
+    tx?: any,
+  ): Promise<SurveyFeedback[]>;
+  updateSurveyFeedback(
+    id: number,
+    data: UpdatesurveyFeedbackDto,
+    tx?: any,
+  ): Promise<SurveyFeedback>;
+  deleteSurveyFeedback(id: number, tx?: any): Promise<void>;
+  updateStatus(
+    status: FormStatus,
+    formId: number,
+    tx?: any,
+  ): Promise<SurveyFeedback>;
+  updateSurveyAllowAnonymous(
+    surveyId: number,
+    active: boolean,
+    tx?: any,
+  ): Promise<SurveyFeedback>;
 }

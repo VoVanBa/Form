@@ -7,7 +7,7 @@ export class PrismaSurveyEndingRepository {
   constructor(private prisma: PrismaService) {}
 
   async createSurveyEnding(data: {
-    surveyId: number;
+    formId: number;
     message: string;
     redirectUrl?: string;
     mediaId?: number;
@@ -15,10 +15,34 @@ export class PrismaSurveyEndingRepository {
     return this.prisma.surveyFeedbackEnding.create({ data });
   }
 
-  async getSurveyEndingBySurveyId(surveyId: number) {
+  async getSurveyEndingBySurveyId(formId: number) {
     return this.prisma.surveyFeedbackEnding.findUnique({
-      where: { surveyId },
+      where: { formId: formId },
       include: { media: true },
+    });
+  }
+
+  async updateSurveyEnding(
+    formId: number,
+    data: {
+      message: string;
+      redirectUrl?: string;
+      mediaId?: number;
+    },
+  ) {
+    return this.prisma.surveyFeedbackEnding.update({
+      where: { formId },
+      data,
+    });
+  }
+
+  async deleteSurveyEnding(formId: number) {
+    return this.prisma.surveyFeedbackEnding.delete({ where: { formId } });
+  }
+
+  async getAllSurveyEnding(formId: number) {
+    return this.prisma.surveyFeedbackEnding.findMany({
+      where: { formId: formId },
     });
   }
 }

@@ -58,11 +58,7 @@ export class QuestionController {
       updateQuestionDto,
     );
   }
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Get(':surveyId/questions')
-  // async getQuestions(@Param('surveyId') surveyId: number) {
-  //   return this.questionService.getAllQuestion(surveyId);
-  // }
+
 
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)

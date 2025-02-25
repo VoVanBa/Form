@@ -41,6 +41,6 @@ export class BusinessController {
 
   @Get(':businessId')
   async getId(@Param() businessId: number) {
-    return this.businessService.getAll(businessId);
+    return this.businessService.getbusinessbyId(businessId);
   }
 }

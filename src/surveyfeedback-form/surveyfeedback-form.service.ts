@@ -3,10 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
-import { PrismaBusinessRepository } from 'src/repositories/prsima-business.repository';
 
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
@@ -20,35 +18,44 @@ import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repos
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { Question } from 'src/models/Question';
-import { Transaction } from 'src/common/decorater/transaction.decorator';
 import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
+import { BusinessService } from 'src/business/business.service';
+import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
+import { QuestionService } from 'src/question/question.service';
+import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 
 @Injectable()
 export class SurveyFeedackFormService {
   constructor(
-    private formRepository: PrismasurveyFeedbackRepository,
-    private businessRepository: PrismaBusinessRepository,
+    private formRepository: PrismaSurveyFeedbackRepository,
+    private businessService: BusinessService,
     private formSetting: PrismaFormSettingRepository,
     private questionRepository: PrismaQuestionRepository,
     private answerOptionRepository: PrismaAnswerOptionRepository,
     private mediaRepository: PrismaMediaRepository,
     private settingRepository: PrismaFormSettingRepository,
     private surveyEndingRepository: PrismaSurveyEndingRepository,
+    private questionSerivce: QuestionService,
     private readonly i18n: I18nService,
   ) {}
-  async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
-    const save = await this.formRepository.createsurveyFeedback(
+  async createForm(
+    createFormDto: CreatesurveyFeedbackDto,
+    businessId: number,
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const save = await this.formRepository.createSurveyFeedback(
       createFormDto,
       businessId,
+      tx,
     );
 
-    await this.surveyEndingRepository.createSurveyEnding({
-      surveyId: save.id,
-      message: 'Cảm ơn quý khách đã trả lời khảo sát',
-    });
+    await this.surveyEndingRepository.createSurveyEnding(
+      { formId: save.id, message: 'Cảm ơn quý khách đã trả lời khảo sát' },
+      tx,
+    );
 
-    const formSetting = await this.formSetting.getAllFormSetting();
-
+    const formSetting = await this.formSetting.getAllFormSetting(tx);
     const saveSettingsPromises = formSetting.map((form) =>
       this.formSetting.saveSetting(
         save.id,
@@ -56,16 +63,20 @@ export class SurveyFeedackFormService {
         form.key,
         form.value,
         form.id,
+        tx,
       ),
     );
 
     await Promise.all(saveSettingsPromises);
-
     return this.i18n.translate('success.SURVEYFEEDBACKCREATED');
   }
 
-  async getForms(businessId: number) {
-    const form = await this.formRepository.getAllsurveyFeedbacks(businessId);
+  async getForms(businessId: number, request?: any) {
+    const tx = request?.tx;
+    const form = await this.formRepository.getAllSurveyFeedbacks(
+      businessId,
+      tx,
+    );
     if (form.length === 0) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -84,9 +95,12 @@ export class SurveyFeedackFormService {
     };
   }
 
-  async getFormByIdForBusiness(id: number) {
-    const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
-
+  async getFormByIdForBusiness(id: number, request?: any) {
+    const tx = request?.tx;
+    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
+      id,
+      tx,
+    );
     if (!surveyFeedback) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -94,17 +108,17 @@ export class SurveyFeedackFormService {
     }
 
     const surveyEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
 
-    const surveyFeedbackDto = {
+    return {
       id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
-      createdBy: surveyFeedback.createdBy, // Thông tin người tạo, hữu ích cho quản lý
+      createdBy: surveyFeedback.createdBy,
       type: surveyFeedback.type,
-      allowAnonymous: surveyFeedback.allowAnonymous, // Cấu hình quản lý
-      status: surveyFeedback.status, // Trạng thái survey, cần cho doanh nghiệp
-      businessId: surveyFeedback.businessId, // ID doanh nghiệp, cần cho quản lý
+      allowAnonymous: surveyFeedback.allowAnonymous,
+      status: surveyFeedback.status,
+      businessId: surveyFeedback.businessId,
       questions: surveyFeedback.questions.map((question) => ({
         id: question.id,
         text: question.headline,
@@ -127,37 +141,32 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: question.businessQuestionConfiguration?.settings || {}, // Cấu hình câu hỏi chi tiết
+        setting: question.businessQuestionConfiguration?.settings || {},
       })),
       ending: surveyEnding
         ? {
             message: surveyEnding.message,
             redirectUrl: surveyEnding.redirectUrl || null,
             media: surveyEnding.media
-              ? {
-                  id: surveyEnding.media.id,
-                  url: surveyEnding.media.url,
-                }
+              ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
               : null,
           }
         : null,
-      // Có thể thêm thông tin thống kê nếu cần
-      responseCount: surveyFeedback.userFormResponses.length, // Số lượng phản hồi
     };
-
-    return surveyFeedbackDto;
   }
 
-  async getFormByIdForClient(id: number) {
-    const surveyFeedback = await this.formRepository.getsurveyFeedbackById(id);
-
+  async getFormByIdForClient(id: number, request?: any) {
+    const tx = request?.tx;
+    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
+      id,
+      tx,
+    );
     if (!surveyFeedback) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
 
-    // Kiểm tra trạng thái survey (chỉ cho phép khi PUBLISHED)
     if (surveyFeedback.status !== FormStatus.PUBLISHED) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
@@ -165,13 +174,13 @@ export class SurveyFeedackFormService {
     }
 
     const surveyEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
 
-    const surveyFeedbackDto = {
+    return {
       id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
-      type: surveyFeedback.type, // Loại survey, giúp client hiểu định dạng
+      type: surveyFeedback.type,
       questions: surveyFeedback.questions.map((question) => ({
         id: question.id,
         text: question.headline,
@@ -194,116 +203,135 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        // Không trả về setting cho client, vì không cần thiết
+        setting: question.businessQuestionConfiguration?.settings || {},
       })),
       ending: surveyEnding
         ? {
             message: surveyEnding.message,
             redirectUrl: surveyEnding.redirectUrl || null,
             media: surveyEnding.media
-              ? {
-                  id: surveyEnding.media.id,
-                  url: surveyEnding.media.url,
-                }
+              ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
               : null,
           }
         : null,
     };
-
-    return surveyFeedbackDto;
   }
 
-  async updateForm(id: number, updateFormDto: UpdatesurveyFeedbackDto) {
-    return this.formRepository.updatesurveyFeedback(id, updateFormDto);
+  async updateForm(
+    id: number,
+    updateFormDto: UpdatesurveyFeedbackDto,
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    return this.formRepository.updateSurveyFeedback(id, updateFormDto, tx);
   }
 
-  async deleteForm(id: number) {
-    return this.formRepository.deletesurveyFeedback(id);
+  async deleteForm(id: number, request?: any) {
+    const tx = request?.tx;
+    await this.formRepository.deleteSurveyFeedback(id, tx);
+    return { message: 'Survey deleted successfully' };
   }
 
-  async updateStatus(status: FormStatus, formId: number, businessId: number) {
-    const existingBusiness =
-      await this.businessRepository.getbusinessbyId(businessId);
+  async updateStatus(
+    status: FormStatus,
+    formId: number,
+    businessId: number,
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const existingBusiness = await this.businessService.getbusinessbyId(
+      businessId,
+      tx,
+    );
     if (!existingBusiness) {
       throw new NotFoundException(
         this.i18n.translate('errors.BUSINESSNOTFOUND'),
       );
     }
 
-    const existingForm = await this.getFormByIdForBusiness(formId);
+    const existingForm = await this.getFormByIdForBusiness(formId, request);
     if (!existingForm) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
-    return await this.formRepository.updateStatus(status as FormStatus, formId);
-    // return await this.formRepository.updateStatus(status, formId);
+
+    return this.formRepository.updateStatus(status, formId, tx);
   }
 
-  async updateSurveyallowAnonymous(surveyId: number, active: boolean) {
-    const survey = await this.formRepository.getsurveyFeedbackById(surveyId);
+  async updateSurveyAllowAnonymous(
+    surveyId: number,
+    active: boolean,
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const survey = await this.formRepository.getSurveyFeedbackById(
+      surveyId,
+      tx,
+    );
     if (!survey) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
       );
     }
-    return await this.formRepository.updateSurveyallowAnonymous(
-      surveyId,
-      active,
-    );
+    return this.formRepository.updateSurveyAllowAnonymous(surveyId, active, tx);
   }
 
   async updateFormSettings(
     formId: number,
     businessId: number | null,
     settings: { key: string; value: any }[],
+    request?: any,
   ) {
-    const allFormSettings = await this.formSetting.getAllFormSetting();
+    const tx = request?.tx;
+    const allFormSettings = await this.formSetting.getAllFormSetting(tx);
     const currentSettings = await this.formSetting.getDefaultSetting(
       businessId,
       formId,
+      tx,
     );
 
     const promises = settings.map((newSetting) => {
       const existingSetting = currentSettings.find(
         (current) => current.key === newSetting.key,
       );
-
       if (
         existingSetting &&
         JSON.stringify(existingSetting.value) ===
           JSON.stringify(newSetting.value)
       ) {
         return null;
-      } else {
-        const formSetting = allFormSettings.find(
-          (setting) => setting.key === newSetting.key,
-        );
-        if (!formSetting) {
-          throw new Error(`FormSetting not found for key: ${newSetting.key}`);
-        }
-        return this.formSetting.upsertSetting(
-          formId,
-          businessId,
-          formSetting.id,
-          newSetting.key,
-          newSetting.value,
-        );
       }
+      const formSetting = allFormSettings.find(
+        (setting) => setting.key === newSetting.key,
+      );
+      if (!formSetting) {
+        throw new Error(`FormSetting not found for key: ${newSetting.key}`);
+      }
+      return this.formSetting.upsertSetting(
+        formId,
+        businessId,
+        formSetting.id,
+        newSetting.key,
+        newSetting.value,
+        tx,
+      );
     });
 
     const filteredPromises = promises.filter((promise) => promise !== null);
-
     await Promise.all(filteredPromises);
   }
 
   async getAllBusinessSettings(
     businessId: number,
     formId: number,
-  ): Promise<FormSettingTypeResponse[]> {
+    request?: any,
+  ): Promise<any> {
+    const tx = request?.tx;
     const businessSettings = await this.formSetting.getAllBusinessSettingTypes(
       businessId,
       formId,
+      tx,
     );
 
     if (!Array.isArray(businessSettings) || businessSettings.length === 0) {
@@ -329,18 +357,19 @@ export class SurveyFeedackFormService {
     });
   }
 
-  @Transaction()
-  async duplicateSurvey(id: number, businessId: number) {
-    const formExisting = await this.formRepository.getsurveyFeedbackById(id);
+  async duplicateSurvey(id: number, businessId: number, request?: any) {
+    const tx = request?.tx;
+    const formExisting = await this.formRepository.getSurveyFeedbackById(
+      id,
+      tx,
+    );
     if (!formExisting) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
       );
     }
-    console.log(formExisting);
 
-    // 3. Create new survey
-    const newForm = await this.formRepository.createsurveyFeedback(
+    const newForm = await this.formRepository.createSurveyFeedback(
       {
         name: `${formExisting.name} (Copy)`,
         description: formExisting.description,
@@ -350,31 +379,34 @@ export class SurveyFeedackFormService {
         status: FormStatus.DRAFT,
       },
       formExisting.businessId,
+      tx,
     );
-    //coppy ending
+
     const existingEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
     if (existingEnding) {
-      await this.surveyEndingRepository.createSurveyEnding({
-        surveyId: newForm.id,
-        message: existingEnding.message,
-        redirectUrl: existingEnding.redirectUrl,
-        mediaId: existingEnding.mediaId,
-      });
+      await this.surveyEndingRepository.createSurveyEnding(
+        {
+          formId: newForm.id,
+          message: existingEnding.message,
+          redirectUrl: existingEnding.redirectUrl,
+          mediaId: existingEnding.mediaId,
+        },
+        tx,
+      );
     }
 
-    // 4. Duplicate questions and related data
     await this.duplicateQuestions(
       formExisting.id,
       newForm.id,
       formExisting.businessId,
+      tx,
     );
-
-    // 5. Duplicate survey settings
     await this.duplicateSurveySettings(
       formExisting.id,
       newForm.id,
       formExisting.businessId,
+      tx,
     );
 
     return newForm;
@@ -384,34 +416,34 @@ export class SurveyFeedackFormService {
     originalFormId: number,
     newFormId: number,
     businessId: number,
+    tx?: any,
   ) {
-    const questions =
-      await this.questionRepository.findAllQuestion(originalFormId);
-
+    const questions = await this.questionRepository.findAllQuestion(
+      originalFormId,
+      tx,
+    );
     for (const question of questions) {
-      // Create new question
       const addQuestionDto: AddQuestionDto = {
         headline: question.headline,
         questionType: question.questionType,
       };
-
       const newQuestion = await this.questionRepository.createQuestion(
         newFormId,
         addQuestionDto,
         question.index,
+        tx,
       );
 
       if (question.questionOnMedia) {
-        await this.duplicateQuestionMedia(question.id, newQuestion.id);
+        await this.duplicateQuestionMedia(question.id, newQuestion.id, tx);
       }
 
       if (question.answerOptions.length > 0) {
-        // question.answerOptions.map((data) => {
-        // });
         await this.duplicateAnswerOptions(
           question.id,
           newQuestion.id,
           businessId,
+          tx,
         );
       }
 
@@ -421,6 +453,7 @@ export class SurveyFeedackFormService {
           question.businessQuestionConfiguration.settings,
           question.businessQuestionConfiguration.key,
           newFormId,
+          tx,
         );
       }
     }
@@ -430,40 +463,35 @@ export class SurveyFeedackFormService {
     originalQuestionId: number,
     newQuestionId: number,
     businessId: number,
+    tx?: any,
   ) {
     const answerOptions =
       await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
         originalQuestionId,
+        tx,
       );
-
     return Promise.all(
       answerOptions.map(async (option) => {
-        // Duplicate media if exists
-        let newAnswerOption =
+        const newAnswerOption =
           await this.answerOptionRepository.createAnswerOptions(
             newQuestionId,
-            {
-              ...option,
-              businessId: businessId,
-            },
+            { ...option, businessId },
             option.index,
+            tx,
           );
 
         if (option.answerOptionOnMedia) {
           const media = await this.mediaRepository.getMediaById(
             option.answerOptionOnMedia.mediaId,
+            tx,
           );
-
           if (media) {
-            await this.mediaRepository.createAnswerOptionOnMedia([
-              {
-                mediaId: media.id,
-                answerOptionId: newAnswerOption.id,
-              },
-            ]);
+            await this.mediaRepository.createAnswerOptionOnMedia(
+              [{ mediaId: media.id, answerOptionId: newAnswerOption.id }],
+              tx,
+            );
           }
         }
-
         return newAnswerOption;
       }),
     );
@@ -472,19 +500,17 @@ export class SurveyFeedackFormService {
   private async duplicateQuestionMedia(
     originalQuestionId: number,
     newQuestionId: number,
+    tx?: any,
   ) {
-    const media =
-      await this.mediaRepository.getQuestionOnMediaByQuestionId(
-        originalQuestionId,
-      );
-
-    console.log(media, 'mediaquession', newQuestionId);
-
+    const media = await this.mediaRepository.getQuestionOnMediaByQuestionId(
+      originalQuestionId,
+      tx,
+    );
     if (media) {
-      await this.mediaRepository.createQuestionOnMedia({
-        mediaId: media.id,
-        questionId: newQuestionId,
-      });
+      await this.mediaRepository.createQuestionOnMedia(
+        { mediaId: media.id, questionId: newQuestionId },
+        tx,
+      );
     }
   }
 
@@ -492,13 +518,14 @@ export class SurveyFeedackFormService {
     originalFormId: number,
     newFormId: number,
     businessId: number,
+    tx?: any,
   ) {
     const surveySettings =
       await this.settingRepository.getAllFormSettingBusiness(
         businessId,
         originalFormId,
+        tx,
       );
-
     if (surveySettings.length > 0) {
       await Promise.all(
         surveySettings.map((setting) =>
@@ -508,9 +535,80 @@ export class SurveyFeedackFormService {
             setting.key,
             setting.value,
             setting.formSettingId,
+            tx,
           ),
         ),
       );
     }
+  }
+
+  async updateSurveyEnding(
+    surveyId: number,
+    ending: { message: string; redirectUrl: string },
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const survey = await this.formRepository.getSurveyFeedbackById(
+      surveyId,
+      tx,
+    );
+    if (!survey) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
+      );
+    }
+
+    const existingEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(surveyId, tx);
+    if (existingEnding) {
+      return this.surveyEndingRepository.updateSurveyEnding(
+        surveyId,
+        ending,
+        tx,
+      );
+    }
+    return this.surveyEndingRepository.createSurveyEnding(
+      {
+        formId: survey.id,
+        message: ending.message,
+        redirectUrl: ending.redirectUrl,
+      },
+      tx,
+    );
+  }
+
+  async saveForm(
+    formId: number,
+    updateFormDto: UpdatesurveyFeedbackDto,
+    updateQuestionDto: UpdateQuestionDto[],
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const form = await this.formRepository.getSurveyFeedbackById(formId, tx);
+    if (!form) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
+      );
+    }
+
+    await this.formRepository.updateSurveyFeedback(formId, updateFormDto, tx);
+    const questions = await this.questionSerivce.addAndUpdateQuestions(
+      form.id,
+      updateQuestionDto,
+      tx,
+    );
+    const ending = await this.updateSurveyEnding(
+      form.id,
+      {
+        message: updateFormDto.endingMessage,
+        redirectUrl: updateFormDto.endingRedirectUrl,
+      },
+      { tx },
+    );
+
+    return {
+      message: 'Survey saved successfully',
+      data: { form, questions, ending },
+    };
   }
 }

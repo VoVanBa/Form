@@ -22,5 +22,6 @@ import { QuestionConditionService } from 'src/question-condition/question-condit
     QuestionConditionService,
     // PrismaQuestionConditionRepository
   ],
+  exports: [QuestionService],
 })
 export class QuestionModule {}

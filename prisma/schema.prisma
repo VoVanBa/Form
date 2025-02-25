@@ -53,11 +53,11 @@ model SurveyFeedback {
 
 model SurveyFeedbackEnding {
   id          Int            @id @default(autoincrement())
-  surveyId    Int            @unique
+  formId      Int            @unique
   message     String         @default("Cảm ơn quý khách đã trả lời khảo sát")
   redirectUrl String?
   mediaId     Int?
-  survey      SurveyFeedback @relation(fields: [surveyId], references: [id])
+  form        SurveyFeedback @relation(fields: [formId], references: [id])
   media       Media?         @relation(fields: [mediaId], references: [id])
 }
 

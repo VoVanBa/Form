@@ -87,7 +87,6 @@ export class QuestionService {
     return this.prismaQuestionRepository.findAllQuestion(formId);
   }
 
-  @Transaction()
   async addAndUpdateQuestions(
     formId: number,
     updateQuestionsDto: UpdateQuestionDto[],

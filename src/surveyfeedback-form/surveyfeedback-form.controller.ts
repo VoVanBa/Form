@@ -7,11 +7,16 @@ import {
   Query,
   Put,
   Delete,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
+import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
+import { TransactionInterceptor } from 'src/common/interceptors/transaction.interceptors';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -51,13 +56,13 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getFormByIdForClient(id);
   }
 
-  @Put(':formId')
-  updateForm(
-    @Param('formId') formId: number,
-    @Body() data: UpdatesurveyFeedbackDto,
-  ) {
-    return this.surveyFeedbackFormService.updateForm(formId, data);
-  }
+  // @Put(':formId')
+  // updateForm(
+  //   @Param('formId') formId: number,
+  //   @Body() data: UpdatesurveyFeedbackDto,
+  // ) {
+  //   return this.surveyFeedbackFormService.updateForm(formId, data);
+  // }
 
   @Delete(':formId')
   deleteForm(@Param('formId') formId: number) {
@@ -111,5 +116,25 @@ export class SurveyFeedbackFormController {
     @Param('businessId') businessId: number,
   ) {
     return this.surveyFeedbackFormService.duplicateSurvey(formId, businessId);
+  }
+
+  @Put(':formId')
+  @HttpCode(HttpStatus.OK)
+  async updateSurvey(
+    @Param('formId') formId: number,
+    @Body()
+    body: {
+      updateFormDto: UpdatesurveyFeedbackDto;
+      questions: UpdateQuestionDto[];
+    },
+  ) {
+    const { updateFormDto, questions } = body;
+    const result = await this.surveyFeedbackFormService.saveForm(
+      formId,
+      updateFormDto,
+      questions || [],
+    );
+
+    return result;
   }
 }

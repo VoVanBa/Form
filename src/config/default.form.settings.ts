@@ -114,31 +114,4 @@ export const defaultFormSettings = [
       },
     ],
   },
-
-  {
-    name: 'Hoàn Thành',
-    description: 'Cài đặt hoàn thành khảo sát',
-    settings: [
-      {
-        key: 'redirectUrl',
-        label: 'Chuyển hướng URL',
-        description:
-          'Chuyển hướng người dùng đến URL cụ thể sau khi hoàn thành khảo sát.',
-        value: {
-          enabled: false,
-          url: null,
-        },
-      },
-      {
-        key: 'showThankYouMessage',
-        label: 'Hiển thị thông báo cảm ơn',
-        description:
-          'Hiển thị thông báo cảm ơn người dùng sau khi hoàn thành khảo sát.',
-        value: {
-          enabled: true,
-          message: 'Cảm ơn bạn đã hoàn thành khảo sát!',
-        },
-      },
-    ],
-  },
 ];
