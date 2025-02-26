@@ -21,11 +21,13 @@
     "FORMNOTFOUND": "Không tìm thấy biểu mẫu",
     "SURVEYIDNOTEXISTING": "ID khảo sát không tồn tại",
     "SURVEYNOTFOUNDFORTHISBUSINESS": "Không tìm thấy khảo sát cho doanh nghiệp này",
-    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Số lượng lựa chọn phải lớn hơn 2"
+    "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Số lượng lựa chọn phải lớn hơn 2",
+    "NOSETTINGSFOUND": "Không tìm thấy cài đặt"
   },
   "messages": {
     "QUESTIONMOVEDUP": "Di chuyển câu hỏi lên thành công",
     "QUESTIONMOVEDDOWN": "Di chuyển câu hỏi xuống thành công",
-    "RESPONSES_SAVED_SUCCESSFULLY": "Lưu phản hồi thành công'"
+    "RESPONSES_SAVED_SUCCESSFULLY": "Lưu phản hồi thành công'",
+    "FORM_SAVED_SUCCESSFULLY": "Lưu biểu mẫu thành công"
   }
 }

@@ -35,8 +35,8 @@ export class TransactionInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
 
     return new Observable((subscriber) => {
-      this.transactionManager
-        .executeInTransaction(async (tx) => {
+      this.transactionManager.executeTransaction
+        (async (tx) => {
           request.transaction = tx; // Gắn tx vào request.transaction
           try {
             const result = await next.handle().toPromise();

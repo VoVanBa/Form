@@ -22,11 +22,14 @@
     "SURVEYIDNOTEXISTING": "Survey ID not existing",
     "SURVEYNOTFOUNDFORTHISBUSINESS": "Survey not found for this business",
     "ANSWEROPTIONSMUSTBEGREATERTHANTWO": "Answer options must be greater than 2",
-    "NOTALLOWANONYMOUSE": "Not allow anonymouse"
+    "NOTALLOWANONYMOUSE": "Not allow anonymouse",
+    "NOSETTINGSFOUND": "No settings found"
+  
   },
   "messages": {
     "QUESTIONMOVEDUP": "Question moved up successfully",
     "QUESTIONMOVEDDOWN": "Question moved down successfully",
-    "RESPONSES_SAVED_SUCCESSFULLY":"Responses saved successfully"
+    "RESPONSES_SAVED_SUCCESSFULLY":"Responses saved successfully",
+    "FORM_SAVED_SUCCESSFULLY":"Form saved successfully"
   }
 }

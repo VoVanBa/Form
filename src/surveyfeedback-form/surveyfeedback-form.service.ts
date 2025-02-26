@@ -541,7 +541,7 @@ export class SurveyFeedackFormService {
 
   async updateSurveyEnding(
     surveyId: number,
-    ending: { message: string; redirectUrl: string },
+    ending: { message: string; redirectUrl: string; mediaId: number },
     request?: any,
   ) {
     const tx = request?.tx;
@@ -599,12 +599,13 @@ export class SurveyFeedackFormService {
       {
         message: updateFormDto.endingMessage,
         redirectUrl: updateFormDto.endingRedirectUrl,
+        mediaId: updateFormDto.endingMediaId,
       },
       { tx },
     );
 
     return {
-      message: 'Survey saved successfully',
+      message: this.i18n.translate('errors.FORM_SAVED_SUCCESSFULLY'),
       data: { form, questions, ending },
     };
   }

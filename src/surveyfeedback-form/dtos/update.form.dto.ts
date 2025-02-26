@@ -8,4 +8,6 @@ export class UpdatesurveyFeedbackDto {
   endingMessage?: string;
 
   endingRedirectUrl?: string;
+
+  endingMediaId?: number;
 }

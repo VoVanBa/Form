@@ -59,7 +59,6 @@ export class QuestionController {
     );
   }
 
-
   @Roles('ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('upload-images/answer-option')
@@ -85,8 +84,7 @@ export class QuestionController {
         throw new HttpException('No files provided', HttpStatus.BAD_REQUEST);
       }
 
-      const mediaIds =
-        await this.questionService.uploadImagesAndSaveToDB(files);
+      const mediaIds = await this.questionService.createAnwerOptionMedia(files);
       return {
         message: 'Images uploaded successfully',
         mediaIds,
@@ -122,7 +120,7 @@ export class QuestionController {
         throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
       }
 
-      const mediaId = await this.questionService.uploadImage(file);
+      const mediaId = await this.questionService.createQuestionMedia(file);
 
       return {
         message: 'Image uploaded successfully',
@@ -165,7 +163,7 @@ export class QuestionController {
   }
 
   @Put(':formId/reorder/:questionId')
-  async handleQuestionUp(
+  async reorderQuestion(
     @Param('questionId') questionId: number,
     @Param('formId') formId: number,
     @Body('newIndex') newIndex: number,
@@ -173,11 +171,5 @@ export class QuestionController {
     return this.questionService.reorderQuestion(formId, questionId, newIndex);
   }
 
-  // @Put('question/:id/form/:formId/down')
-  // async handleQuestionDown(
-  //   @Param('id') questionId: number,
-  //   @Param('formId') formId: number,
-  // ) {
-  //   return this.questionService.handleQuestionOrderDown(questionId, formId);
-  // }
+
 }

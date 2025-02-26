@@ -15,10 +15,13 @@ import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n';
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
 import { QuestionConditionModule } from './question-condition/question-condition.module';
 import {
-  PrismaTransactionManager,
   TransactionInterceptor,
 } from './common/interceptors/transaction.interceptors';
 import { PrismaService } from './config/prisma.service';
+import { PrismaTransactionManager } from './common/prisma-transaction.manager';
+import { MediaService } from './media/media.service';
+import { MediaController } from './media/media.controller';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -45,8 +48,9 @@ import { PrismaService } from './config/prisma.service';
       ],
     }),
     QuestionConditionModule,
+    MediaModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, MediaController],
   providers: [
     TransactionInterceptor,
     PrismaService, // Phải có PrismaService ở đây
