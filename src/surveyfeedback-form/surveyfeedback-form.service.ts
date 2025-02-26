@@ -8,21 +8,18 @@ import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
-import { plainToClass, plainToInstance } from 'class-transformer';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
-import { SurveyFeedback } from 'src/models/SurveyFeedback';
-import { QuestionRepository } from 'src/repositories/i-repositories/question.repository';
 import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
-import { Question } from 'src/models/Question';
 import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
 import { BusinessService } from 'src/business/business.service';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { QuestionService } from 'src/question/question.service';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -583,7 +580,7 @@ export class SurveyFeedackFormService {
     updateQuestionDto: UpdateQuestionDto[],
     request?: any,
   ) {
-    const tx = request?.tx;
+    const tx = request?.transaction;
     const form = await this.formRepository.getSurveyFeedbackById(formId, tx);
     if (!form) {
       throw new NotFoundException(

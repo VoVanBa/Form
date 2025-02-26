@@ -10,13 +10,15 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  Req,
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
-import { TransactionInterceptor } from 'src/common/interceptors/transaction.interceptors';
+import { UseTransaction } from 'src/common/decorater/transaction.decorator';
+import { Transaction } from 'src/common/decorater/transaction-param.decorator';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -74,7 +76,7 @@ export class SurveyFeedbackFormController {
     @Param('id') surveyId: number,
     @Body('allowAnonymous') allowAnonymous: boolean,
   ) {
-    return this.surveyFeedbackFormService.updateSurveyallowAnonymous(
+    return this.surveyFeedbackFormService.updateSurveyAllowAnonymous(
       surveyId,
       allowAnonymous,
     );
@@ -119,7 +121,7 @@ export class SurveyFeedbackFormController {
   }
 
   @Put(':formId')
-  @HttpCode(HttpStatus.OK)
+  @UseTransaction()
   async updateSurvey(
     @Param('formId') formId: number,
     @Body()
@@ -127,12 +129,14 @@ export class SurveyFeedbackFormController {
       updateFormDto: UpdatesurveyFeedbackDto;
       questions: UpdateQuestionDto[];
     },
+    @Req() req,
   ) {
     const { updateFormDto, questions } = body;
     const result = await this.surveyFeedbackFormService.saveForm(
       formId,
       updateFormDto,
       questions || [],
+      req,
     );
 
     return result;

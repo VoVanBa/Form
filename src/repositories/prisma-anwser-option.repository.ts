@@ -10,8 +10,10 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
 
   async getAllAnserOptionbyQuestionId(
     questionId: number,
+    tx?: any,
   ): Promise<AnswerOption[]> {
-    const answerOptions = await this.prismaService.answerOption.findMany({
+    const prisma = tx || this.prismaService;
+    const answerOptions = await prisma.answerOption.findMany({
       where: {
         questionId: questionId,
       },
@@ -26,8 +28,10 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     questionId: number,
     answerOptions: AddAnswerOptionDto,
     index: number,
+    tx?: any,
   ): Promise<AnswerOption> {
-    const createdOption = await this.prismaService.answerOption.create({
+    const prisma = tx || this.prismaService;
+    const createdOption = await prisma.answerOption.create({
       data: {
         questionId,
         label: answerOptions.label,
@@ -40,31 +44,41 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     return response;
   }
 
-  async getQuantityAnserOptionbyQuestionId(questionId: number) {
-    return this.prismaService.answerOption.count({
+  async getQuantityAnserOptionbyQuestionId(questionId: number, tx?: any) {
+    const prisma = tx || this.prismaService;
+    return prisma.answerOption.count({
       where: {
         questionId: questionId,
       },
     });
   }
 
-  async deleteAnserOption(id: number, questionId: number) {
-    return this.prismaService.answerOption.delete({
+  async deleteAnserOption(id: number, questionId: number, tx?: any) {
+    const prisma = tx || this.prismaService;
+    return prisma.answerOption.delete({
       where: {
         id: id,
         questionId: questionId,
       },
     });
   }
-  async findanswerOptionsByQuestionId(questionId) {
-    return this.prismaService.answerOption.findMany({
+
+  async findanswerOptionsByQuestionId(questionId: number, tx?: any) {
+    const prisma = tx || this.prismaService;
+    return prisma.answerOption.findMany({
       where: {
         questionId: questionId,
       },
     });
   }
-  async updateAnswerOptions(answerOptionId: number, data: AddAnswerOptionDto) {
-    return this.prismaService.answerOption.update({
+
+  async updateAnswerOptions(
+    answerOptionId: number,
+    data: AddAnswerOptionDto,
+    tx?: any,
+  ) {
+    const prisma = tx || this.prismaService;
+    return prisma.answerOption.update({
       where: {
         id: answerOptionId,
       },

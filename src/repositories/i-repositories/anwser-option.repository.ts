@@ -6,9 +6,26 @@ export interface AnswerOptionRepository {
     questionId: number,
     answerOptions: AddAnswerOptionDto,
     index: number,
+    tx?: any,
   ): Promise<AnswerOption>;
-  getQuantityAnserOptionbyQuestionId(questionId: number);
-  getAllAnserOptionbyQuestionId(questionId: number): Promise<AnswerOption[]>;
-  deleteAnserOption(ids: number, questionId: number);
-  findanswerOptionsByQuestionId(questionId);
+
+  getQuantityAnserOptionbyQuestionId(
+    questionId: number,
+    tx?: any,
+  ): Promise<number>;
+
+  getAllAnserOptionbyQuestionId(
+    questionId: number,
+    tx?: any,
+  ): Promise<AnswerOption[]>;
+
+  deleteAnserOption(id: number, questionId: number, tx?: any): Promise<any>;
+
+  findanswerOptionsByQuestionId(questionId: number, tx?: any): Promise<any[]>;
+
+  updateAnswerOptions(
+    answerOptionId: number,
+    data: AddAnswerOptionDto,
+    tx?: any,
+  ): Promise<any>; // Added missing method
 }

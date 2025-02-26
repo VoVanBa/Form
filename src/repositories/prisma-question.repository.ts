@@ -16,9 +16,11 @@ export class PrismaQuestionRepository implements QuestionRepository {
   async updateQuestion(
     questionId: number,
     data: UpdateQuestionDto,
+    tx?: any,
   ): Promise<Question> {
+    const prisma = tx || this.prismaService;
     const type = data.questionType as QuestionType;
-    const updateQuestion = await this.prismaService.question.update({
+    const updateQuestion = await prisma.question.update({
       where: { id: questionId },
       data: {
         headline: data.headline,
@@ -30,13 +32,14 @@ export class PrismaQuestionRepository implements QuestionRepository {
 
   async getSettingByFormId(
     formId: number,
+    tx?: any,
   ): Promise<BusinessQuestionConfiguration[]> {
-    const data =
-      await this.prismaService.businessQuestionConfiguration.findMany({
-        where: {
-          formId: formId,
-        },
-      });
+    const prisma = tx || this.prismaService;
+    const data = await prisma.businessQuestionConfiguration.findMany({
+      where: {
+        formId: formId,
+      },
+    });
     return data.map((setting) => {
       return BusinessQuestionConfiguration.fromPrisma(setting);
     });
@@ -46,23 +49,25 @@ export class PrismaQuestionRepository implements QuestionRepository {
     questionId: number,
     settings: any,
     formId: number,
+    tx?: any,
   ): Promise<SurveyFeedbackSettings> {
-    const setting =
-      await this.prismaService.businessQuestionConfiguration.update({
-        where: { questionId, formId },
-        data: { settings },
-      });
+    const prisma = tx || this.prismaService;
+    const setting = await prisma.businessQuestionConfiguration.update({
+      where: { questionId, formId },
+      data: { settings },
+    });
     return SurveyFeedbackSettings.fromPrisma(setting);
   }
 
   async getBusinessQuestionConfigurationByQuestionId(
     questionId: number,
     formId: number,
+    tx?: any,
   ): Promise<BusinessQuestionConfiguration | null> {
-    const data =
-      await this.prismaService.businessQuestionConfiguration.findUnique({
-        where: { questionId, formId },
-      });
+    const prisma = tx || this.prismaService;
+    const data = await prisma.businessQuestionConfiguration.findUnique({
+      where: { questionId, formId },
+    });
     return BusinessQuestionConfiguration.fromPrisma(data);
   }
 
@@ -71,16 +76,19 @@ export class PrismaQuestionRepository implements QuestionRepository {
     settings: any,
     key: string,
     formId: number,
+    tx?: any,
   ): Promise<BusinessQuestionConfiguration> {
-    const data = await this.prismaService.businessQuestionConfiguration.create({
+    const prisma = tx || this.prismaService;
+    const data = await prisma.businessQuestionConfiguration.create({
       data: { questionId, key, settings, formId },
       include: { question: true },
     });
     return BusinessQuestionConfiguration.fromPrisma(data);
   }
 
-  async getMaxQuestionIndex(formId: number): Promise<number> {
-    const maxIndex = await this.prismaService.question.aggregate({
+  async getMaxQuestionIndex(formId: number, tx?: any): Promise<number> {
+    const prisma = tx || this.prismaService;
+    const maxIndex = await prisma.question.aggregate({
       where: { formId },
       _max: { index: true },
     });
@@ -89,8 +97,10 @@ export class PrismaQuestionRepository implements QuestionRepository {
 
   async getSettingByQuestionType(
     questionType: QuestionType,
+    tx?: any,
   ): Promise<QuestionConfiguration | null> {
-    const data = await this.prismaService.questionConfiguration.findFirst({
+    const prisma = tx || this.prismaService;
+    const data = await prisma.questionConfiguration.findFirst({
       where: { key: questionType },
     });
     console.log(data, 'data');
@@ -100,8 +110,10 @@ export class PrismaQuestionRepository implements QuestionRepository {
   async createDefaultQuestionConfigByAdmin(
     key: string,
     settings: any,
+    tx?: any,
   ): Promise<SurveyFeedbackSettings> {
-    const data = await this.prismaService.questionConfiguration.upsert({
+    const prisma = tx || this.prismaService;
+    const data = await prisma.questionConfiguration.upsert({
       where: { key },
       update: { settings },
       create: { key, settings },
@@ -113,8 +125,10 @@ export class PrismaQuestionRepository implements QuestionRepository {
     formId: number,
     data: AddQuestionDto,
     sortOrder: number,
+    tx?: any,
   ): Promise<Question> {
-    const question = await this.prismaService.question.create({
+    const prisma = tx || this.prismaService;
+    const question = await prisma.question.create({
       data: {
         headline: data.headline,
         questionType: data.questionType,
@@ -126,8 +140,12 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return Question.fromPrisma(question);
   }
 
-  async getQuessionById(questionId: number): Promise<Question | null> {
-    const data = await this.prismaService.question.findUnique({
+  async getQuessionById(
+    questionId: number,
+    tx?: any,
+  ): Promise<Question | null> {
+    const prisma = tx || this.prismaService;
+    const data = await prisma.question.findUnique({
       where: { id: questionId },
       include: { answerOptions: true },
     });
@@ -135,8 +153,12 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return Question.fromPrisma(data);
   }
 
-  async findAllQuestion(formId: number): Promise<Partial<Question>[]> {
-    const data = await this.prismaService.question.findMany({
+  async findAllQuestion(
+    formId: number,
+    tx?: any,
+  ): Promise<Partial<Question>[]> {
+    const prisma = tx || this.prismaService;
+    const data = await prisma.question.findMany({
       where: { formId },
       include: {
         answerOptions: { include: { answerOptionOnMedia: true } },
@@ -150,13 +172,18 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
-  async uploadImagesAndSaveToDB(files: Express.Multer.File[]): Promise<void> {
-    const uploadPromises = files.map((file) => this.uploadImage(file));
+  async uploadImagesAndSaveToDB(
+    files: Express.Multer.File[],
+    tx?: any,
+  ): Promise<void> {
+    const prisma = tx || this.prismaService;
+    const uploadPromises = files.map((file) => this.uploadImage(file, prisma));
     await Promise.all(uploadPromises);
   }
 
-  async uploadImage(image: Express.Multer.File): Promise<number> {
-    const savedImage = await this.prismaService.media.create({
+  async uploadImage(image: Express.Multer.File, tx?: any): Promise<number> {
+    const prisma = tx || this.prismaService;
+    const savedImage = await prisma.media.create({
       data: {
         url: image.path,
         fileName: image.originalname,
@@ -167,22 +194,32 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return savedImage.id;
   }
 
-  async deleteQuestionById(questionId: number): Promise<void> {
-    await this.prismaService.question.update({
+  async deleteQuestionById(questionId: number, tx?: any): Promise<void> {
+    const prisma = tx || this.prismaService;
+    await prisma.question.update({
       where: { id: questionId },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findQuestionBySortOrder(sortOrder: number): Promise<Question | null> {
-    const data = await this.prismaService.question.findFirst({
+  async findQuestionBySortOrder(
+    sortOrder: number,
+    tx?: any,
+  ): Promise<Question | null> {
+    const prisma = tx || this.prismaService;
+    const data = await prisma.question.findFirst({
       where: { index: sortOrder },
     });
     return Question.fromPrisma(data);
   }
 
-  async updateIndexQuestion(questionId: number, index: number): Promise<void> {
-    await this.prismaService.question.update({
+  async updateIndexQuestion(
+    questionId: number,
+    index: number,
+    tx?: any,
+  ): Promise<void> {
+    const prisma = tx || this.prismaService;
+    await prisma.question.update({
       where: { id: questionId },
       data: { index },
     });
@@ -193,8 +230,10 @@ export class PrismaQuestionRepository implements QuestionRepository {
     fromIndex: number,
     toIndex: number,
     direction: 'up' | 'down',
+    tx?: any,
   ) {
-    return await this.prismaService.question.updateMany({
+    const prisma = tx || this.prismaService;
+    return await prisma.question.updateMany({
       where: {
         formId,
         index:
@@ -208,14 +247,19 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
-  async countQuestions(formId: number) {
-    return this.prismaService.question.count({ where: { formId } });
+  async countQuestions(formId: number, tx?: any) {
+    const prisma = tx || this.prismaService;
+    return prisma.question.count({ where: { formId } });
   }
 
-  async bulkUpdateIndexes(questions: { id: number; index: number }[]) {
+  async bulkUpdateIndexes(
+    questions: { id: number; index: number }[],
+    tx?: any,
+  ) {
+    const prisma = tx || this.prismaService;
     return Promise.all(
       questions.map(({ id, index }) =>
-        this.prismaService.question.update({
+        prisma.question.update({
           where: { id },
           data: { index },
         }),

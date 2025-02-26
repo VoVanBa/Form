@@ -2,7 +2,7 @@ import { CreateBusinessDto } from 'src/business/dtos/business.dto';
 import { Business } from 'src/models/Business';
 
 export interface IBusinessRepository {
-  deleteById(id: number);
-  create(data: CreateBusinessDto, userId: number);
-  getbusinessbyId(businesId: number): Promise<Business>;
+  deleteById(id: number, tx?: any);
+  create(data: CreateBusinessDto, userId: number, tx?: any);
+  getbusinessbyId(businesId: number, tx?: any): Promise<Business>;
 }

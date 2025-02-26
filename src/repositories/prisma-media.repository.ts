@@ -13,8 +13,10 @@ export class PrismaMediaRepository implements IMediaRepository {
     fileName: string,
     mimeType: string,
     size: number,
+    tx?: any,
   ): Promise<Partial<Media>> {
-    return await this.prisma.media.create({
+    const prisma = tx || this.prisma;
+    return await prisma.media.create({
       data: {
         url,
         fileName,
@@ -24,53 +26,67 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async createQuestionOnMedia(data: {
-    mediaId: number;
-    questionId: number;
-  }): Promise<Partial<QuestionOnMedia>> {
-    return await this.prisma.questionOnMedia.create({
+  async createQuestionOnMedia(
+    data: { mediaId: number; questionId: number },
+    tx?: any,
+  ): Promise<Partial<QuestionOnMedia>> {
+    const prisma = tx || this.prisma;
+    return await prisma.questionOnMedia.create({
       data,
     });
   }
 
   async createAnswerOptionOnMedia(
     data: { mediaId: number; answerOptionId: number | null }[],
+    tx?: any,
   ) {
-    return await this.prisma.answerOptionOnMedia.createMany({
+    const prisma = tx || this.prisma;
+    return await prisma.answerOptionOnMedia.createMany({
       data,
     });
   }
 
-  async getMediaById(id: number): Promise<Partial<Media> | null> {
-    return await this.prisma.media.findUnique({
+  async getMediaById(id: number, tx?: any): Promise<Partial<Media> | null> {
+    const prisma = tx || this.prisma;
+    return await prisma.media.findUnique({
       where: { id },
     });
   }
 
   async getQuestionOnMediaByMediaId(
     mediaId: number,
+    tx?: any,
   ): Promise<Partial<QuestionOnMedia> | null> {
-    return await this.prisma.questionOnMedia.findFirst({
+    const prisma = tx || this.prisma;
+    return await prisma.questionOnMedia.findFirst({
       where: { mediaId: mediaId },
     });
   }
 
-  async updateQuestionOnMedia(questionId: number, mediaId: number) {
-    return await this.prisma.questionOnMedia.update({
+  async updateQuestionOnMedia(questionId: number, mediaId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    return await prisma.questionOnMedia.update({
       where: { id: mediaId },
       data: {
         questionId,
       },
     });
   }
-  async deleteMediaById(id: number): Promise<void> {
-    await this.prisma.media.delete({
+
+  async deleteMediaById(id: number, tx?: any): Promise<void> {
+    const prisma = tx || this.prisma;
+    await prisma.media.delete({
       where: { id },
     });
   }
 
-  async updateAnswerOptionOnMedia(mediaId: number, answerOptionId: number) {
-    return await this.prisma.answerOptionOnMedia.updateMany({
+  async updateAnswerOptionOnMedia(
+    mediaId: number,
+    answerOptionId: number,
+    tx?: any,
+  ) {
+    const prisma = tx || this.prisma;
+    return await prisma.answerOptionOnMedia.updateMany({
       where: { mediaId },
       data: {
         answerOptionId,
@@ -78,15 +94,17 @@ export class PrismaMediaRepository implements IMediaRepository {
     });
   }
 
-  async getQuestionOnMediaByQuestionId(questionId: number) {
-    const media = await this.prisma.questionOnMedia.findFirst({
+  async getQuestionOnMediaByQuestionId(questionId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    const media = await prisma.questionOnMedia.findFirst({
       where: { questionId: questionId },
     });
     return media;
   }
 
-  async getAnswerOptionByAnswerOptionId(answerOptionId: number) {
-    const media = await this.prisma.answerOptionOnMedia.findFirst({
+  async getAnswerOptionByAnswerOptionId(answerOptionId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    const media = await prisma.answerOptionOnMedia.findFirst({
       where: { answerOptionId: answerOptionId },
     });
     return media;

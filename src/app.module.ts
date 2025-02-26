@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MailModule } from './mail/mail.module';
 import { BusinessModule } from './business/business.module';
 import { QuestionModule } from './question/question.module';
@@ -12,9 +12,13 @@ import { SurveyFeedbackFormModule } from './surveyfeedback-form/surveyfeedback-f
 import { AdminModule } from './admin/admin.module';
 import * as path from 'path';
 import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n'; // Import I18nJsonLoader
-import { SurveyFeedbackDataService } from './survey-feedback-data/survey-feedback-data.service';
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
 import { QuestionConditionModule } from './question-condition/question-condition.module';
+import {
+  PrismaTransactionManager,
+  TransactionInterceptor,
+} from './common/interceptors/transaction.interceptors';
+import { PrismaService } from './config/prisma.service';
 
 @Module({
   imports: [
@@ -44,11 +48,19 @@ import { QuestionConditionModule } from './question-condition/question-condition
   ],
   controllers: [AppController],
   providers: [
+    TransactionInterceptor,
+    PrismaService, // Phải có PrismaService ở đây
+    PrismaTransactionManager,
     AppService,
     {
       provide: APP_PIPE,
       useClass: ValidationPipe,
     },
+    {
+      provide: APP_INTERCEPTOR, // Đặt TransactionInterceptor làm global
+      useClass: TransactionInterceptor,
+    },
   ],
+  exports: [PrismaService, PrismaTransactionManager],
 })
 export class AppModule {}

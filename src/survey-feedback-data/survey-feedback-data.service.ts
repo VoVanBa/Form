@@ -5,22 +5,20 @@ import { ResponseDto } from './dtos/response.dto';
 import { QuestionSetting } from './dtos/question.setting.dto';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { FormSettingDto } from './dtos/form.setting.dto';
-import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from 'src/config/prisma.service';
 import ConfigManager from 'src/config/configManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
-import { Transaction } from 'src/common/decorater/transaction.decorator';
 import { FormStatus } from 'src/models/enums/FormStatus';
+import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 
 @Injectable()
 export class SurveyFeedbackDataService {
   constructor(
-    private formRepository: PrismasurveyFeedbackRepository,
+    private formRepository: PrismaSurveyFeedbackRepository,
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     private questionRepository: PrismaQuestionRepository,
@@ -30,7 +28,7 @@ export class SurveyFeedbackDataService {
   ) {}
 
   async getStatusAnonymous(formId: number) {
-    const form = await this.formRepository.getsurveyFeedbackById(formId);
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -39,7 +37,6 @@ export class SurveyFeedbackDataService {
     return form.allowAnonymous;
   }
 
-  @Transaction()
   async saveGuestInfoAndResponses(
     businessId: number,
     formId: number,
@@ -49,7 +46,7 @@ export class SurveyFeedbackDataService {
     const { guestData, responses } = createResponse;
 
     const existingForm =
-      await this.formRepository.getsurveyFeedbackById(formId);
+      await this.formRepository.getSurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -450,7 +447,7 @@ export class SurveyFeedbackDataService {
   }
 
   async getUserResponse(formId: number) {
-    const form = await this.formRepository.getsurveyFeedbackById(formId);
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
 
     if (!form) {
       throw new BadRequestException(
@@ -473,7 +470,7 @@ export class SurveyFeedbackDataService {
     limit: number = 10,
   ): Promise<FormResponse> {
     const existingForm =
-      await this.formRepository.getsurveyFeedbackById(formId);
+      await this.formRepository.getSurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -569,7 +566,7 @@ export class SurveyFeedbackDataService {
 
   async getDetailResponsesByUsername(username: string, formId: number) {
     const existingForm =
-      await this.formRepository.getsurveyFeedbackById(formId);
+      await this.formRepository.getSurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -623,7 +620,7 @@ export class SurveyFeedbackDataService {
     page: number,
     pageSize: number,
   ) {
-    const form = await this.formRepository.getsurveyFeedbackById(formId);
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -710,7 +707,7 @@ export class SurveyFeedbackDataService {
 
   private calculateSeverity(form: any): string {
     const negativeWords = ['tệ', 'không hài lòng', 'kém', 'tồi tệ', 'quá tệ'];
-    let severityScores: number[] = [];
+    const severityScores: number[] = [];
 
     for (const response of form.responseOnQuestions) {
       let score = 1; // Mặc định là "low"

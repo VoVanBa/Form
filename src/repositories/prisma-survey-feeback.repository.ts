@@ -5,18 +5,27 @@ import { PrismaService } from 'src/config/prisma.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { ISurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
+import { Prisma } from '@prisma/client';
+
 @Injectable()
 export class PrismaSurveyFeedbackRepository
   implements ISurveyFeedbackRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Định nghĩa kiểu rõ ràng cho tx
+  private getClient(
+    tx?: Prisma.TransactionClient,
+  ): PrismaService | Prisma.TransactionClient {
+    return tx || this.prisma;
+  }
+
   async createSurveyFeedback(
     data: CreatesurveyFeedbackDto,
     businessId: number,
-    tx?: any,
+    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
-    const client = tx || this.prisma;
+    const client = this.getClient(tx);
     const surveyFeedback = await client.surveyFeedback.create({
       data: {
         ...data,
@@ -26,8 +35,11 @@ export class PrismaSurveyFeedbackRepository
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
-  async getSurveyFeedbackById(id: number, tx?: any): Promise<SurveyFeedback> {
-    const client = tx || this.prisma;
+  async getSurveyFeedbackById(
+    id: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<SurveyFeedback> {
+    const client = this.getClient(tx);
     const surveyFeedback = await client.surveyFeedback.findFirst({
       where: { id },
       include: {
@@ -60,16 +72,17 @@ export class PrismaSurveyFeedbackRepository
       },
     });
 
-    if (!surveyFeedback)
+    if (!surveyFeedback) {
       throw new Error(`SurveyFeedback with id ${id} not found`);
+    }
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
   async getAllSurveyFeedbacks(
     businessId: number,
-    tx?: any,
+    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback[]> {
-    const client = tx || this.prisma;
+    const client = this.getClient(tx);
     const prismaData = await client.surveyFeedback.findMany({
       where: { businessId },
     });
@@ -79,9 +92,9 @@ export class PrismaSurveyFeedbackRepository
   async updateSurveyFeedback(
     id: number,
     data: UpdatesurveyFeedbackDto,
-    tx?: any,
+    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
-    const client = tx || this.prisma;
+    const client = this.getClient(tx);
     const surveyFeedback = await client.surveyFeedback.update({
       where: { id },
       data: {
@@ -94,17 +107,20 @@ export class PrismaSurveyFeedbackRepository
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
-  async deleteSurveyFeedback(id: number, tx?: any): Promise<void> {
-    const client = tx || this.prisma;
+  async deleteSurveyFeedback(
+    id: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = this.getClient(tx);
     await client.surveyFeedback.delete({ where: { id } });
   }
 
   async updateStatus(
     status: FormStatus,
     formId: number,
-    tx?: any,
+    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
-    const client = tx || this.prisma;
+    const client = this.getClient(tx);
     const surveyFeedback = await client.surveyFeedback.update({
       where: { id: formId },
       data: { status },
@@ -115,9 +131,9 @@ export class PrismaSurveyFeedbackRepository
   async updateSurveyAllowAnonymous(
     formId: number,
     active: boolean,
-    tx?: any,
+    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
-    const client = tx || this.prisma;
+    const client = this.getClient(tx);
     const surveyFeedback = await client.surveyFeedback.update({
       where: { id: formId },
       data: { allowAnonymous: active },

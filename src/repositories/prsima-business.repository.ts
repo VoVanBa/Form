@@ -8,35 +8,32 @@ import { name } from 'ejs';
 @Injectable()
 export class PrismaBusinessRepository implements IBusinessRepository {
   constructor(private prisma: PrismaService) {}
-  async create(data: CreateBusinessDto, userId: number) {
-    const business = await this.prisma.business.create({
+  async create(data: CreateBusinessDto, userId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    return prisma.business.create({
       data: {
         name: data.name,
         address: data.address,
         userId: userId,
       },
     });
-    return {
-      id: business.id,
-      name: business.name,
-      address: business.address,
-    };
   }
 
-  async deleteById(businessId: number) {
-    return await this.prisma.business.delete({
+  async deleteById(businessId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    return prisma.business.delete({
       where: {
         id: businessId,
       },
     });
   }
 
-  async getbusinessbyId(businessId: number): Promise<Business> {
-    const data = await this.prisma.business.findFirst({
+  async getbusinessbyId(businessId: number, tx?: any) {
+    const prisma = tx || this.prisma;
+    return prisma.business.findFirst({
       where: {
         id: businessId,
       },
     });
-    return Business.fromPrisma(data);
   }
 }

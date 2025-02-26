@@ -5,15 +5,15 @@ import { CreateBusinessDto } from './dtos/business.dto';
 @Injectable()
 export class BusinessService {
   constructor(private prismaBusinessRepository: PrismaBusinessRepository) {}
-  async create(data: CreateBusinessDto, userId: number) {
-    return await this.prismaBusinessRepository.create(data, userId);
+  async create(data: CreateBusinessDto, userId: number, tx?: any) {
+    return this.prismaBusinessRepository.create(data, userId, tx);
   }
 
-  async deleteById(businessId: number) {
-    return await this.prismaBusinessRepository.deleteById(businessId);
+  async deleteById(id: number, tx?: any) {
+    return this.prismaBusinessRepository.deleteById(id, tx);
   }
 
-  async getbusinessbyId(businessId: number) {
-    return await this.prismaBusinessRepository.getbusinessbyId(businessId);
+  async getbusinessbyId(businessId: number, tx?: any) {
+    return this.prismaBusinessRepository.getbusinessbyId(businessId, tx);
   }
 }

@@ -11,16 +11,13 @@ import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repos
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
-import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { I18nService } from 'nestjs-i18n';
 import { CloudinaryUploadResult } from './dtos/cloudinary.upload.result';
 import { PrismaService } from 'src/config/prisma.service';
 import { defaultQuestionSettings } from 'src/config/default.question.settings';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { QuestionConditionService } from 'src/question-condition/question-condition.service';
-import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
-import { UpdateQuestionConditionDto } from 'src/question-condition/dtos/update-question-condition-dto';
-import { Transaction } from 'src/common/decorater/transaction.decorator';
+import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 
 @Injectable()
 export class QuestionService {
@@ -28,16 +25,19 @@ export class QuestionService {
     private readonly prismaService: PrismaService,
     @Inject('CLOUDINARY') private readonly cloudinaryClient: typeof cloudinary,
     private prismaQuestionRepository: PrismaQuestionRepository,
-    private prismaSurveuFeedBackRepository: PrismasurveyFeedbackRepository,
+    private prismaSurveuFeedBackRepository: PrismaSurveyFeedbackRepository,
     private prismaMediaRepository: PrismaMediaRepository,
     private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
     private questionConditionService: QuestionConditionService,
     private readonly i18n: I18nService,
   ) {}
 
-  private async validateForm(formId: number) {
+  private async validateForm(formId: number, tx?: any) {
     const form =
-      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
+      await this.prismaSurveuFeedBackRepository.getSurveyFeedbackById(
+        formId,
+        tx,
+      );
     if (!form) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -46,9 +46,11 @@ export class QuestionService {
     return form;
   }
 
-  private async validateQuestion(questionId: number) {
-    const question =
-      await this.prismaQuestionRepository.getQuessionById(questionId);
+  private async validateQuestion(questionId: number, tx?: any) {
+    const question = await this.prismaQuestionRepository.getQuessionById(
+      questionId,
+      tx,
+    );
     if (!question) {
       throw new BadRequestException(
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
@@ -86,29 +88,33 @@ export class QuestionService {
     await this.validateForm(formId);
     return this.prismaQuestionRepository.findAllQuestion(formId);
   }
-
   async addAndUpdateQuestions(
     formId: number,
     updateQuestionsDto: UpdateQuestionDto[],
+    tx?: any,
   ) {
-    await this.validateForm(formId);
-
+    await this.validateForm(formId, tx);
     const currentMaxIndex =
-      await this.prismaQuestionRepository.getMaxQuestionIndex(formId);
-
+      await this.prismaQuestionRepository.getMaxQuestionIndex(formId, tx);
     let nextIndex = currentMaxIndex + 1;
-
     const results = [];
+
     for (const updateQuestionDto of updateQuestionsDto) {
       const { questionType, questionId } = updateQuestionDto;
-
       if (questionId) {
-        const question = await this.validateQuestion(questionId);
-
+        const question = await this.validateQuestion(questionId, tx);
         if (questionType !== question.questionType) {
-          await this.prismaQuestionRepository.deleteQuestionById(questionId);
+          await this.prismaQuestionRepository.deleteQuestionById(
+            questionId,
+            tx,
+          );
           const handler = this.getHandlerForQuestionType(questionType);
-          const result = await handler(formId, updateQuestionDto, nextIndex);
+          const result = await handler(
+            formId,
+            updateQuestionDto,
+            nextIndex,
+            tx,
+          );
           results.push(result);
           nextIndex++;
         } else {
@@ -116,12 +122,13 @@ export class QuestionService {
             questionId,
             formId,
             updateQuestionDto,
+            tx,
           );
           results.push(result);
         }
       } else {
         const handler = this.getHandlerForQuestionType(questionType);
-        const result = await handler(formId, updateQuestionDto, nextIndex);
+        const result = await handler(formId, updateQuestionDto, nextIndex, tx);
         results.push(result);
         nextIndex++;
       }
@@ -134,35 +141,46 @@ export class QuestionService {
     questionId: number,
     formId: number,
     updateQuestionDto: UpdateQuestionDto,
+    tx?: any,
   ) {
-    const question = await this.validateQuestion(questionId);
+    const question = await this.validateQuestion(questionId, tx);
 
     if (updateQuestionDto.imageId) {
       const questionOnMedia =
         await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
           questionId,
+          tx,
         );
       if (
-        updateQuestionDto.imageId !== questionOnMedia.mediaId ||
+        updateQuestionDto.imageId !== questionOnMedia?.mediaId ||
         question.questionOnMedia === null
       ) {
-        await this.updateQuestionImage(questionId, updateQuestionDto.imageId);
-        await this.prismaMediaRepository.deleteMediaById(
-          questionOnMedia.mediaId,
+        await this.updateQuestionImage(
+          questionId,
+          updateQuestionDto.imageId,
+          tx,
         );
+        if (questionOnMedia) {
+          await this.prismaMediaRepository.deleteMediaById(
+            questionOnMedia.mediaId,
+            tx,
+          );
+        }
       }
     }
 
     const updatedQuestion = await this.prismaQuestionRepository.updateQuestion(
       questionId,
       updateQuestionDto,
+      tx,
     );
     await this.prismaQuestionRepository.updateQuestionSetting(
       questionId,
       updateQuestionDto.settings,
       formId,
+      tx,
     );
-    await this.updateAnswerOptions(questionId, updateQuestionDto);
+    await this.updateAnswerOptions(questionId, updateQuestionDto, tx);
 
     return updatedQuestion;
   }
@@ -170,6 +188,7 @@ export class QuestionService {
   private async updateAnswerOptions(
     questionId: number,
     updateQuestionDto: UpdateQuestionDto,
+    tx?: any,
   ) {
     const answerOptionsId: number[] = [];
 
@@ -180,51 +199,58 @@ export class QuestionService {
             await this.prismaAnswerOptionRepository.updateAnswerOptions(
               option.answerOptionId,
               option,
+              tx,
             );
             answerOptionsId.push(option.answerOptionId);
             if (option.imageIds) {
               await this.updateAnswerOptionImages(
                 option.answerOptionId,
                 option.imageIds,
+                tx,
               );
             }
           } else {
             const index =
               await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
                 questionId,
+                tx,
               );
             const createdOption =
               await this.prismaAnswerOptionRepository.createAnswerOptions(
                 questionId,
                 option,
                 index,
+                tx,
               );
             answerOptionsId.push(createdOption.id);
             if (
-              updateQuestionDto.questionType === QuestionType.PICTURE_SELECTION
+              updateQuestionDto.questionType ===
+                QuestionType.PICTURE_SELECTION &&
+              option.imageIds
             ) {
-              if (option.imageIds) {
-                await this.updateAnswerOptionImages(
-                  createdOption.id,
-                  option.imageIds,
-                );
-              }
+              await this.updateAnswerOptionImages(
+                createdOption.id,
+                option.imageIds,
+                tx,
+              );
             }
           }
         }),
       );
 
-      await this.deleteAnswerOptions(questionId, answerOptionsId);
+      await this.deleteAnswerOptions(questionId, answerOptionsId, tx);
     }
   }
 
   private async deleteAnswerOptions(
     questionId: number,
     answerOptionsId: number[],
+    tx?: any,
   ) {
     const answerOptionsInDb =
       await this.prismaAnswerOptionRepository.findanswerOptionsByQuestionId(
         questionId,
+        tx,
       );
     const idsToDelete = answerOptionsInDb
       .filter((option) => !answerOptionsId.includes(option.id))
@@ -233,84 +259,106 @@ export class QuestionService {
     if (idsToDelete.length > 0) {
       await Promise.all(
         idsToDelete.map((id) =>
-          this.prismaAnswerOptionRepository.deleteAnserOption(id, questionId),
+          this.prismaAnswerOptionRepository.deleteAnserOption(
+            id,
+            questionId,
+            tx,
+          ),
         ),
       );
     }
   }
 
-  private async updateQuestionImage(questionId: number, imageId: number) {
+  private async updateQuestionImage(
+    questionId: number,
+    imageId: number,
+    tx?: any,
+  ) {
     const existingImage =
-      await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId);
+      await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId, tx);
     if (!existingImage) {
       throw new NotFoundException(this.i18n.translate('errors.IMAGENOTFOUND'));
     }
     await this.prismaMediaRepository.updateQuestionOnMedia(
       questionId,
       existingImage.id,
+      tx,
     );
   }
 
   private async updateAnswerOptionImages(
     answerOptionId: number,
     imageIds: number,
+    tx?: any,
   ) {
     await this.prismaMediaRepository.updateAnswerOptionOnMedia(
       imageIds,
       answerOptionId,
+      tx,
     );
   }
 
   private getHandlerForQuestionType = (questionType: QuestionType) => {
     const handlers = {
-      [QuestionType.SINGLE_CHOICE]: this.handleChoiceQuestion,
-      [QuestionType.MULTI_CHOICE]: this.handleChoiceQuestion,
-      [QuestionType.PICTURE_SELECTION]: this.handlePictureSelectionQuestion,
-      [QuestionType.INPUT_TEXT]: this.handleInputText,
-      [QuestionType.RATING_SCALE]: this.handleRating,
+      [QuestionType.SINGLE_CHOICE]: this.handleChoiceQuestion.bind(this),
+      [QuestionType.MULTI_CHOICE]: this.handleChoiceQuestion.bind(this),
+      [QuestionType.PICTURE_SELECTION]:
+        this.handlePictureSelectionQuestion.bind(this),
+      [QuestionType.INPUT_TEXT]: this.handleInputText.bind(this),
+      [QuestionType.RATING_SCALE]: this.handleRating.bind(this),
     };
-    return handlers[questionType];
+    const handler = handlers[questionType];
+    if (!handler) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.INVALID_QUESTION_TYPE', {
+          args: { type: questionType },
+        }),
+      );
+    }
+    return handler;
   };
 
-  private handleRating = async (
+  private async handleRating(
     formId: number,
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
-  ) => {
-    return this.createQuestion(formId, addQuestionDto, sortOrder);
-  };
-
-  private handleInputText = async (
+    tx?: any,
+  ) {
+    return this.createQuestion(formId, addQuestionDto, sortOrder, tx);
+  }
+  private async handleInputText(
     formId: number,
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
-  ) => {
-    return this.createQuestion(formId, addQuestionDto, sortOrder);
-  };
+    tx?: any,
+  ) {
+    return this.createQuestion(formId, addQuestionDto, sortOrder, tx);
+  }
 
-  private handleChoiceQuestion = async (
+  private async handleChoiceQuestion(
     formId: number,
     addQuestionDto: AddQuestionDto,
     sortOrder: number,
-  ) => {
-    return this.createQuestion(formId, addQuestionDto, sortOrder);
-  };
-
-  private handlePictureSelectionQuestion = async (
+    tx?: any,
+  ) {
+    return this.createQuestion(formId, addQuestionDto, sortOrder, tx);
+  }
+  private async handlePictureSelectionQuestion(
     formId: number,
     addQuestionDto: AddQuestionDto,
-  ) => {
-    const sortOrder =
-      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
-    return this.createQuestion(formId, addQuestionDto);
-  };
+    sortOrder: number,
+    tx?: any,
+  ) {
+    return this.createQuestion(formId, addQuestionDto, sortOrder, tx);
+  }
 
   private async createQuestion(
     formId: number,
     addQuestionDto: AddQuestionDto,
     sortOrder?: number,
+    tx?: any,
   ) {
-    const { answerOptions, imageId, conditions } = addQuestionDto;
+    const { answerOptions, imageId } = addQuestionDto;
 
     if (answerOptions && answerOptions.length < 2) {
       throw new BadRequestException(
@@ -320,16 +368,17 @@ export class QuestionService {
 
     const questionIndex =
       sortOrder ||
-      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId)) + 1;
+      (await this.prismaQuestionRepository.getMaxQuestionIndex(formId, tx)) + 1;
 
     const question = await this.prismaQuestionRepository.createQuestion(
       formId,
       addQuestionDto,
       questionIndex,
+      tx,
     );
 
     if (answerOptions) {
-      await this.createAnswerOptions(question.id, answerOptions);
+      await this.createAnswerOptions(question.id, answerOptions, tx);
     }
 
     await this.prismaQuestionRepository.createQuestionSettings(
@@ -337,26 +386,15 @@ export class QuestionService {
       addQuestionDto.settings,
       addQuestionDto.questionType,
       formId,
+      tx,
     );
 
-    if (addQuestionDto.questionType === QuestionType.PICTURE_SELECTION) {
-      await this.updateQuestionImage(question.id, imageId);
+    if (
+      addQuestionDto.questionType === QuestionType.PICTURE_SELECTION &&
+      imageId
+    ) {
+      await this.updateQuestionImage(question.id, imageId, tx);
     }
-    // // ----------------------------------------------------
-    // if (conditions) {
-    //   for (const condition of conditions) {
-    //     condition.sourceQuestionId = question.id;
-    //     const existingCondition = await this.questionConditionService.findById(
-    //       condition.targetQuestionId,
-    //       condition.sourceQuestionId,
-    //     );
-    //     if (existingCondition) {
-    //       await this.questionConditionService.update(condition);
-    //     } else {
-    //       await this.questionConditionService.create(condition);
-    //     }
-    //   }
-    // }
 
     return question;
   }
@@ -364,12 +402,14 @@ export class QuestionService {
   private async createAnswerOptions(
     questionId: number,
     answerOptions: AddAnswerOptionDto[],
+    tx?: any,
   ) {
     const index =
       await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
         questionId,
+        tx,
       );
-    const data = await Promise.all(
+    await Promise.all(
       answerOptions.map(async (option, idx) => {
         const newIndex = index + idx + 1;
         const createdOption =
@@ -377,11 +417,13 @@ export class QuestionService {
             questionId,
             option,
             newIndex,
+            tx,
           );
         if (option.imageIds) {
           await this.updateAnswerOptionImages(
             createdOption.id,
             option.imageIds,
+            tx,
           );
         }
       }),
@@ -521,7 +563,7 @@ export class QuestionService {
     newIndex: number,
   ): Promise<void> {
     const form =
-      await this.prismaSurveuFeedBackRepository.getsurveyFeedbackById(formId);
+      await this.prismaSurveuFeedBackRepository.getSurveyFeedbackById(formId);
 
     console.log(form);
     const question =

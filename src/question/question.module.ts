@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { QuestionController } from './question.controller';
 import { QuestionService } from './question.service';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
-import { PrismasurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { PrismaService } from 'src/config/prisma.service';
 import { CloudinaryProvider } from 'src/config/cloudinary.provider';
 import { QuestionConditionService } from 'src/question-condition/question-condition.service';
+import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 
 @Module({
   controllers: [QuestionController],
@@ -16,7 +16,7 @@ import { QuestionConditionService } from 'src/question-condition/question-condit
     QuestionService,
     CloudinaryProvider,
     PrismaQuestionRepository,
-    PrismasurveyFeedbackRepository,
+    PrismaSurveyFeedbackRepository,
     PrismaMediaRepository,
     PrismaAnswerOptionRepository,
     QuestionConditionService,
