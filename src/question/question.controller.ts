@@ -170,6 +170,4 @@ export class QuestionController {
   ) {
     return this.questionService.reorderQuestion(formId, questionId, newIndex);
   }
-
-
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from 'src/surveyfeedback-form/dtos/update.form.dto';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { ISurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';

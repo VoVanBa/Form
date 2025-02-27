@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 
 @Injectable()
 export class PrismaResponseQuestionRepository {
@@ -20,8 +20,10 @@ export class PrismaResponseQuestionRepository {
     answerText: string,
     ratingValue: number,
     formId: number,
+    tx?: any,
   ) {
-    return await this.prisma.responseOnQuestion.create({
+    const prisma = tx || this.prisma;
+    return await prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId: questionId,

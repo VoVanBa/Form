@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IFormSettingRepository } from './i-repositories/setting.repository';
 import { UpdateSettingTypeDto } from 'src/admin/dtos/update.setting.type.dtos';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { SettingTypes } from 'src/models/SettingTypes';
 import { SurveyFeedbackSettings } from '@prisma/client';
 import { BusinessSurveyFeedbackSettings } from 'src/models/BusinessSurveyFeedbackSettings';

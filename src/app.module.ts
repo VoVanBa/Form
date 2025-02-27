@@ -14,14 +14,13 @@ import * as path from 'path';
 import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n'; // Import I18nJsonLoader
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
 import { QuestionConditionModule } from './question-condition/question-condition.module';
-import {
-  TransactionInterceptor,
-} from './common/interceptors/transaction.interceptors';
-import { PrismaService } from './config/prisma.service';
+import { TransactionInterceptor } from './common/interceptors/transaction.interceptors';
+import { PrismaService } from './config/providers/prisma.service';
 import { PrismaTransactionManager } from './common/prisma-transaction.manager';
 import { MediaService } from './media/media.service';
 import { MediaController } from './media/media.controller';
 import { MediaModule } from './media/media.module';
+import { AnswerOptionModule } from './answer-option/answer-option.module';
 
 @Module({
   imports: [
@@ -49,6 +48,7 @@ import { MediaModule } from './media/media.module';
     }),
     QuestionConditionModule,
     MediaModule,
+    AnswerOptionModule,
   ],
   controllers: [AppController, MediaController],
   providers: [

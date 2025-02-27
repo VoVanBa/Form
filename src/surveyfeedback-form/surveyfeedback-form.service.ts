@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,27 +13,25 @@ import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.rep
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
 import { I18nService } from 'nestjs-i18n';
 import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
-import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
-import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
-import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
 import { BusinessService } from 'src/business/business.service';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
-import { QuestionService } from 'src/question/question.service';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { plainToInstance } from 'class-transformer';
+import { MediaService } from 'src/media/media.service';
+import { QuestionService } from 'src/question/question.service';
+import { AnswerOptionService } from 'src/answer-option/answer-option.service';
 
 @Injectable()
 export class SurveyFeedackFormService {
   constructor(
     private formRepository: PrismaSurveyFeedbackRepository,
     private businessService: BusinessService,
-    private formSetting: PrismaFormSettingRepository,
-    private questionRepository: PrismaQuestionRepository,
-    private answerOptionRepository: PrismaAnswerOptionRepository,
-    private mediaRepository: PrismaMediaRepository,
+    private answerOptionService: AnswerOptionService,
+    private mediaService: MediaService,
     private settingRepository: PrismaFormSettingRepository,
     private surveyEndingRepository: PrismaSurveyEndingRepository,
+    @Inject(forwardRef(() => QuestionService))
     private questionSerivce: QuestionService,
     private readonly i18n: I18nService,
   ) {}
@@ -52,9 +52,9 @@ export class SurveyFeedackFormService {
       tx,
     );
 
-    const formSetting = await this.formSetting.getAllFormSetting(tx);
+    const formSetting = await this.settingRepository.getAllFormSetting(tx);
     const saveSettingsPromises = formSetting.map((form) =>
-      this.formSetting.saveSetting(
+      this.settingRepository.saveSetting(
         save.id,
         businessId,
         form.key,
@@ -66,6 +66,10 @@ export class SurveyFeedackFormService {
 
     await Promise.all(saveSettingsPromises);
     return this.i18n.translate('success.SURVEYFEEDBACKCREATED');
+  }
+
+  async getSurveyFeedbackById(formId: number) {
+    return this.formRepository.getSurveyFeedbackById(formId);
   }
 
   async getForms(businessId: number, request?: any) {
@@ -281,8 +285,8 @@ export class SurveyFeedackFormService {
     request?: any,
   ) {
     const tx = request?.tx;
-    const allFormSettings = await this.formSetting.getAllFormSetting(tx);
-    const currentSettings = await this.formSetting.getDefaultSetting(
+    const allFormSettings = await this.settingRepository.getAllFormSetting(tx);
+    const currentSettings = await this.settingRepository.getDefaultSetting(
       businessId,
       formId,
       tx,
@@ -305,7 +309,7 @@ export class SurveyFeedackFormService {
       if (!formSetting) {
         throw new Error(`FormSetting not found for key: ${newSetting.key}`);
       }
-      return this.formSetting.upsertSetting(
+      return this.settingRepository.upsertSetting(
         formId,
         businessId,
         formSetting.id,
@@ -325,11 +329,12 @@ export class SurveyFeedackFormService {
     request?: any,
   ): Promise<any> {
     const tx = request?.tx;
-    const businessSettings = await this.formSetting.getAllBusinessSettingTypes(
-      businessId,
-      formId,
-      tx,
-    );
+    const businessSettings =
+      await this.settingRepository.getAllBusinessSettingTypes(
+        businessId,
+        formId,
+        tx,
+      );
 
     if (!Array.isArray(businessSettings) || businessSettings.length === 0) {
       throw new Error('No settings found');
@@ -415,16 +420,14 @@ export class SurveyFeedackFormService {
     businessId: number,
     tx?: any,
   ) {
-    const questions = await this.questionRepository.findAllQuestion(
-      originalFormId,
-      tx,
-    );
+    const questions =
+      await this.questionSerivce.findAllQuestion(originalFormId);
     for (const question of questions) {
       const addQuestionDto: AddQuestionDto = {
         headline: question.headline,
         questionType: question.questionType,
       };
-      const newQuestion = await this.questionRepository.createQuestion(
+      const newQuestion = await this.questionSerivce.createQuestion(
         newFormId,
         addQuestionDto,
         question.index,
@@ -445,7 +448,7 @@ export class SurveyFeedackFormService {
       }
 
       if (question.businessQuestionConfiguration) {
-        await this.questionRepository.createQuestionSettings(
+        await this.questionSerivce.createQuestionSettings(
           newQuestion.id,
           question.businessQuestionConfiguration.settings,
           question.businessQuestionConfiguration.key,
@@ -463,14 +466,13 @@ export class SurveyFeedackFormService {
     tx?: any,
   ) {
     const answerOptions =
-      await this.answerOptionRepository.getAllAnserOptionbyQuestionId(
+      await this.answerOptionService.getAllAnserOptionbyQuestionId(
         originalQuestionId,
-        tx,
       );
     return Promise.all(
       answerOptions.map(async (option) => {
         const newAnswerOption =
-          await this.answerOptionRepository.createAnswerOptions(
+          await this.answerOptionService.createAnswerOptions(
             newQuestionId,
             { ...option, businessId },
             option.index,
@@ -478,12 +480,12 @@ export class SurveyFeedackFormService {
           );
 
         if (option.answerOptionOnMedia) {
-          const media = await this.mediaRepository.getMediaById(
+          const media = await this.mediaService.getMediaById(
             option.answerOptionOnMedia.mediaId,
             tx,
           );
           if (media) {
-            await this.mediaRepository.createAnswerOptionOnMedia(
+            await this.mediaService.createAnswerOptionOnMedia(
               [{ mediaId: media.id, answerOptionId: newAnswerOption.id }],
               tx,
             );
@@ -499,12 +501,12 @@ export class SurveyFeedackFormService {
     newQuestionId: number,
     tx?: any,
   ) {
-    const media = await this.mediaRepository.getQuestionOnMediaByQuestionId(
+    const media = await this.mediaService.getQuestionOnMediaByQuestionId(
       originalQuestionId,
       tx,
     );
     if (media) {
-      await this.mediaRepository.createQuestionOnMedia(
+      await this.mediaService.createQuestionOnMedia(
         { mediaId: media.id, questionId: newQuestionId },
         tx,
       );

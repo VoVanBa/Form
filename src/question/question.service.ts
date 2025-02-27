@@ -6,28 +6,25 @@ import {
 } from '@nestjs/common';
 import { AddQuestionDto } from './dtos/add.question.dto';
 
-import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
+import { AddAnswerOptionDto } from '../answer-option/dtos/add.answer.option.dto';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaMediaRepository } from 'src/repositories/prisma-media.repository';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
-import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
 import { I18nService } from 'nestjs-i18n';
-import { CloudinaryUploadResult } from './dtos/cloudinary.upload.result';
-import { PrismaService } from 'src/config/prisma.service';
-import { defaultQuestionSettings } from 'src/config/default.question.settings';
+import { defaultQuestionSettings } from 'src/config/settings/default.question.settings';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { QuestionConditionService } from 'src/question-condition/question-condition.service';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 import { MediaService } from 'src/media/media.service';
+import { AnswerOptionService } from 'src/answer-option/answer-option.service';
+import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback-form.service';
 
 @Injectable()
 export class QuestionService {
   constructor(
-    private readonly prismaService: PrismaService,
     private prismaQuestionRepository: PrismaQuestionRepository,
-    private prismaSurveuFeedBackRepository: PrismaSurveyFeedbackRepository,
-    private prismaMediaRepository: PrismaMediaRepository,
-    private prismaAnswerOptionRepository: PrismaAnswerOptionRepository,
+    private surveyFeedackFormService: SurveyFeedackFormService,
+    private answerOptionService: AnswerOptionService,
     private questionConditionService: QuestionConditionService,
     private readonly i18n: I18nService,
     private mediaService: MediaService,
@@ -35,10 +32,7 @@ export class QuestionService {
 
   private async validateForm(formId: number, tx?: any) {
     const form =
-      await this.prismaSurveuFeedBackRepository.getSurveyFeedbackById(
-        formId,
-        tx,
-      );
+      await this.surveyFeedackFormService.getSurveyFeedbackById(formId);
     if (!form) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -68,7 +62,7 @@ export class QuestionService {
     await this.validateForm(surveyFeedBackId);
 
     const quantityAnserOption =
-      await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+      await this.answerOptionService.getQuantityAnserOptionbyQuestionId(
         questionId,
       );
     if (quantityAnserOption <= 2) {
@@ -79,7 +73,7 @@ export class QuestionService {
 
     await this.validateQuestion(questionId);
 
-    return this.prismaAnswerOptionRepository.deleteAnserOption(
+    return this.answerOptionService.deleteAnserOption(
       optionAnwerId,
       questionId,
     );
@@ -148,10 +142,7 @@ export class QuestionService {
 
     if (updateQuestionDto.imageId) {
       const questionOnMedia =
-        await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
-          questionId,
-          tx,
-        );
+        await this.mediaService.getQuestionOnMediaByQuestionId(questionId, tx);
       if (
         updateQuestionDto.imageId !== questionOnMedia?.mediaId ||
         question.questionOnMedia === null
@@ -162,10 +153,7 @@ export class QuestionService {
           tx,
         );
         if (questionOnMedia) {
-          await this.prismaMediaRepository.deleteMediaById(
-            questionOnMedia.mediaId,
-            tx,
-          );
+          await this.mediaService.deleteMediaById(questionOnMedia.mediaId, tx);
         }
       }
     }
@@ -197,7 +185,7 @@ export class QuestionService {
       await Promise.all(
         updateQuestionDto.answerOptions.map(async (option) => {
           if (option.answerOptionId) {
-            await this.prismaAnswerOptionRepository.updateAnswerOptions(
+            await this.answerOptionService.updateAnswerOptions(
               option.answerOptionId,
               option,
               tx,
@@ -212,12 +200,11 @@ export class QuestionService {
             }
           } else {
             const index =
-              await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+              await this.answerOptionService.getQuantityAnserOptionbyQuestionId(
                 questionId,
-                tx,
               );
             const createdOption =
-              await this.prismaAnswerOptionRepository.createAnswerOptions(
+              await this.answerOptionService.createAnswerOptions(
                 questionId,
                 option,
                 index,
@@ -249,7 +236,7 @@ export class QuestionService {
     tx?: any,
   ) {
     const answerOptionsInDb =
-      await this.prismaAnswerOptionRepository.findanswerOptionsByQuestionId(
+      await this.answerOptionService.findanswerOptionsByQuestionId(
         questionId,
         tx,
       );
@@ -260,11 +247,7 @@ export class QuestionService {
     if (idsToDelete.length > 0) {
       await Promise.all(
         idsToDelete.map((id) =>
-          this.prismaAnswerOptionRepository.deleteAnserOption(
-            id,
-            questionId,
-            tx,
-          ),
+          this.answerOptionService.deleteAnserOption(id, questionId, tx),
         ),
       );
     }
@@ -275,12 +258,14 @@ export class QuestionService {
     imageId: number,
     tx?: any,
   ) {
-    const existingImage =
-      await this.prismaMediaRepository.getQuestionOnMediaByMediaId(imageId, tx);
+    const existingImage = await this.mediaService.getQuestionOnMediaByMediaId(
+      imageId,
+      tx,
+    );
     if (!existingImage) {
       throw new NotFoundException(this.i18n.translate('errors.IMAGENOTFOUND'));
     }
-    await this.prismaMediaRepository.updateQuestionOnMedia(
+    await this.mediaService.updateQuestionOnMedia(
       questionId,
       existingImage.id,
       tx,
@@ -292,7 +277,7 @@ export class QuestionService {
     imageIds: number,
     tx?: any,
   ) {
-    await this.prismaMediaRepository.updateAnswerOptionOnMedia(
+    await this.mediaService.updateAnswerOptionOnMedia(
       imageIds,
       answerOptionId,
       tx,
@@ -353,7 +338,7 @@ export class QuestionService {
     return this.createQuestion(formId, addQuestionDto, sortOrder, tx);
   }
 
-  private async createQuestion(
+  async createQuestion(
     formId: number,
     addQuestionDto: AddQuestionDto,
     sortOrder?: number,
@@ -382,7 +367,7 @@ export class QuestionService {
       await this.createAnswerOptions(question.id, answerOptions, tx);
     }
 
-    await this.prismaQuestionRepository.createQuestionSettings(
+    await this.createQuestionSettings(
       question.id,
       addQuestionDto.settings,
       addQuestionDto.questionType,
@@ -406,15 +391,14 @@ export class QuestionService {
     tx?: any,
   ) {
     const index =
-      await this.prismaAnswerOptionRepository.getQuantityAnserOptionbyQuestionId(
+      await this.answerOptionService.getQuantityAnserOptionbyQuestionId(
         questionId,
-        tx,
       );
     await Promise.all(
       answerOptions.map(async (option, idx) => {
         const newIndex = index + idx + 1;
         const createdOption =
-          await this.prismaAnswerOptionRepository.createAnswerOptions(
+          await this.answerOptionService.createAnswerOptions(
             questionId,
             option,
             newIndex,
@@ -433,21 +417,21 @@ export class QuestionService {
 
   async createAnwerOptionMedia(image: Express.Multer.File[]) {
     const mediaIds = await this.mediaService.uploadImages(image);
-    await this.prismaMediaRepository.createAnswerOptionOnMedia(
+    await this.mediaService.createAnswerOptionOnMedia(
       mediaIds.map((mediaId) => ({ mediaId, answerOptionId: null })),
     );
   }
 
   async createQuestionMedia(image: Express.Multer.File) {
     const mediaId = await this.mediaService.uploadImage(image);
-    await this.prismaMediaRepository.createQuestionOnMedia({
+    await this.mediaService.createQuestionOnMedia({
       mediaId: mediaId,
       questionId: null,
     });
   }
 
   async deleteMediaById(mediaId: number) {
-    return await this.prismaMediaRepository.deleteMediaById(mediaId);
+    return await this.mediaService.deleteMediaById(mediaId);
   }
 
   async deleteQuestionById(questionId: number, formId: number) {
@@ -476,7 +460,7 @@ export class QuestionService {
     newIndex: number,
   ): Promise<void> {
     const form =
-      await this.prismaSurveuFeedBackRepository.getSurveyFeedbackById(formId);
+      await this.surveyFeedackFormService.getSurveyFeedbackById(formId);
 
     console.log(form);
     const question =
@@ -505,6 +489,27 @@ export class QuestionService {
     await this.prismaQuestionRepository.updateIndexQuestion(
       questionId,
       newIndex,
+    );
+  }
+
+  async findAllQuestion(formId: number, tx?: any) {
+    await this.validateForm(formId);
+    return this.prismaQuestionRepository.findAllQuestion(formId, tx);
+  }
+
+  async createQuestionSettings(
+    questionId: number,
+    settings: any,
+    key: string,
+    formId: number,
+    tx?: any,
+  ) {
+    return await this.prismaQuestionRepository.createQuestionSettings(
+      questionId,
+      settings,
+      key,
+      formId,
+      tx,
     );
   }
 }

@@ -6,7 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import * as ms from 'ms';
 import { UsersService } from 'src/users/users.service';
 import { GoogleOauthGuard } from '../common/guards/google-oauth.guard';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { JwtStrategy } from 'src/common/passport/jwt.strategy';
 import { LocalStrategy } from 'src/common/passport/local.strategy';
 import { GoogleStrategy } from 'src/common/passport/google.strategy';

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AnswerOptionRepository } from './i-repositories/anwser-option.repository';
-import { AddAnswerOptionDto } from 'src/question/dtos/add.answer.option.dto';
-import { PrismaService } from 'src/config/prisma.service';
+import { AddAnswerOptionDto } from 'src/answer-option/dtos/add.answer.option.dto';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { AnswerOption } from 'src/models/AnswerOption';
 
 @Injectable()

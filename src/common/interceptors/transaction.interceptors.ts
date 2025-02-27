@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { TRANSACTION_KEY } from '../decorater/transaction.decorator';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PrismaTransactionManager } from '../prisma-transaction.manager';
 @Injectable()
@@ -35,8 +35,8 @@ export class TransactionInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
 
     return new Observable((subscriber) => {
-      this.transactionManager.executeTransaction
-        (async (tx) => {
+      this.transactionManager
+        .executeTransaction(async (tx) => {
           request.transaction = tx; // Gắn tx vào request.transaction
           try {
             const result = await next.handle().toPromise();

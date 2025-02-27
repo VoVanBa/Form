@@ -14,11 +14,9 @@ import {
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
-import { FormStatus } from 'src/models/enums/FormStatus';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { UseTransaction } from 'src/common/decorater/transaction.decorator';
-import { Transaction } from 'src/common/decorater/transaction-param.decorator';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -126,15 +124,15 @@ export class SurveyFeedbackFormController {
     @Param('formId') formId: number,
     @Body()
     body: {
-      updateFormDto: UpdatesurveyFeedbackDto;
+      form: UpdatesurveyFeedbackDto;
       questions: UpdateQuestionDto[];
     },
     @Req() req,
   ) {
-    const { updateFormDto, questions } = body;
+    const { form, questions } = body;
     const result = await this.surveyFeedbackFormService.saveForm(
       formId,
-      updateFormDto,
+      form,
       questions || [],
       req,
     );

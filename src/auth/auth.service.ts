@@ -7,7 +7,7 @@ import { LoginUserDto } from 'src/users/dtos/login.user.dto';
 import { RegisterUserDto } from 'src/users/dtos/register.user.dto';
 import * as ms from 'ms';
 import { UsersService } from 'src/users/users.service';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 
 @Injectable()
 export class AuthService {

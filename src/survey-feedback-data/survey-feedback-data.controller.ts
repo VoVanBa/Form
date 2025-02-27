@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';
+import { UseTransaction } from 'src/common/decorater/transaction.decorator';
 
 @Controller('response')
 export class SurveyFeedbackDataController {
@@ -19,12 +21,15 @@ export class SurveyFeedbackDataController {
     private readonly responseService: SurveyFeedbackDataService,
     private userService: UsersService,
   ) {}
+
   @Post('form/:formId/business/:businessId/save')
+  @UseTransaction()
   async saveGuestInfoAndResponses(
     @Body() response: CreateResponseOnQuestionDto,
     @Headers('authorization') jwt: string | undefined,
     @Param('businessId') businessId: number,
     @Param('formId') formId: number,
+    @Req() req,
   ): Promise<any> {
     let userId: number | null = null;
     const allowAnonymous =

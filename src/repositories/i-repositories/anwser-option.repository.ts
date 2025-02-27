@@ -1,5 +1,5 @@
 import { AnswerOption } from 'src/models/AnswerOption';
-import { AddAnswerOptionDto } from 'src/question/dtos/add.answer.option.dto';
+import { AddAnswerOptionDto } from 'src/answer-option/dtos/add.answer.option.dto';
 
 export interface AnswerOptionRepository {
   createAnswerOptions(

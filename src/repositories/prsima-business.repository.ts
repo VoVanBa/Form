@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateBusinessDto } from 'src/business/dtos/business.dto';
 import { IBusinessRepository } from './i-repositories/business.repository';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { Business } from 'src/models/Business';
 import { name } from 'ejs';
 

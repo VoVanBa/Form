@@ -1,5 +1,5 @@
 import { validateSync } from 'class-validator';
-import Setting from './setting';
+import Setting from './settings/setting.dto';
 import { FormSettingDto } from 'src/survey-feedback-data/dtos/form.setting.dto';
 
 interface Config {

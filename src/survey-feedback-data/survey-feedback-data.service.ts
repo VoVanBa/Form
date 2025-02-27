@@ -10,7 +10,7 @@ import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-respon
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
-import ConfigManager from 'src/config/configManager';
+import ConfigManager from 'src/config/configJsonManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
@@ -42,11 +42,14 @@ export class SurveyFeedbackDataService {
     formId: number,
     createResponse: CreateResponseOnQuestionDto,
     userId?: number,
+    request?: any,
   ) {
     const { guestData, responses } = createResponse;
-
-    const existingForm =
-      await this.formRepository.getSurveyFeedbackById(formId);
+    const tx = request?.transaction;
+    const existingForm = await this.formRepository.getSurveyFeedbackById(
+      formId,
+      tx,
+    );
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -64,6 +67,7 @@ export class SurveyFeedbackDataService {
     const settings = await this.formSetting.getAllFormSettingBusiness(
       businessId,
       formId,
+      tx,
     );
     console.log(settings, 'settings');
     const transformedSettings = this.configManager.transformSettings(settings);
@@ -99,6 +103,7 @@ export class SurveyFeedbackDataService {
               answerText,
               ratingValue,
               formId,
+              tx,
             ),
           ),
         );
@@ -110,6 +115,7 @@ export class SurveyFeedbackDataService {
           answerText,
           ratingValue,
           formId,
+          tx,
         );
       }
     });
@@ -215,8 +221,11 @@ export class SurveyFeedbackDataService {
 
       const { settings: questionSettings } = questionSetting;
 
+      console.log(questionSettings, 'questionSettings');
+      console.log(questionSetting, 'questionSetting');
+
       if (
-        questionSettings.require === true &&
+        questionSettings.required === true &&
         response.answerText === null &&
         response.answerOptionId === null &&
         response.ratingValue === null
@@ -232,14 +241,19 @@ export class SurveyFeedbackDataService {
       switch (type.questionType) {
         case 'SINGLE_CHOICE':
         case 'PICTURE_SELECTION':
-          if (questionSettings.require && !response.answerOptionId) {
+          if (questionSettings.required && !response.answerOptionId) {
             throw new BadRequestException(
               `Question ID ${response.questionId} requires an answer.`,
             );
           }
-          if (response.answerOptionId.length > questionSettings.maxSelections) {
+          if (
+            Array.isArray(response.answerOptionId) &&
+            response.answerOptionId.length > questionSettings.maxSelections
+          ) {
             throw new BadRequestException(
-              `Question ID ${response.questionId} requires at most ${questionSettings.maxSelections} choices.`,
+              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+                args: { questionId: response.questionId },
+              }),
             );
           }
           break;
@@ -264,7 +278,7 @@ export class SurveyFeedbackDataService {
                 `Question ID ${response.questionId} allows a maximum of ${questionSettings.maxSelections} selections.`,
               );
             }
-          } else if (questionSettings.require) {
+          } else if (questionSettings.required) {
             throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
                 args: { questionId: response.questionId },
@@ -274,7 +288,7 @@ export class SurveyFeedbackDataService {
           break;
 
         case 'INPUT_TEXT':
-          if (questionSettings.require && !response.answerText) {
+          if (questionSettings.required && !response.answerText) {
             throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
                 args: { questionId: response.questionId },

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateSettingTypeDto } from './dtos/update.setting.type.dtos';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
-import { defaultFormSettings } from 'src/config/default.form.settings';
+import { defaultFormSettings } from 'src/config/settings/default.form.settings';
 
 @Injectable()
 export class AdminService {

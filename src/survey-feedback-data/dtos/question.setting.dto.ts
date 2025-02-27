@@ -1,7 +1,7 @@
 export class QuestionSetting {
   key: string;
   settings: {
-    require?: boolean;
+    required?: boolean;
     maxSelections?: number;
     minSelections?: number;
     isRequired?: boolean;

@@ -53,4 +53,58 @@ export class MediaService {
 
     return media.id;
   }
+
+  async getQuestionOnMediaByQuestionId(questionId: number, tx?: any) {
+    return await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
+      questionId,
+      tx,
+    );
+  }
+  async deleteMediaById(mediaId: number, tx?: any) {
+    return await this.prismaMediaRepository.deleteMediaById(mediaId, tx);
+  }
+  async getQuestionOnMediaByMediaId(mediaId: number, tx: any) {
+    return await this.prismaMediaRepository.getQuestionOnMediaByMediaId(
+      mediaId,
+      tx,
+    );
+  }
+
+  async updateQuestionOnMedia(questionId: number, mediaId: number, tx: any) {
+    return await this.prismaMediaRepository.updateQuestionOnMedia(
+      questionId,
+      mediaId,
+      tx,
+    );
+  }
+
+  async updateAnswerOptionOnMedia(
+    answerOptionId: number,
+    mediaId: number,
+    tx: any,
+  ) {
+    return await this.prismaMediaRepository.updateAnswerOptionOnMedia(
+      answerOptionId,
+      mediaId,
+      tx,
+    );
+  }
+
+  async createAnswerOptionOnMedia(
+    data: { mediaId: number; answerOptionId: number | null }[],
+    tx?: any,
+  ) {
+    return await this.prismaMediaRepository.createAnswerOptionOnMedia(data, tx);
+  }
+
+  async createQuestionOnMedia(
+    data: { mediaId: number; questionId: number },
+    tx?: any,
+  ) {
+    return await this.prismaMediaRepository.createQuestionOnMedia(data, tx);
+  }
+
+  async getMediaById(mediaId: number, tx?: any) {
+    return await this.prismaMediaRepository.getMediaById(mediaId, tx);
+  }
 }

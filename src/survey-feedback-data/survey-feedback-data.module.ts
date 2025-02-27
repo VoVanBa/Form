@@ -7,8 +7,8 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';
-import { PrismaService } from 'src/config/prisma.service';
-import ConfigManager from 'src/config/configManager';
+import { PrismaService } from 'src/config/providers/prisma.service';
+import ConfigManager from 'src/config/configJsonManager';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
 
 @Module({

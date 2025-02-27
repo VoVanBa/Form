@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IMediaRepository } from './i-repositories/media.repository';
-import { PrismaService } from 'src/config/prisma.service';
+import { PrismaService } from 'src/config/providers/prisma.service';
 import { Media } from 'src/models/Media';
 import { QuestionOnMedia } from 'src/models/QuestionOnMedia';
 
