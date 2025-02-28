@@ -8,7 +8,7 @@ export const defaultQuestionSettings = [
   {
     key: 'MULTI_CHOICE',
     settings: {
-      maxSelections: 3,
+      maxSelections: null,
       minSelections: 1,
       require: true,
     },
@@ -17,12 +17,13 @@ export const defaultQuestionSettings = [
     key: 'INPUT_TEXT',
     settings: {
       require: true,
+      inputType: ['text', 'number', 'email', 'tel', 'url'],
+      defaultValue: '',
     },
   },
   {
     key: 'RATING_SCALE',
     settings: {
-      isRequired: true,
       range: '5',
       lowerLabel: 'Poor',
       upperLabel: 'Excellent',
@@ -36,6 +37,8 @@ export const defaultQuestionSettings = [
     key: 'PICTURE_SELECTION',
     settings: {
       require: true,
+      maxSelections: null,
+      minSelections: 1,
     },
   },
 ];

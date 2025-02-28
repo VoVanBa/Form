@@ -17,7 +17,6 @@ import { QuestionConditionModule } from './question-condition/question-condition
 import { TransactionInterceptor } from './common/interceptors/transaction.interceptors';
 import { PrismaService } from './config/providers/prisma.service';
 import { PrismaTransactionManager } from './common/prisma-transaction.manager';
-import { MediaService } from './media/media.service';
 import { MediaController } from './media/media.controller';
 import { MediaModule } from './media/media.module';
 import { AnswerOptionModule } from './answer-option/answer-option.module';
