@@ -7,8 +7,8 @@ export interface IQuestionConditionRepository {
     targetQuestionId: number,
     sourceQuestionId: number,
   ): Promise<QuestionCondition | null>;
-  findByTargetQuestionId(targetQuestionId: number): Promise<QuestionCondition>;
-  findBySourceQuestionId(sourceQuestionId: number): Promise<QuestionCondition>;
+  findByTargetQuestionId(targetQuestionId: number): Promise<QuestionCondition[]>;
+  findBySourceQuestionId(sourceQuestionId: number): Promise<QuestionCondition[]>;
   create(data: CreateQuestionConditionDto): Promise<QuestionCondition>;
   update(
     id: number,

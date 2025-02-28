@@ -131,23 +131,28 @@ model Question {
   form                          SurveyFeedback                 @relation(fields: [formId], references: [id])
   questionOnMedia               QuestionOnMedia?
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
-  conditions                    QuestionLogic[]                @relation("TargetQuestion")
-  sourceConditions              QuestionLogic[]                @relation("SourceQuestion")
+  questionConditions            QuestionCondition[]
 }
 
 model QuestionLogic {
-  id               Int             @id @default(autoincrement())
-  targetQuestionId Int
-  sourceQuestionId Int
-  conditionType    ConditionType
-  conditionValue   Json
-  logicalOperator  LogicalOperator @default(AND)
+  id              Int                 @id @default(autoincrement())
+  conditionType   ConditionType
+  conditionValue  Json
+  logicalOperator LogicalOperator     @default(AND)
+  conditions      QuestionCondition[]
+}
 
-  targetQuestion Question @relation("TargetQuestion", fields: [targetQuestionId], references: [id], onDelete: Cascade)
-  sourceQuestion Question @relation("SourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+model QuestionCondition {
+  id              Int          @id @default(autoincrement())
+  questionId      Int // Câu hỏi liên quan (có thể là source hoặc target)
+  questionLogicId Int // Logic điều kiện
+  role            QuestionRole // Vai trò: SOURCE hoặc TARGET
 
-  @@index([targetQuestionId])
-  @@index([sourceQuestionId])
+  question      Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionLogic QuestionLogic @relation(fields: [questionLogicId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([questionLogicId])
 }
 
 model QuestionConfiguration {
@@ -181,7 +186,6 @@ model AnswerOption {
   isActive            Boolean              @default(true)
   index               Int?
   description         String?
-  //formResponseId      Int?
   question            Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerOptionOnMedia AnswerOptionOnMedia?
   responseOnQuestions ResponseOnQuestion[]
@@ -244,4 +248,9 @@ enum ConditionType {
 enum LogicalOperator {
   AND
   OR
+}
+
+enum QuestionRole {
+  SOURCE
+  TARGET
 }
