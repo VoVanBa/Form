@@ -1,46 +1,41 @@
-import { ConditionType } from './enums/ConditionType';
-import { LogicalOperator } from './enums/LogicalOperator';
 import { Question } from './Question';
+import { QuestionLogic } from './QuestionLogic';
+import { QuestionRole } from './enums/QuestionRole';
+
 export class QuestionCondition {
   id: number;
-  targetQuestionId: number;
-  sourceQuestionId: number;
-  conditionType: ConditionType;
-  conditionValue: any;
-  logicalOperator: LogicalOperator;
-  targetQuestion: Question;
-  sourceQuestion: Question;
+  questionId: number;
+  questionLogicId: number;
+  role: QuestionRole;
+  question: Question;
+  questionLogic: QuestionLogic;
 
   constructor(
     id: number,
-    targetQuestionId: number,
-    sourceQuestionId: number,
-    conditionType: ConditionType,
-    conditionValue: any,
-    logicalOperator: LogicalOperator = LogicalOperator.AND,
-    targetQuestion?: Question,
-    sourceQuestion?: Question,
+    questionId: number,
+    questionLogicId: number,
+    role: QuestionRole,
+    question?: Question,
+    questionLogic?: QuestionLogic,
   ) {
     this.id = id;
-    this.targetQuestionId = targetQuestionId;
-    this.sourceQuestionId = sourceQuestionId;
-    this.conditionType = conditionType;
-    this.conditionValue = conditionValue;
-    this.logicalOperator = logicalOperator;
-    this.targetQuestion = targetQuestion;
-    this.sourceQuestion = sourceQuestion;
+    this.questionId = questionId;
+    this.questionLogicId = questionLogicId;
+    this.role = role;
+    this.question = question;
+    this.questionLogic = questionLogic;
   }
 
   static fromPrisma(data: any): QuestionCondition {
     return new QuestionCondition(
       data.id,
-      data.targetQuestionId,
-      data.sourceQuestionId,
-      data.conditionType,
-      data.conditionValue,
-      data.logicalOperator,
-      data.targetQuestion,
-      data.sourceQuestion,
+      data.questionId,
+      data.questionLogicId,
+      data.role,
+      data.question ? Question.fromPrisma(data.question) : undefined,
+      data.questionLogic
+        ? QuestionLogic.fromPrisma(data.questionLogic)
+        : undefined,
     );
   }
 }

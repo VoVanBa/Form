@@ -18,6 +18,8 @@ import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { MediaService } from 'src/media/media.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
 import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback-form.service';
+import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
+import { console } from 'inspector';
 
 @Injectable()
 export class QuestionService {
@@ -88,9 +90,10 @@ export class QuestionService {
     updateQuestionsDto: UpdateQuestionDto[],
     tx?: any,
   ) {
-    await this.validateForm(formId, tx);
+    const form = await this.validateForm(formId, tx);
+
     const currentMaxIndex =
-      await this.prismaQuestionRepository.getMaxQuestionIndex(formId, tx);
+      await this.prismaQuestionRepository.getMaxQuestionIndex(form.id, tx);
     let nextIndex = currentMaxIndex + 1;
     const results = [];
 
@@ -105,7 +108,7 @@ export class QuestionService {
           );
           const handler = this.getHandlerForQuestionType(questionType);
           const result = await handler(
-            formId,
+            form.id,
             updateQuestionDto,
             nextIndex,
             tx,
@@ -115,7 +118,7 @@ export class QuestionService {
         } else {
           const result = await this.updateQuestion(
             questionId,
-            formId,
+            form.id,
             updateQuestionDto,
             tx,
           );
@@ -123,7 +126,7 @@ export class QuestionService {
         }
       } else {
         const handler = this.getHandlerForQuestionType(questionType);
-        const result = await handler(formId, updateQuestionDto, nextIndex, tx);
+        const result = await handler(form.id, updateQuestionDto, nextIndex, tx);
         results.push(result);
         nextIndex++;
       }
@@ -139,37 +142,65 @@ export class QuestionService {
     tx?: any,
   ) {
     const question = await this.validateQuestion(questionId, tx);
+    if (!question) {
+      throw new NotFoundException(`Question with ID ${questionId} not found.`);
+    }
 
-    if (updateQuestionDto.imageId) {
+    // Handle image update if provided
+    if (updateQuestionDto.imageId !== undefined) {
       const questionOnMedia =
         await this.mediaService.getQuestionOnMediaByQuestionId(questionId, tx);
+
+      // Only update image if it's changed or if there was no previous image
       if (
         updateQuestionDto.imageId !== questionOnMedia?.mediaId ||
         question.questionOnMedia === null
       ) {
-        await this.updateQuestionImage(
-          questionId,
-          updateQuestionDto.imageId,
-          tx,
-        );
+        if (updateQuestionDto.imageId) {
+          await this.updateQuestionImage(
+            questionId,
+            updateQuestionDto.imageId,
+            tx,
+          );
+        }
+
+        // Delete old media if it exists
         if (questionOnMedia) {
           await this.mediaService.deleteMediaById(questionOnMedia.mediaId, tx);
         }
       }
     }
 
+    // Update the question basic info
     const updatedQuestion = await this.prismaQuestionRepository.updateQuestion(
       questionId,
       updateQuestionDto,
       tx,
     );
-    await this.prismaQuestionRepository.updateQuestionSetting(
-      questionId,
-      updateQuestionDto.settings,
-      formId,
-      tx,
-    );
-    await this.updateAnswerOptions(questionId, updateQuestionDto, tx);
+
+    // Update question settings
+    if (updateQuestionDto.settings) {
+      await this.prismaQuestionRepository.updateQuestionSetting(
+        questionId,
+        updateQuestionDto.settings,
+        formId,
+        tx,
+      );
+    }
+
+    // Update answer options if provided
+    if (updateQuestionDto.answerOptions) {
+      await this.updateAnswerOptions(questionId, updateQuestionDto, tx);
+    }
+
+    // Handle conditions
+    if (updateQuestionDto.conditions !== undefined) {
+      await this.updateQuestionConditions(
+        questionId,
+        updateQuestionDto.conditions,
+        tx,
+      );
+    }
 
     return updatedQuestion;
   }
@@ -511,5 +542,82 @@ export class QuestionService {
       formId,
       tx,
     );
+  }
+
+  private async updateQuestionConditions(
+    questionId: number,
+    conditions: CreateQuestionConditionDto[],
+    tx?: any,
+  ) {
+    const existingConditions =
+      await this.questionConditionService.findAllByQuestionId(questionId);
+
+    if (!conditions || conditions.length === 0) {
+      if (existingConditions.length > 0) {
+        await Promise.all(
+          existingConditions.map((cond) =>
+            this.questionConditionService.delete(cond.id, tx),
+          ),
+        );
+      }
+      return;
+    }
+
+    const processedConditions = new Set();
+    const questionLogicMap = new Map<number, number>(); // Lưu questionLogicId theo questionId
+
+    for (const conditionDto of conditions) {
+      try {
+        const conditionKey = `${conditionDto.questionId}-${conditionDto.role}`;
+
+        if (processedConditions.has(conditionKey)) continue;
+        processedConditions.add(conditionKey);
+
+        const existingCondition = existingConditions.find(
+          (cond) =>
+            cond.questionId === conditionDto.questionId &&
+            cond.role === conditionDto.role,
+        );
+
+        const conditionData: CreateQuestionConditionDto = {
+          questionId: conditionDto.questionId,
+          role: conditionDto.role,
+          conditionType: conditionDto.conditionType,
+          conditionValue: conditionDto.conditionValue,
+          logicalOperator: conditionDto.logicalOperator,
+        };
+
+        if (conditionDto.role === 'SOURCE') {
+          const questionLogicId =
+            await this.questionConditionService.handleSourceCondition(
+              questionId,
+              conditionData,
+              tx,
+            );
+
+          console.log('SOURCE: questionLogicId =', questionLogicId);
+
+          // Lưu questionLogicId vào Map
+          questionLogicMap.set(questionId, questionLogicId);
+        }
+
+        if (conditionDto.role === 'TARGET') {
+          const questionLogicId = questionLogicMap.get(questionId); // Lấy từ Map
+          console.log('TARGET: questionLogicId =', questionLogicId);
+
+          await this.questionConditionService.handleTargetCondition(
+            questionId,
+            conditionData,
+            questionLogicId, // Lúc này sẽ có giá trị nếu đã xử lý SOURCE trước đó
+            tx,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error processing condition for question ${questionId}:`,
+          error,
+        );
+      }
+    }
   }
 }

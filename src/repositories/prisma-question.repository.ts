@@ -89,7 +89,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
   async getMaxQuestionIndex(formId: number, tx?: any): Promise<number> {
     const prisma = tx || this.prismaService;
     const maxIndex = await prisma.question.aggregate({
-      where: { formId },
+      where: { formId: formId },
       _max: { index: true },
     });
     return maxIndex._max.index ?? 0;

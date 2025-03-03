@@ -1,18 +1,31 @@
 import { IsEnum, IsInt, IsJSON, IsOptional } from 'class-validator';
 import { ConditionType } from 'src/models/enums/ConditionType';
 import { LogicalOperator } from 'src/models/enums/LogicalOperator';
+import { QuestionRole } from 'src/models/enums/QuestionRole';
 
 export class QuestionConditionBaseDto {
   @IsInt()
-  targetQuestionId?: number;
+  questionId: number;
 
-  @IsInt()
-  sourceQuestionId?: number;
+  @IsEnum(QuestionRole)
+  @IsOptional()
+  role: QuestionRole;
 
   @IsEnum(ConditionType)
-  conditionType: ConditionType;
+  @IsOptional()
+  conditionType?: ConditionType;
 
-  conditionValue: any;
+  @IsInt()
+  @IsOptional()
+  sourceQuestionId?: number; // Thêm trường này
+
+  @IsInt()
+  @IsOptional()
+  targetQuestionId?: number; // Thêm trường này
+
+  @IsJSON()
+  @IsOptional()
+  conditionValue?: any;
 
   @IsEnum(LogicalOperator)
   @IsOptional()

@@ -53,6 +53,11 @@ export class PrismaSurveyFeedbackRepository
               include: { answerOptionOnMedia: { include: { media: true } } },
             },
             businessQuestionConfiguration: true,
+            questionConditions: {
+              include: {
+                questionLogic: true,
+              },
+            },
           },
         },
         business: true,

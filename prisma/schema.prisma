@@ -73,18 +73,17 @@ model UserOnResponse {
 }
 
 model ResponseOnQuestion {
-  id               Int     @id @default(autoincrement())
+  id               Int             @id @default(autoincrement())
   useronResponseId Int
   questionId       Int
   formId           Int
   answerOptionId   Int?
-  answerText       String? @db.Text
+  answerText       String?         @db.Text
   ratingValue      Int?
-
-  answerOption AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
-  question     Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  userResponse UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
-  form         SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answerOption     AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userResponse     UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
+  form             SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model SettingTypes {
@@ -144,12 +143,12 @@ model QuestionLogic {
 
 model QuestionCondition {
   id              Int          @id @default(autoincrement())
-  questionId      Int // Câu hỏi liên quan (có thể là source hoặc target)
-  questionLogicId Int // Logic điều kiện
+  questionId      Int
+  questionLogicId Int? // Logic điều kiện
   role            QuestionRole // Vai trò: SOURCE hoặc TARGET
 
-  question      Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  questionLogic QuestionLogic @relation(fields: [questionLogicId], references: [id], onDelete: Cascade)
+  question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionLogic QuestionLogic? @relation(fields: [questionLogicId], references: [id], onDelete: Cascade)
 
   @@index([questionId])
   @@index([questionLogicId])

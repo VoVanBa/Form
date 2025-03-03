@@ -20,8 +20,7 @@ export class Question {
   questionOnMedia?: QuestionOnMedia;
   businessQuestionConfiguration?: BusinessQuestionConfiguration;
 
-  conditions?: QuestionCondition[];
-  sourceForConditions?: QuestionCondition[];
+  questionConditions?: QuestionCondition[];
 
   constructor(data: Partial<Question>) {
     Object.assign(this, data);
@@ -52,11 +51,8 @@ export class Question {
             data.businessQuestionConfiguration,
           )
         : null,
-      conditions: isArray(data.conditions)
-        ? data.conditions.map(QuestionCondition.fromPrisma)
-        : [],
-      sourceForConditions: isArray(data.sourceForConditions)
-        ? data.sourceForConditions.map(QuestionCondition.fromPrisma)
+      questionConditions: data.questionConditions
+        ? data.questionConditions.map(QuestionCondition.fromPrisma)
         : [],
     });
   }

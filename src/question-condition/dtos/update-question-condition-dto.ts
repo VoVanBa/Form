@@ -1,15 +1,24 @@
-import { LogicalOperator } from '@prisma/client';
 import { IsEnum, IsInt, IsJSON, IsOptional } from 'class-validator';
 import { ConditionType } from 'src/models/enums/ConditionType';
+import { LogicalOperator } from 'src/models/enums/LogicalOperator';
+import { QuestionRole } from 'src/models/enums/QuestionRole';
 
 export class UpdateQuestionConditionDto {
   @IsInt()
   @IsOptional()
-  targetQuestionId?: number;
+  questionId?: number;
+
+  @IsEnum(QuestionRole)
+  @IsOptional()
+  role?: QuestionRole;
 
   @IsInt()
   @IsOptional()
-  sourceQuestionId?: number;
+  sourceQuestionId?: number; // Thêm trường này
+
+  @IsInt()
+  @IsOptional()
+  targetQuestionId?: number; // Thêm trường này
 
   @IsEnum(ConditionType)
   @IsOptional()

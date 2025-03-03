@@ -7,16 +7,17 @@ import { QuestionConditionService } from 'src/question-condition/question-condit
 import { MediaModule } from 'src/media/media.module';
 import { AnswerOptionModule } from 'src/answer-option/answer-option.module';
 import { SurveyFeedbackFormModule } from 'src/surveyfeedback-form/surveyfeedback-form.module';
+import { QuestionConditionModule } from 'src/question-condition/question-condition.module';
 
 @Module({
   controllers: [QuestionController],
-  providers: [
-    PrismaService,
-    QuestionService,
-    PrismaQuestionRepository,
-    QuestionConditionService,
-  ],
+  providers: [PrismaService, QuestionService, PrismaQuestionRepository],
   exports: [QuestionService],
-  imports: [MediaModule, AnswerOptionModule,forwardRef(() => SurveyFeedbackFormModule)],
+  imports: [
+    MediaModule,
+    AnswerOptionModule,
+    forwardRef(() => SurveyFeedbackFormModule),
+    QuestionConditionModule,
+  ],
 })
 export class QuestionModule {}

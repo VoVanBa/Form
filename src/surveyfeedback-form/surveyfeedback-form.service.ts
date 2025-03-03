@@ -205,6 +205,17 @@ export class SurveyFeedackFormService {
             : null,
         })),
         setting: question.businessQuestionConfiguration?.settings || {},
+        questionCondition: question.questionConditions.map((condition) => ({
+          id: condition.id,
+          role: condition.role,
+          questionId: condition.questionId,
+          questionLogic: {
+            id: condition.questionLogic.id,
+            conditionType: condition.questionLogic.conditionType,
+            conditionValue: condition.questionLogic.conditionValue,
+            logicalOperator: condition.questionLogic.logicalOperator,
+          },
+        })),
       })),
       ending: surveyEnding
         ? {
