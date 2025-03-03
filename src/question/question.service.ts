@@ -493,7 +493,6 @@ export class QuestionService {
     const form =
       await this.surveyFeedackFormService.getSurveyFeedbackById(formId);
 
-    console.log(form);
     const question =
       await this.prismaQuestionRepository.getQuessionById(questionId);
     if (!question) throw new NotFoundException('Question not found');
@@ -563,61 +562,89 @@ export class QuestionService {
       return;
     }
 
-    const processedConditions = new Set();
-    const questionLogicMap = new Map<number, number>(); // Lưu questionLogicId theo questionId
+    // Map để lưu questionLogicId theo conditionValue (thay vì questionId)
+    const questionLogicMap = new Map<string, number>(); // Key là JSON.stringify(conditionValue)
 
-    for (const conditionDto of conditions) {
+    // Giả sử conditions là mảng phẳng, xử lý theo cặp SOURCE-TARGET
+    for (let i = 0; i < conditions.length; i += 2) {
+      const sourceCondition = conditions[i];
+      const targetCondition = conditions[i + 1];
+
+      if (
+        !sourceCondition ||
+        !targetCondition ||
+        sourceCondition.role !== 'SOURCE' ||
+        targetCondition.role !== 'TARGET'
+      ) {
+        console.error(`Invalid condition pair at index ${i}`);
+        continue;
+      }
+
       try {
-        const conditionKey = `${conditionDto.questionId}-${conditionDto.role}`;
+        const conditionKey = JSON.stringify(sourceCondition.conditionValue); // Dùng conditionValue làm key
 
-        if (processedConditions.has(conditionKey)) continue;
-        processedConditions.add(conditionKey);
-
-        const existingCondition = existingConditions.find(
-          (cond) =>
-            cond.questionId === conditionDto.questionId &&
-            cond.role === conditionDto.role,
-        );
-
+        // Xử lý SOURCE
         const conditionData: CreateQuestionConditionDto = {
-          questionId: conditionDto.questionId,
-          role: conditionDto.role,
-          conditionType: conditionDto.conditionType,
-          conditionValue: conditionDto.conditionValue,
-          logicalOperator: conditionDto.logicalOperator,
+          questionId: sourceCondition.questionId,
+          role: sourceCondition.role,
+          conditionType: sourceCondition.conditionType,
+          conditionValue: sourceCondition.conditionValue,
+          logicalOperator: sourceCondition.logicalOperator,
         };
 
-        if (conditionDto.role === 'SOURCE') {
-          const questionLogicId =
-            await this.questionConditionService.handleSourceCondition(
-              questionId,
-              conditionData,
-              tx,
-            );
-
-          console.log('SOURCE: questionLogicId =', questionLogicId);
-
-          // Lưu questionLogicId vào Map
-          questionLogicMap.set(questionId, questionLogicId);
-        }
-
-        if (conditionDto.role === 'TARGET') {
-          const questionLogicId = questionLogicMap.get(questionId); // Lấy từ Map
-          console.log('TARGET: questionLogicId =', questionLogicId);
-
-          await this.questionConditionService.handleTargetCondition(
+        const questionLogicId =
+          await this.questionConditionService.handleSourceCondition(
             questionId,
             conditionData,
-            questionLogicId, // Lúc này sẽ có giá trị nếu đã xử lý SOURCE trước đó
             tx,
           );
-        }
+        console.log('SOURCE: questionLogicId =', questionLogicId);
+        questionLogicMap.set(conditionKey, questionLogicId);
+
+        // Xử lý TARGET
+        const targetData: CreateQuestionConditionDto = {
+          questionId: targetCondition.questionId,
+          role: targetCondition.role,
+          conditionType: null,
+          conditionValue: null,
+          logicalOperator: null,
+        };
+
+        await this.questionConditionService.handleTargetCondition(
+          questionId,
+          targetData,
+          questionLogicId,
+          tx,
+        );
+        console.log('TARGET processed for questionLogicId =', questionLogicId);
       } catch (error) {
         console.error(
-          `Error processing condition for question ${questionId}:`,
+          `Error processing condition pair for question ${questionId}:`,
           error,
         );
       }
     }
+
+    // Xóa các điều kiện cũ không còn trong danh sách mới
+    const newConditionKeys = conditions
+      .filter((c) => c.role === 'SOURCE')
+      .map((c) => `${c.questionId}-${JSON.stringify(c.conditionValue)}`);
+    await Promise.all(
+      existingConditions
+        .filter(
+          (ec) =>
+            !newConditionKeys.includes(
+              `${ec.questionId}-${JSON.stringify(ec.questionLogic.conditionValue)}`,
+            ),
+        )
+        .map((ec) => this.questionConditionService.delete(ec.id, tx)),
+    );
+  }
+
+  async getQuestionById(questionId: number) {
+    return await this.prismaQuestionRepository.getQuessionById(questionId);
+  }
+  async getQuestionByFormId(formId: number) {
+    return await this.prismaQuestionRepository.getSettingByFormId(formId);
   }
 }

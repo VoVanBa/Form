@@ -11,6 +11,8 @@ import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
 import { MediaModule } from 'src/media/media.module';
 import { AnswerOptionModule } from 'src/answer-option/answer-option.module';
 import { BusinessModule } from 'src/business/business.module';
+import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
+import { SurveyFeedbackDataModule } from 'src/survey-feedback-data/survey-feedback-data.module';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { BusinessModule } from 'src/business/business.module';
     MediaModule,
     AnswerOptionModule,
     BusinessModule,
+    SurveyFeedbackDataModule,
   ],
   controllers: [SurveyFeedbackFormController],
   providers: [
@@ -27,6 +30,7 @@ import { BusinessModule } from 'src/business/business.module';
     PrismaFormSettingRepository,
     PrismaAnswerOptionRepository,
     PrismaSurveyEndingRepository,
+    PrismaUserResponseRepository,
   ],
   exports: [SurveyFeedackFormService],
 })

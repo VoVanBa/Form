@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { FormResponse } from 'src/response-customization/user-responses.response';
 import { ResponseDto } from './dtos/response.dto';
@@ -14,6 +14,7 @@ import ConfigManager from 'src/config/configJsonManager';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
+import { QuestionService } from 'src/question/question.service';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -21,7 +22,7 @@ export class SurveyFeedbackDataService {
     private formRepository: PrismaSurveyFeedbackRepository,
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
-    private questionRepository: PrismaQuestionRepository,
+    private questionService: QuestionService,
     private formSetting: PrismaFormSettingRepository,
     private i18n: I18nService,
     private configManager: ConfigManager,
@@ -69,7 +70,6 @@ export class SurveyFeedbackDataService {
       formId,
       tx,
     );
-    console.log(settings, 'settings');
     const transformedSettings = this.configManager.transformSettings(settings);
 
     const validationFormErrors = await this.validateResponseOptions(
@@ -78,7 +78,7 @@ export class SurveyFeedbackDataService {
     );
 
     const questionSettings =
-      await this.questionRepository.getSettingByFormId(formId);
+      await this.questionService.getQuestionByFormId(formId);
     const validationErrors = await this.validateQuestionResponses(
       responses,
       questionSettings,
@@ -203,7 +203,7 @@ export class SurveyFeedbackDataService {
     settings: QuestionSetting[],
   ) {
     for (const response of responses) {
-      const type = await this.questionRepository.getQuessionById(
+      const type = await this.questionService.getQuestionById(
         response.questionId,
       );
 
@@ -220,9 +220,6 @@ export class SurveyFeedbackDataService {
       }
 
       const { settings: questionSettings } = questionSetting;
-
-      console.log(questionSettings, 'questionSettings');
-      console.log(questionSetting, 'questionSetting');
 
       if (
         questionSettings.required === true &&
@@ -348,7 +345,6 @@ export class SurveyFeedbackDataService {
       );
       startDate = dateRange.startDate;
       endDate = dateRange.endDate;
-      console.log(startDate, endDate, 'startDate, endDate');
     }
 
     const questions = await this.responseQuestionRepository.getAll(
@@ -401,14 +397,11 @@ export class SurveyFeedbackDataService {
       ) {
         const configurations = question.businessQuestionConfiguration;
 
-        console.log(configurations, 'configurations');
         const range = this.configManager.getSettingValue(
           configurations,
           'range',
           0,
         );
-
-        console.log(range, 'range');
 
         const ratingCounts = Array(range).fill(0);
 
@@ -762,5 +755,108 @@ export class SurveyFeedbackDataService {
 
     console.log(avgSeverity, 'avgSeverity');
     return 'low';
+  }
+
+  async createResponse(
+    formId: number,
+    questionId: number,
+    responseData: {
+      answer?: string;
+      answerOptionId?: number | number[];
+      ratingValue?: number;
+    },
+    userId?: number,
+    sessionId?: string,
+  ) {
+    // Find or create UserOnResponse
+    let userResponse =
+      await this.userResponseRepository.getResponsesBySurveyAndUser(
+        formId,
+        userId || null,
+        sessionId,
+      );
+
+    // If not found, create a new UserOnResponse
+    if (!userResponse) {
+      const guestData = !userId && sessionId ? { sessionId } : null;
+      userResponse = (await this.userResponseRepository.createUserOnResponse(
+        formId,
+        userId || null,
+        guestData,
+      ))[0];
+    }
+
+    // Get question type information
+    const question =
+      await this.questionService.getQuestionById(questionId);
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    // Delete old answers (if any)
+    await this.userResponseRepository.deleteExistingResponses(
+      userResponse.id,
+      questionId,
+      formId,
+    );
+
+    // Create answer data based on question type
+    switch (question.questionType) {
+      case 'SINGLE_CHOICE':
+      case 'PICTURE_SELECTION':
+        if (typeof responseData.answerOptionId === 'number') {
+          await this.userResponseRepository.createSingleChoiceResponse(
+            userResponse.id,
+            questionId,
+            formId,
+            responseData.answerOptionId,
+          );
+        }
+        break;
+
+      case 'MULTI_CHOICE':
+        if (Array.isArray(responseData.answerOptionId)) {
+          await Promise.all(
+            responseData.answerOptionId.map((optionId) =>
+              this.userResponseRepository.createMultiChoiceResponse(
+                userResponse.id,
+                questionId,
+                formId,
+                optionId,
+              ),
+            ),
+          );
+        }
+        break;
+
+      case 'INPUT_TEXT':
+        if (responseData.answer) {
+          await this.userResponseRepository.createTextResponse(
+            userResponse.id,
+            questionId,
+            formId,
+            responseData.answer,
+          );
+        }
+        break;
+
+      case 'RATING_SCALE':
+        if (typeof responseData.ratingValue === 'number') {
+          await this.userResponseRepository.createRatingResponse(
+            userResponse.id,
+            questionId,
+            formId,
+            responseData.ratingValue,
+          );
+        }
+        break;
+
+      default:
+        throw new BadRequestException(
+          `Unsupported question type: ${question.questionType}`,
+        );
+    }
+
+    return userResponse;
   }
 }

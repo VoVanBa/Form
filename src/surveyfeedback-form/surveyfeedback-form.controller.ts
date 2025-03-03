@@ -17,6 +17,7 @@ import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { UseTransaction } from 'src/common/decorater/transaction.decorator';
+import { Request } from 'express';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -48,12 +49,24 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getFormByIdForBusiness(id);
   }
 
-  @Get(':id/business/:businessId/client')
+  @Get(':id/business/:businessId/client/feedback')
   getFormByIdForClient(
     @Param('id') id: number,
     @Param('businessId') businessId: number,
   ) {
-    return this.surveyFeedbackFormService.getFormByIdForClient(id);
+    return this.surveyFeedbackFormService.getFormByIdForClientFeedBack(id);
+  }
+
+  @Get(':id/business/:businessId/client')
+  async getForm(
+    @Param('id') id: number,
+    @Req() request: Request,
+  ): Promise<any> {
+    // Truyền request để lấy userId (nếu đăng nhập) hoặc sessionId (nếu có)
+    return this.surveyFeedbackFormService.getFormByIdForClient(id, {
+      user: request.user, 
+      sessionId: request.headers['x-session-id'] as string, // Lấy từ header
+    });
   }
 
   // @Put(':formId')

@@ -201,4 +201,126 @@ export class PrismaUserResponseRepository {
       },
     };
   }
+
+  async getResponsesBySurveyAndUser(
+    surveyId: number,
+    userId?: number | null,
+    sessionId?: string,
+    tx?: any,
+  ) {
+    return await this.prisma.userOnResponse.findFirst({
+      where: {
+        formId: surveyId,
+        OR: [
+          { userId: userId || undefined }, // Nếu đăng nhập
+          { guest: { path: '$.sessionId', equals: sessionId } }, // Nếu ẩn danh
+        ],
+      },
+      include: { responseOnQuestions: true },
+    });
+  }
+
+  async createSingleChoiceResponse(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    answerOptionId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        answerOptionId,
+      },
+    });
+  }
+
+  async createMultiChoiceResponse(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    answerOptionId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        answerOptionId,
+      },
+    });
+  }
+
+  async createTextResponse(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    answerText: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        answerText,
+      },
+    });
+  }
+
+  async createRatingResponse(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    ratingValue: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        ratingValue,
+      },
+    });
+  }
+
+  async createUserOnResponse(
+    formId: number,
+    userId: number | null,
+    guest: any,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.userOnResponse.create({
+      data: {
+        formId,
+        userId,
+        guest,
+      },
+    });
+  }
+
+  async deleteExistingResponses(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.deleteMany({
+      where: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+      },
+    });
+  }
 }

@@ -25,5 +25,6 @@ import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
     SurveyFeedbackDataService,
     ConfigManager,
   ],
+  exports: [SurveyFeedbackDataService],
 })
 export class SurveyFeedbackDataModule {}

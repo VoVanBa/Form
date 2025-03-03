@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
-
+import { v4 as uuidv4 } from 'uuid';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
@@ -21,6 +21,8 @@ import { plainToInstance } from 'class-transformer';
 import { MediaService } from 'src/media/media.service';
 import { QuestionService } from 'src/question/question.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
+import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
+import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -34,6 +36,8 @@ export class SurveyFeedackFormService {
     @Inject(forwardRef(() => QuestionService))
     private questionSerivce: QuestionService,
     private readonly i18n: I18nService,
+    private responseRepository: PrismaUserResponseRepository,
+    private responseService: SurveyFeedbackDataService,
   ) {}
   async createForm(
     createFormDto: CreatesurveyFeedbackDto,
@@ -155,9 +159,137 @@ export class SurveyFeedackFormService {
         : null,
     };
   }
-
+  private generateSessionId(): string {
+    return uuidv4();
+  }
   async getFormByIdForClient(id: number, request?: any) {
+    const userId = request?.user?.id; // userId từ token nếu đăng nhập
+    let sessionId = request?.sessionId || this.generateSessionId(); // Sinh sessionId nếu ẩn danh
+
+    // Lấy thông tin khảo sát
+    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
+    if (!surveyFeedback) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+    if (surveyFeedback.status !== 'PUBLISHED') {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
+      );
+    }
+
+    const surveyEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+
+    // Lấy phản hồi của client cụ thể
+    const userResponses =
+      await this.responseRepository.getResponsesBySurveyAndUser(
+        id,
+        userId,
+        sessionId,
+      );
+    const answeredQuestionIds = userResponses.responseOnQuestions.map(
+      (r) => r.questionId,
+    );
+
+    // Tìm câu hỏi chưa trả lời tiếp theo
+    const currentQuestion =
+      surveyFeedback.questions
+        .sort((a, b) => a.index - b.index)
+        .find((q) => !answeredQuestionIds.includes(q.id)) || null;
+
+    const response: {
+      surveyId: number;
+      surveyName: string;
+      currentQuestion: {
+        id: number;
+        text: string;
+        type: string;
+        index: number;
+        media: { id: number; url: string } | null;
+        answerOptions: {
+          id: number;
+          label: string;
+          index: number;
+          media: { id: number; url: string } | null;
+        }[];
+        setting: any;
+      } | null;
+      isLastQuestion: boolean;
+      ending: {
+        message: string;
+        redirectUrl: string | null;
+        media: { id: number; url: string } | null;
+      } | null;
+      sessionId?: string;
+    } = {
+      surveyId: surveyFeedback.id,
+      surveyName: surveyFeedback.name,
+      currentQuestion: currentQuestion
+        ? {
+            id: currentQuestion.id,
+            text: currentQuestion.headline,
+            type: currentQuestion.questionType,
+            index: currentQuestion.index,
+            media: currentQuestion.questionOnMedia?.media
+              ? {
+                  id: currentQuestion.questionOnMedia.media.id,
+                  url: currentQuestion.questionOnMedia.media.url,
+                }
+              : null,
+            answerOptions: currentQuestion.answerOptions.map((ao) => ({
+              id: ao.id,
+              label: ao.label,
+              index: ao.index,
+              media: ao.answerOptionOnMedia?.media
+                ? {
+                    id: ao.answerOptionOnMedia.media.id,
+                    url: ao.answerOptionOnMedia.media.url,
+                  }
+                : null,
+            })),
+            setting:
+              currentQuestion.businessQuestionConfiguration?.settings || {},
+          }
+        : null,
+      isLastQuestion:
+        !currentQuestion ||
+        currentQuestion.index === surveyFeedback.questions.length,
+      ending:
+        !currentQuestion && surveyEnding
+          ? {
+              message: surveyEnding.message,
+              redirectUrl: surveyEnding.redirectUrl || null,
+              media: surveyEnding.media
+                ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
+                : null,
+            }
+          : null,
+    };
+
+    // Gửi sessionId cho client nếu ẩn danh
+    if (!userId && surveyFeedback.allowAnonymous) {
+      response.sessionId = sessionId;
+    }
+    return response;
+  }
+
+  // Hàm POST để gửi phản hồi
+  async submitResponseForClient(
+    id: number,
+    responseDto: {
+      questionId: number;
+      answer?: string;
+      answerOptionId?: number | number[];
+      ratingValue?: number;
+    },
+    request?: any,
+  ) {
     const tx = request?.tx;
+    const userId = request?.user?.id;
+    const sessionId = request?.sessionId;
+
     const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
       id,
       tx,
@@ -168,14 +300,199 @@ export class SurveyFeedackFormService {
       );
     }
 
+    // Save response
+    await this.responseService.createResponse(
+      id,
+      responseDto.questionId,
+      responseDto, // Truyền toàn bộ responseDto để có thể lưu các loại câu trả lời khác nhau
+      userId,
+      sessionId,
+    );
+
+    // Tìm câu hỏi hiện tại
+    const currentQuestion = surveyFeedback.questions.find(
+      (q) => q.id === responseDto.questionId,
+    );
+    if (!currentQuestion) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+      );
+    }
+
+    // Xử lý logic điều kiện
+    const conditions = currentQuestion.questionConditions.filter(
+      (c) => c.role === 'SOURCE',
+    );
+    let nextQuestion = null;
+
+    if (conditions.length > 0) {
+      // Xử lý theo loại câu hỏi
+      const matchedCondition = conditions.find((c) => {
+        const conditionValue = c.questionLogic?.conditionValue
+          ? JSON.parse(c.questionLogic.conditionValue)
+          : {};
+
+        switch (currentQuestion.questionType) {
+          case 'SINGLE_CHOICE':
+            return conditionValue.answerOptionId === responseDto.answerOptionId;
+
+          case 'MULTI_CHOICE':
+            if (Array.isArray(responseDto.answerOptionId)) {
+              if (c.questionLogic?.conditionType === 'CONTAINS') {
+                return responseDto.answerOptionId.includes(
+                  conditionValue.answerOptionId,
+                );
+              } else if (c.questionLogic?.conditionType === 'NOT_CONTAINS') {
+                return !responseDto.answerOptionId.includes(
+                  conditionValue.answerOptionId,
+                );
+              }
+            }
+            return false;
+
+          case 'RATING_SCALE':
+            const rating = responseDto.ratingValue;
+            if (c.questionLogic?.conditionType === 'EQUALS') {
+              return rating === conditionValue.value;
+            } else if (c.questionLogic?.conditionType === 'GREATER_THAN') {
+              return rating > conditionValue.value;
+            } else if (c.questionLogic?.conditionType === 'LESS_THAN') {
+              return rating < conditionValue.value;
+            } else if (c.questionLogic?.conditionType === 'BETWEEN') {
+              return (
+                rating >= conditionValue.min && rating <= conditionValue.max
+              );
+            }
+            return false;
+
+          case 'INPUT_TEXT':
+            const text = responseDto.answer;
+            if (c.questionLogic?.conditionType === 'EQUALS') {
+              return text === conditionValue.value;
+            } else if (c.questionLogic?.conditionType === 'CONTAINS') {
+              return text.includes(conditionValue.value);
+            }
+            return false;
+
+          default:
+            return false;
+        }
+      });
+
+      if (matchedCondition) {
+        // Tìm câu hỏi TARGET tương ứng với điều kiện
+        const targetQuestionId =
+          matchedCondition.questionLogic?.conditionValue?.targetQuestionId;
+        if (targetQuestionId) {
+          nextQuestion = surveyFeedback.questions.find(
+            (q) => q.id === targetQuestionId,
+          );
+        }
+      }
+    }
+
+    // Nếu không có điều kiện phù hợp, lấy câu hỏi tiếp theo theo thứ tự
+    if (!nextQuestion) {
+      const nextIndex = currentQuestion.index + 1;
+      nextQuestion = surveyFeedback.questions.find(
+        (q) => q.index === nextIndex,
+      );
+    }
+
+    // Lấy thông tin kết thúc khảo sát
+    const surveyEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+
+    // Tạo response
+    const response = {
+      surveyId: surveyFeedback.id,
+      surveyName: surveyFeedback.name,
+      sessionId,
+      currentQuestion: nextQuestion
+        ? {
+            id: nextQuestion.id,
+            text: nextQuestion.headline,
+            type: nextQuestion.questionType,
+            index: nextQuestion.index,
+            media: nextQuestion.questionOnMedia?.media
+              ? {
+                  id: nextQuestion.questionOnMedia.media.id,
+                  url: nextQuestion.questionOnMedia.media.url,
+                }
+              : null,
+            answerOptions: nextQuestion.answerOptions.map((ao) => ({
+              id: ao.id,
+              label: ao.label,
+              index: ao.index,
+              media: ao.answerOptionOnMedia?.media
+                ? {
+                    id: ao.answerOptionOnMedia.media.id,
+                    url: ao.answerOptionOnMedia.media.url,
+                  }
+                : null,
+            })),
+            setting: nextQuestion.businessQuestionConfiguration?.settings || {},
+          }
+        : null,
+      isLastQuestion:
+        !nextQuestion || nextQuestion.index === surveyFeedback.questions.length,
+      ending:
+        !nextQuestion && surveyEnding
+          ? {
+              message: surveyEnding.message,
+              redirectUrl: surveyEnding.redirectUrl || null,
+              media: surveyEnding.media
+                ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
+                : null,
+            }
+          : null,
+    };
+
+    if (!userId && surveyFeedback.allowAnonymous) {
+      response.sessionId = sessionId;
+    }
+
+    return response;
+  }
+  async getFormByIdForClientFeedBack(id: number, request?: any) {
+    const tx = request?.tx;
+    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
+      id,
+      tx,
+    );
+    if (!surveyFeedback) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
     if (surveyFeedback.status !== FormStatus.PUBLISHED) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
       );
     }
-
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+
+    // Create a map to track logic connections (matching by questionLogicId)
+    const logicMap = new Map();
+
+    // First pass: collect all condition logic
+    surveyFeedback.questions.forEach((question) => {
+      question.questionConditions.forEach((condition) => {
+        if (condition.questionLogicId) {
+          const key = condition.questionLogicId;
+          if (!logicMap.has(key)) {
+            logicMap.set(key, { sources: [], targets: [] });
+          }
+
+          if (condition.role === 'SOURCE') {
+            logicMap.get(key).sources.push(condition.questionId);
+          } else if (condition.role === 'TARGET') {
+            logicMap.get(key).targets.push(condition.questionId);
+          }
+        }
+      });
+    });
 
     return {
       id: surveyFeedback.id,
@@ -205,17 +522,47 @@ export class SurveyFeedackFormService {
             : null,
         })),
         setting: question.businessQuestionConfiguration?.settings || {},
-        questionCondition: question.questionConditions.map((condition) => ({
-          id: condition.id,
-          role: condition.role,
-          questionId: condition.questionId,
-          questionLogic: {
-            id: condition.questionLogic.id,
-            conditionType: condition.questionLogic.conditionType,
-            conditionValue: condition.questionLogic.conditionValue,
-            logicalOperator: condition.questionLogic.logicalOperator,
-          },
-        })),
+        questionCondition: question.questionConditions.map((condition) => {
+          const result = {
+            id: condition.id,
+            role: condition.role,
+            relatedTargetQuestion: condition.questionId,
+            questionLogic: condition.questionLogic
+              ? {
+                  conditionType: condition.questionLogic.conditionType,
+                  conditionValue: condition.questionLogic.conditionValue,
+                  logicalOperator: condition.questionLogic.logicalOperator,
+                }
+              : null,
+          };
+
+          // Add appropriate related question IDs based on role
+          if (condition.role === 'SOURCE') {
+            // Find the matching TARGET questions with the same logic
+            if (
+              condition.questionLogicId &&
+              logicMap.has(condition.questionLogicId)
+            ) {
+              result.relatedTargetQuestion =
+                logicMap.get(condition.questionLogicId).targets[0] || null;
+            } else {
+              result.relatedTargetQuestion = null;
+            }
+          } else if (condition.role === 'TARGET') {
+            // Find the matching SOURCE questions with the same logic
+            if (
+              condition.questionLogicId &&
+              logicMap.has(condition.questionLogicId)
+            ) {
+              result.relatedTargetQuestion =
+                logicMap.get(condition.questionLogicId).sources[0] || null;
+            } else {
+              result.relatedTargetQuestion = null;
+            }
+          }
+
+          return result;
+        }),
       })),
       ending: surveyEnding
         ? {
@@ -228,7 +575,6 @@ export class SurveyFeedackFormService {
         : null,
     };
   }
-
   async updateForm(
     id: number,
     updateFormDto: UpdatesurveyFeedbackDto,

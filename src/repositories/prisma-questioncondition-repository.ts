@@ -72,7 +72,7 @@ export class PrismaQuestionConditionRepository
       data: {
         questionId: data.questionId,
         role: data.role,
-        questionLogicId,
+        questionLogicId:questionLogicId,
       },
       include: {
         question: true,
@@ -94,6 +94,7 @@ export class PrismaQuestionConditionRepository
         conditionType: data.conditionType,
         conditionValue: data.conditionValue,
         logicalOperator: data.logicalOperator,
+        
       },
     });
     console.log('Prisma created condition:', condition);
