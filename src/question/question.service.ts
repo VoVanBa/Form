@@ -87,7 +87,7 @@ export class QuestionService {
   }
   async addAndUpdateQuestions(
     formId: number,
-    updateQuestionsDto: UpdateQuestionDto[],
+    updateQuestionsDtos: UpdateQuestionDto[],
     tx?: any,
   ) {
     const form = await this.validateForm(formId, tx);
@@ -97,7 +97,7 @@ export class QuestionService {
     let nextIndex = currentMaxIndex + 1;
     const results = [];
 
-    for (const updateQuestionDto of updateQuestionsDto) {
+    for (const updateQuestionDto of updateQuestionsDtos) {
       const { questionType, questionId } = updateQuestionDto;
       if (questionId) {
         const question = await this.validateQuestion(questionId, tx);
@@ -377,6 +377,8 @@ export class QuestionService {
   ) {
     const { answerOptions, imageId } = addQuestionDto;
 
+    console.log('Creating question with data:', answerOptions);
+
     if (answerOptions && answerOptions.length < 2) {
       throw new BadRequestException(
         this.i18n.translate('errors.MUSTHAVEATLEASTTWOCHOICES'),
@@ -644,7 +646,20 @@ export class QuestionService {
   async getQuestionById(questionId: number) {
     return await this.prismaQuestionRepository.getQuessionById(questionId);
   }
-  async getQuestionByFormId(formId: number) {
+  async getQuestionSettingByFormId(formId: number) {
     return await this.prismaQuestionRepository.getSettingByFormId(formId);
+  }
+
+  async getQuestionSettingByQuestionId(questionId: number) {
+    return await this.prismaQuestionRepository.getSettingByQuestionId(
+      questionId,
+    );
+  }
+
+  async getIndexQuestionById(formId: number, index: number) {
+    return await this.prismaQuestionRepository.getIndexQuestionById(
+      formId,
+      index,
+    );
   }
 }

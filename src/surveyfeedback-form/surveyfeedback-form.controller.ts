@@ -57,6 +57,19 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getFormByIdForClientFeedBack(id);
   }
 
+  @Post(':id/back')
+  async goBackToPreviousQuestion(
+    @Param('id') id: number,
+    @Body() backDto: { currentQuestionId: number },
+    @Req() request,
+  ) {
+    return this.surveyFeedbackFormService.goBackToPreviousQuestion(
+      id,
+      backDto.currentQuestionId,
+      request,
+    );
+  }
+
   @Get(':id/business/:businessId/client')
   async getForm(
     @Param('id') id: number,
@@ -64,18 +77,29 @@ export class SurveyFeedbackFormController {
   ): Promise<any> {
     // Truyền request để lấy userId (nếu đăng nhập) hoặc sessionId (nếu có)
     return this.surveyFeedbackFormService.getFormByIdForClient(id, {
-      user: request.user, 
+      user: request.user,
       sessionId: request.headers['x-session-id'] as string, // Lấy từ header
     });
   }
 
-  // @Put(':formId')
-  // updateForm(
-  //   @Param('formId') formId: number,
-  //   @Body() data: UpdatesurveyFeedbackDto,
-  // ) {
-  //   return this.surveyFeedbackFormService.updateForm(formId, data);
-  // }
+  @Post(':id/submit-response')
+  async submitResponseForClient(
+    @Param('id') id: number,
+    @Body()
+    responseDto: {
+      questionId: number;
+      answer?: string;
+      answerOptionId?: number | number[];
+      ratingValue?: number;
+    },
+    @Req() request: any,
+  ) {
+    return this.surveyFeedbackFormService.submitResponseForClient(
+      id,
+      responseDto,
+      request,
+    );
+  }
 
   @Delete(':formId')
   deleteForm(@Param('formId') formId: number) {

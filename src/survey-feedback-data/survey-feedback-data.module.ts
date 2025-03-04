@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SurveyFeedbackDataController } from './survey-feedback-data.controller';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
@@ -10,6 +10,7 @@ import { SurveyFeedbackDataService } from './survey-feedback-data.service';
 import { PrismaService } from 'src/config/providers/prisma.service';
 import ConfigManager from 'src/config/configJsonManager';
 import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
+import { QuestionModule } from 'src/question/question.module';
 
 @Module({
   controllers: [SurveyFeedbackDataController],
@@ -26,5 +27,6 @@ import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-f
     ConfigManager,
   ],
   exports: [SurveyFeedbackDataService],
+  imports: [forwardRef(() => QuestionModule)],
 })
 export class SurveyFeedbackDataModule {}

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from 'src/config/providers/prisma.service';
+import { UserOnResponse } from 'src/models/UserOnResponse';
 
 @Injectable()
 export class PrismaUserResponseRepository {
@@ -208,16 +209,52 @@ export class PrismaUserResponseRepository {
     sessionId?: string,
     tx?: any,
   ) {
-    return await this.prisma.userOnResponse.findFirst({
-      where: {
-        formId: surveyId,
-        OR: [
-          { userId: userId || undefined }, // Nếu đăng nhập
-          { guest: { path: '$.sessionId', equals: sessionId } }, // Nếu ẩn danh
-        ],
-      },
-      include: { responseOnQuestions: true },
-    });
+    const prisma = tx || this.prisma;
+
+    if (userId) {
+      return await prisma.userOnResponse.findFirst({
+        where: {
+          formId: surveyId,
+          userId: userId,
+        },
+        include: { responseOnQuestions: true },
+      });
+    }
+
+    if (sessionId) {
+      const allResponses = await prisma.userOnResponse.findMany({
+        where: {
+          formId: surveyId,
+          guest: { not: null },
+        },
+        include: { responseOnQuestions: true },
+      });
+
+      for (const response of allResponses) {
+        try {
+          const guestData = response.guest;
+
+          if (guestData && typeof guestData === 'object') {
+            if (guestData.sessionId === sessionId) {
+              return response;
+            }
+          }
+
+          if (typeof guestData === 'string') {
+            try {
+              const parsedGuest = JSON.parse(guestData);
+              if (parsedGuest.sessionId === sessionId) {
+                return response;
+              }
+            } catch (parseError) {}
+          }
+        } catch (e) {
+          console.error('❌ Lỗi không mong muốn khi xử lý guestData:', e);
+        }
+      }
+    }
+
+    return null;
   }
 
   async createSingleChoiceResponse(
@@ -297,13 +334,32 @@ export class PrismaUserResponseRepository {
     userId: number | null,
     guest: any,
     tx?: Prisma.TransactionClient,
-  ) {
+  ): Promise<UserOnResponse> {
     const prisma = tx || this.prisma;
-    return prisma.userOnResponse.create({
+    const data = await prisma.userOnResponse.create({
       data: {
         formId,
         userId,
         guest,
+      },
+    });
+    return UserOnResponse.fromPrisma(data);
+  }
+
+  async createResponseSkiped(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    skip: boolean,
+    tx?: any,
+  ) {
+    const prisma = tx || this.prisma;
+    const data = await prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        skipped: skip,
       },
     });
   }
@@ -320,6 +376,43 @@ export class PrismaUserResponseRepository {
         useronResponseId: userResponseId,
         questionId,
         formId,
+      },
+    });
+  }
+
+  async getPreviousResponses(
+    formId: number,
+    userResponseId: number,
+    questionId?: number,
+    sessionId?: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+
+    const previousResponse = await prisma.responseOnQuestion.findFirst({
+      where: {
+        useronResponseId: userResponseId,
+        questionId: questionId,
+        formId,
+      },
+    });
+
+    return previousResponse;
+  }
+
+  // Xóa câu trả lời hiện tại để quay lại câu hỏi trước
+  async removeResponseForQuestion(
+    formId: number,
+    questionId: number,
+    userResponseId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prisma = tx || this.prisma;
+    return prisma.responseOnQuestion.deleteMany({
+      where: {
+        formId,
+        questionId,
+        useronResponseId: userResponseId,
       },
     });
   }

@@ -1,6 +1,6 @@
-import { ResponseOnQuestion } from "./ResponseOnQuestion";
-import { SurveyFeedback } from "./SurveyFeedback";
-import { User } from "./User";
+import { ResponseOnQuestion } from './ResponseOnQuestion';
+import { SurveyFeedback } from './SurveyFeedback';
+import { User } from './User';
 
 export class UserOnResponse {
   id: number;
@@ -24,7 +24,7 @@ export class UserOnResponse {
       userId: data.userId,
       guest: data.guest,
       sentAt: data.sentAt,
-      responseOnQuestions: data.responseOnQuestions
+      responseOnQuestions: Array.isArray(data.responseOnQuestions)
         ? data.responseOnQuestions.map(ResponseOnQuestion.fromPrisma)
         : [],
       form: data.form ? SurveyFeedback.fromPrisma(data.form) : null,

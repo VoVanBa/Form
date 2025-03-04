@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { FormResponse } from 'src/response-customization/user-responses.response';
 import { ResponseDto } from './dtos/response.dto';
@@ -7,7 +13,6 @@ import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.
 import { FormSettingDto } from './dtos/form.setting.dto';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
-import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
 import ConfigManager from 'src/config/configJsonManager';
@@ -22,6 +27,7 @@ export class SurveyFeedbackDataService {
     private formRepository: PrismaSurveyFeedbackRepository,
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
+    @Inject(forwardRef(() => QuestionService))
     private questionService: QuestionService,
     private formSetting: PrismaFormSettingRepository,
     private i18n: I18nService,
@@ -78,7 +84,10 @@ export class SurveyFeedbackDataService {
     );
 
     const questionSettings =
-      await this.questionService.getQuestionByFormId(formId);
+      await this.questionService.getQuestionSettingByFormId(formId);
+
+    console.log(questionSettings, 'quest123456ionSettings');
+
     const validationErrors = await this.validateQuestionResponses(
       responses,
       questionSettings,
@@ -199,131 +208,160 @@ export class SurveyFeedbackDataService {
   }
 
   async validateQuestionResponses(
-    responses: ResponseDto[],
-    settings: QuestionSetting[],
+    responses: ResponseDto | ResponseDto[], // Hỗ trợ cả object và array
+    settings: QuestionSetting[] | QuestionSetting,
   ) {
-    for (const response of responses) {
-      const type = await this.questionService.getQuestionById(
-        response.questionId,
-      );
+    if (Array.isArray(responses)) {
+      for (const response of responses) {
+        await this.validateSingleResponse(response, settings);
+      }
+    } else {
+      await this.validateSingleResponse(responses, settings);
+    }
+  }
 
-      const questionSetting = settings.find(
+  private async validateSingleResponse(
+    response: ResponseDto,
+    settings: QuestionSetting[] | QuestionSetting,
+  ) {
+    const type = await this.questionService.getQuestionById(
+      response.questionId,
+    );
+
+    console.log(settings, 'settings');
+    let questionSetting: QuestionSetting | undefined;
+
+    if (Array.isArray(settings)) {
+      // Nếu settings là mảng, tìm theo key
+      questionSetting = settings.find(
         (setting) => setting.key === type.questionType,
       );
-
-      if (!questionSetting) {
-        throw new Error(
-          this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-            args: { questionId: response.questionId },
-          }),
-        );
-      }
-
-      const { settings: questionSettings } = questionSetting;
-
-      if (
-        questionSettings.required === true &&
-        response.answerText === null &&
-        response.answerOptionId === null &&
-        response.ratingValue === null
-      ) {
-        throw new Error(
-          this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-            args: { questionId: response.questionId },
-          }),
-        );
-      }
-
-      // Kiểm tra loại câu hỏi
-      switch (type.questionType) {
-        case 'SINGLE_CHOICE':
-        case 'PICTURE_SELECTION':
-          if (questionSettings.required && !response.answerOptionId) {
-            throw new BadRequestException(
-              `Question ID ${response.questionId} requires an answer.`,
-            );
-          }
-          if (
-            Array.isArray(response.answerOptionId) &&
-            response.answerOptionId.length > questionSettings.maxSelections
-          ) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-          break;
-
-        case 'MULTI_CHOICE':
-          if (response.answerOptionId) {
-            if (
-              response.answerOptionId.length <
-              (questionSettings.minSelections || 1)
-            ) {
-              throw new BadRequestException(
-                this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-                  args: { questionId: response.questionId },
-                }),
-              );
-            }
-            if (
-              response.answerOptionId.length >
-              (questionSettings.maxSelections || Infinity)
-            ) {
-              throw new BadRequestException(
-                `Question ID ${response.questionId} allows a maximum of ${questionSettings.maxSelections} selections.`,
-              );
-            }
-          } else if (questionSettings.required) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-          break;
-
-        case 'INPUT_TEXT':
-          if (questionSettings.required && !response.answerText) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-          break;
-
-        case 'RATING_SCALE':
-          if (
-            questionSettings.isRequired &&
-            response.ratingValue === undefined
-          ) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.QUESTIONREQUIRESRATINGVALUE', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-
-          if (
-            response.ratingValue !== undefined &&
-            (response.ratingValue > parseFloat(questionSettings.range) ||
-              response.ratingValue <= 0)
-          ) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.INVALIDRATINGVALUE', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-          break;
-        default:
-          throw new BadRequestException(
-            `Unknown question type for question ID ${response.questionId}.`,
-          );
-      }
+    } else {
+      // Nếu settings không phải mảng, lấy luôn giá trị
+      questionSetting = settings;
     }
+
+    if (!questionSetting) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+          args: { questionId: response.questionId },
+        }),
+      );
+    }
+
+    const isRequired = questionSetting.settings.required === true;
+
+    if (isRequired && this.isEmptyResponse(response)) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+          args: { questionId: response.questionId },
+        }),
+      );
+    }
+
+    // Xử lý logic theo từng loại câu hỏi
+    this.validateResponseByType(type.questionType, response, questionSetting);
+  }
+
+  private validateResponseByType(
+    questionType: string,
+    response: ResponseDto,
+    questionSettings: any,
+  ) {
+    switch (questionType) {
+      case 'SINGLE_CHOICE':
+      case 'PICTURE_SELECTION':
+        if (questionSettings.required && !response.answerOptionId) {
+          throw new BadRequestException(
+            `Question ID ${response.questionId} requires an answer.`,
+          );
+        }
+        if (
+          Array.isArray(response.answerOptionId) &&
+          response.answerOptionId.length > questionSettings.maxSelections
+        ) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        break;
+
+      case 'MULTI_CHOICE':
+        if (response.answerOptionId) {
+          if (
+            response.answerOptionId.length <
+            (questionSettings.minSelections || 1)
+          ) {
+            throw new BadRequestException(
+              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+                args: { questionId: response.questionId },
+              }),
+            );
+          }
+          if (
+            response.answerOptionId.length >
+            (questionSettings.maxSelections || Infinity)
+          ) {
+            throw new BadRequestException(
+              `Question ID ${response.questionId} allows a maximum of ${questionSettings.maxSelections} selections.`,
+            );
+          }
+        } else if (questionSettings.required) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        break;
+
+      case 'INPUT_TEXT':
+        if (questionSettings.required && !response.answerText) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        break;
+
+      case 'RATING_SCALE':
+        if (questionSettings.required && response.ratingValue === undefined) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.QUESTIONREQUIRESRATINGVALUE', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+
+        if (
+          response.ratingValue !== undefined &&
+          (response.ratingValue > parseFloat(questionSettings.range) ||
+            response.ratingValue <= 0)
+        ) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.INVALIDRATINGVALUE', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        break;
+
+      default:
+        throw new BadRequestException(
+          `Unknown question type for question ID ${response.questionId}.`,
+        );
+    }
+  }
+
+  private isEmptyResponse(response: ResponseDto): boolean {
+    return (
+      response.answerText == null &&
+      response.answerOptionId == null &&
+      response.ratingValue == null
+    );
   }
 
   async getFormRate(
@@ -779,16 +817,15 @@ export class SurveyFeedbackDataService {
     // If not found, create a new UserOnResponse
     if (!userResponse) {
       const guestData = !userId && sessionId ? { sessionId } : null;
-      userResponse = (await this.userResponseRepository.createUserOnResponse(
+      userResponse = await this.userResponseRepository.createUserOnResponse(
         formId,
         userId || null,
         guestData,
-      ))[0];
+      );
     }
 
     // Get question type information
-    const question =
-      await this.questionService.getQuestionById(questionId);
+    const question = await this.questionService.getQuestionById(questionId);
     if (!question) {
       throw new NotFoundException('Question not found');
     }
@@ -799,6 +836,24 @@ export class SurveyFeedbackDataService {
       questionId,
       formId,
     );
+
+    console.log(responseData, 'respo5555555555555555555nseData');
+    if (
+      (!responseData.answerOptionId &&
+        !responseData.answer &&
+        !responseData.ratingValue) ||
+      (Array.isArray(responseData.answerOptionId) &&
+        responseData.answerOptionId.length === 0)
+    ) {
+      console.log('ski555555555555555555ped');
+
+      return await this.userResponseRepository.createResponseSkiped(
+        userResponse.id,
+        questionId,
+        formId,
+        true,
+      );
+    }
 
     // Create answer data based on question type
     switch (question.questionType) {
@@ -858,5 +913,92 @@ export class SurveyFeedbackDataService {
     }
 
     return userResponse;
+  }
+
+  // async removeResponseForQuestion(
+  //   surveyId: number,
+  //   questionId: number,
+  //   userId?: number,
+  //   sessionId?: string,
+  // ): Promise<void> {
+  //   // Xác định điều kiện tìm kiếm dựa trên user hoặc session
+  //   const whereCondition: any = {
+  //     formId: surveyId,
+  //     questionId: questionId,
+  //   };
+
+  //   if (userId) {
+  //     whereCondition.useronResponseId = {
+  //       userId: userId,
+  //     };
+  //   } else if (sessionId) {
+  //     // Lấy userOnResponseId từ sessionId
+  //     const userResponse = await this.prisma.userOnResponse.findFirst({
+  //       where: {
+  //         formId: surveyId,
+  //         guest: {
+  //           path: ['sessionId'],
+  //           equals: sessionId,
+  //         },
+  //       },
+  //       select: {
+  //         id: true,
+  //       },
+  //     });
+
+  //     if (userResponse) {
+  //       whereCondition.useronResponseId = userResponse.id;
+  //     } else {
+  //       return; // Không tìm thấy response để xóa
+  //     }
+  //   }
+
+  //   // Xóa response
+  //   await this.prisma.responseOnQuestion.deleteMany({
+  //     where: whereCondition,
+  //   });
+  // }
+
+  async getPreviousQuestion(
+    surveyId: number,
+    currentQuestionId: number,
+    userId?: number,
+    sessionId?: string,
+    tx?: any,
+  ) {
+    const currentQuestion =
+      await this.questionService.getQuestionById(currentQuestionId);
+    if (!currentQuestion) {
+      return null;
+    }
+    let previousIndex = currentQuestion.index - 1;
+    let previousQuestion = null;
+
+    while (previousIndex >= 0) {
+      previousQuestion = await this.questionService.getIndexQuestionById(
+        surveyId,
+        previousIndex,
+      );
+
+      if (previousQuestion) {
+        break; // Nếu tìm thấy câu hỏi hợp lệ thì dừng vòng lặp
+      }
+
+      previousIndex--; // Giảm index để tìm tiếp
+    }
+
+    const result = await this.userResponseRepository.getPreviousResponses(
+      surveyId,
+      userId,
+      previousQuestion.id,
+      sessionId,
+      tx,
+    );
+
+    const question = await this.questionService.getQuestionById(
+      result.questionId,
+    );
+
+    return question;
   }
 }

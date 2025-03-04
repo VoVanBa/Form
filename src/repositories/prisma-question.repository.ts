@@ -45,6 +45,20 @@ export class PrismaQuestionRepository implements QuestionRepository {
     });
   }
 
+  async getSettingByQuestionId(
+    questionId: number,
+    tx?: any,
+  ): Promise<BusinessQuestionConfiguration> {
+    const prisma = tx || this.prismaService;
+    const data = await prisma.question.findFirst({
+      where: {
+        id: questionId,
+      },
+      include: { businessQuestionConfiguration: true },
+    });
+    return data.businessQuestionConfiguration;
+  }
+
   async updateQuestionSetting(
     questionId: number,
     settings: any,
@@ -265,5 +279,15 @@ export class PrismaQuestionRepository implements QuestionRepository {
         }),
       ),
     );
+  }
+
+  async getIndexQuestionById(formId: number, index: number) {
+    return await this.prismaService.question.findFirst({
+      where: {
+        formId,
+        index: index,
+        deletedAt: null,
+      },
+    });
   }
 }

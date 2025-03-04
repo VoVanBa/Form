@@ -189,15 +189,21 @@ export class SurveyFeedackFormService {
         userId,
         sessionId,
       );
-    const answeredQuestionIds = userResponses.responseOnQuestions.map(
-      (r) => r.questionId,
-    );
+
+    console.log('userResponses sjasdjasdjasdjasdjasjd', userResponses);
+    const answeredQuestionIds = userResponses?.responseOnQuestions?.length
+      ? userResponses.responseOnQuestions.map((r) => r.questionId)
+      : [];
 
     // Tìm câu hỏi chưa trả lời tiếp theo
+    const sortedQuestions = surveyFeedback.questions.sort(
+      (a, b) => a.index - b.index,
+    );
+
     const currentQuestion =
-      surveyFeedback.questions
-        .sort((a, b) => a.index - b.index)
-        .find((q) => !answeredQuestionIds.includes(q.id)) || null;
+      sortedQuestions.find((q) => !answeredQuestionIds.includes(q.id)) ||
+      sortedQuestions[0] ||
+      null;
 
     const response: {
       surveyId: number;
@@ -288,7 +294,7 @@ export class SurveyFeedackFormService {
   ) {
     const tx = request?.tx;
     const userId = request?.user?.id;
-    const sessionId = request?.sessionId;
+    const sessionId = request?.headers?.['x-session-id'];
 
     const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
       id,
@@ -300,6 +306,36 @@ export class SurveyFeedackFormService {
       );
     }
 
+    const currentQuestion = surveyFeedback.questions.find(
+      (q) => q.id === responseDto.questionId,
+    );
+    if (!currentQuestion) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+      );
+    }
+
+    // 🔥 Đảm bảo settings luôn là mảng (hoặc mặc định thành [])
+    const settings = await this.questionSerivce.getQuestionSettingByQuestionId(
+      currentQuestion.id,
+    );
+
+    console.log(settings, 'settings123456789');
+
+    // 🔥 Validate response trước khi lưu
+    const validatedResponseDto = {
+      ...responseDto,
+      answerOptionId: Array.isArray(responseDto.answerOptionId)
+        ? responseDto.answerOptionId
+        : responseDto.answerOptionId !== undefined
+          ? [responseDto.answerOptionId]
+          : [],
+    };
+    await this.responseService.validateQuestionResponses(
+      validatedResponseDto,
+      settings,
+    );
+
     // Save response
     await this.responseService.createResponse(
       id,
@@ -310,14 +346,6 @@ export class SurveyFeedackFormService {
     );
 
     // Tìm câu hỏi hiện tại
-    const currentQuestion = surveyFeedback.questions.find(
-      (q) => q.id === responseDto.questionId,
-    );
-    if (!currentQuestion) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
-      );
-    }
 
     // Xử lý logic điều kiện
     const conditions = currentQuestion.questionConditions.filter(
@@ -328,9 +356,16 @@ export class SurveyFeedackFormService {
     if (conditions.length > 0) {
       // Xử lý theo loại câu hỏi
       const matchedCondition = conditions.find((c) => {
-        const conditionValue = c.questionLogic?.conditionValue
-          ? JSON.parse(c.questionLogic.conditionValue)
-          : {};
+        const conditionValue = (() => {
+          try {
+            return typeof c.questionLogic?.conditionValue === 'string'
+              ? JSON.parse(c.questionLogic.conditionValue)
+              : {};
+          } catch (error) {
+            console.error(c.questionLogic?.conditionValue, error);
+            return {};
+          }
+        })();
 
         switch (currentQuestion.questionType) {
           case 'SINGLE_CHOICE':
@@ -380,7 +415,6 @@ export class SurveyFeedackFormService {
       });
 
       if (matchedCondition) {
-        // Tìm câu hỏi TARGET tương ứng với điều kiện
         const targetQuestionId =
           matchedCondition.questionLogic?.conditionValue?.targetQuestionId;
         if (targetQuestionId) {
@@ -391,7 +425,6 @@ export class SurveyFeedackFormService {
       }
     }
 
-    // Nếu không có điều kiện phù hợp, lấy câu hỏi tiếp theo theo thứ tự
     if (!nextQuestion) {
       const nextIndex = currentQuestion.index + 1;
       nextQuestion = surveyFeedback.questions.find(
@@ -575,6 +608,138 @@ export class SurveyFeedackFormService {
         : null,
     };
   }
+
+  async goBackToPreviousQuestion(
+    id: number,
+    currentQuestionId: number,
+    request?: any,
+  ) {
+    const tx = request?.tx;
+    const userId = request?.user?.id;
+    const sessionId = request?.headers?.['x-session-id'];
+
+    // Kiểm tra khảo sát có tồn tại không
+    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
+      id,
+      tx,
+    );
+    if (!surveyFeedback) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+
+    // Tìm câu hỏi hiện tại
+    const currentQuestion = surveyFeedback.questions.find(
+      (q) => q.id === currentQuestionId,
+    );
+    if (!currentQuestion) {
+      throw new NotFoundException(
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+      );
+    }
+
+    // Kiểm tra xem có thể quay lại không
+    if (currentQuestion.index <= 0) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
+      );
+    }
+
+    const userResponses =
+      await this.responseRepository.getResponsesBySurveyAndUser(
+        id,
+        userId,
+        sessionId,
+      );
+
+    console.log(userResponses.id, 'ssssss');
+
+    // Lấy thông tin về câu hỏi trước và câu trả lời tương ứng
+    const previousResponse = await this.responseService.getPreviousQuestion(
+      id,
+      currentQuestionId,
+      userResponses.id,
+      sessionId,
+      tx,
+    );
+
+    console.log(previousResponse, 'sssss');
+
+    // Xử lý dữ liệu trả về cho client
+    return {
+      surveyId: surveyFeedback.id,
+      surveyName: surveyFeedback.name,
+      sessionId,
+      currentQuestion: {
+        id: previousResponse.id,
+        text: previousResponse.headline,
+        type: previousResponse.questionType,
+        index: previousResponse.index,
+        media: previousResponse.questionOnMedia?.media
+          ? {
+              id: previousResponse.questionOnMedia.media.id,
+              url: previousResponse.questionOnMedia.media.url,
+            }
+          : null,
+        answerOptions: previousResponse.answerOptions.map((ao) => ({
+          id: ao.id,
+          label: ao.label,
+          index: ao.index,
+          media: ao.answerOptionOnMedia?.media
+            ? {
+                id: ao.answerOptionOnMedia.media.id,
+                url: ao.answerOptionOnMedia.media.url,
+              }
+            : null,
+        })),
+        setting: previousResponse.businessQuestionConfiguration?.settings || {},
+        previousAnswer: previousResponse
+          ? this.formatPreviousAnswer(
+              previousResponse.questionType,
+              previousResponse,
+            )
+          : null,
+      },
+      isLastQuestion: false,
+      ending: null,
+    };
+  }
+
+  // Hàm phụ trợ để định dạng câu trả lời trước đó theo loại câu hỏi
+  private formatPreviousAnswer(questionType: string, response: any) {
+    switch (questionType) {
+      case 'SINGLE_CHOICE':
+        return {
+          answerOptionId: response.answerOptionId,
+        };
+
+      case 'MULTI_CHOICE':
+        // Lưu ý: Với MULTI_CHOICE, bạn cần lấy tất cả câu trả lời của câu hỏi này
+        return {
+          answerOptionId: [response.answerOptionId],
+        };
+
+      case 'RATING_SCALE':
+        return {
+          ratingValue: response.ratingValue,
+        };
+
+      case 'INPUT_TEXT':
+        return {
+          answer: response.answerText,
+        };
+
+      case 'PICTURE_SELECTION':
+        return {
+          answerOptionId: response.answerOptionId,
+        };
+
+      default:
+        return null;
+    }
+  }
+
   async updateForm(
     id: number,
     updateFormDto: UpdatesurveyFeedbackDto,
@@ -940,12 +1105,14 @@ export class SurveyFeedackFormService {
     request?: any,
   ) {
     const tx = request?.transaction;
-    const form = await this.formRepository.getSurveyFeedbackById(formId, tx);
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
       );
     }
+
+    console.log(updateQuestionDto, 'updateFormDto');
 
     await this.formRepository.updateSurveyFeedback(formId, updateFormDto, tx);
     const questions = await this.questionSerivce.addAndUpdateQuestions(
