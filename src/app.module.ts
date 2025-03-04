@@ -10,7 +10,7 @@ import { BusinessModule } from './business/business.module';
 import { QuestionModule } from './question/question.module';
 import { SurveyFeedbackFormModule } from './surveyfeedback-form/surveyfeedback-form.module';
 import { AdminModule } from './admin/admin.module';
-import * as path from 'path';
+import { join } from 'path';
 import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n'; // Import I18nJsonLoader
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
 import { QuestionConditionModule } from './question-condition/question-condition.module';
@@ -26,6 +26,18 @@ import { AnswerOptionModule } from './answer-option/answer-option.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    I18nModule.forRoot({
+      fallbackLanguage: 'vi',
+      loaderOptions: {
+        path: join(__dirname, '/i18n/'),
+        watch: true,
+        filePattern: '*.json',
+      },
+      resolvers: [
+        { use: QueryResolver, options: ['lang'] }, // Lấy từ query ?lang=vi
+        AcceptLanguageResolver, // Lấy từ headers
+      ],
+    }),
     AuthModule,
     UsersModule,
     MailModule,
@@ -34,17 +46,7 @@ import { AnswerOptionModule } from './answer-option/answer-option.module';
     SurveyFeedbackFormModule,
     AdminModule,
     SurveyFeedbackDataModule,
-    I18nModule.forRoot({
-      fallbackLanguage: 'vi',
-      loaderOptions: {
-        path: path.join(process.cwd(), 'src', 'i18n'),
-        watch: true,
-      },
-      resolvers: [
-        { use: QueryResolver, options: ['lang'] }, // Lấy từ query ?lang=vi
-        AcceptLanguageResolver, // Lấy từ headers
-      ],
-    }),
+
     QuestionConditionModule,
     MediaModule,
     AnswerOptionModule,
@@ -66,4 +68,9 @@ import { AnswerOptionModule } from './answer-option/answer-option.module';
   ],
   exports: [PrismaService, PrismaTransactionManager],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+    // Log đường dẫn của thư mục i18n
+    console.log('I18n path:', join(__dirname, './i18n'));
+  }
+}

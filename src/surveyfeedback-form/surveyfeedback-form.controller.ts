@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseInterceptors,
   Req,
+  Headers,
 } from '@nestjs/common';
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
@@ -18,11 +19,13 @@ import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { UseTransaction } from 'src/common/decorater/transaction.decorator';
 import { Request } from 'express';
+import { UsersService } from 'src/users/users.service';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
   constructor(
     private readonly surveyFeedbackFormService: SurveyFeedackFormService,
+    private userService: UsersService,
   ) {}
 
   @Post(':businessId')
@@ -74,11 +77,19 @@ export class SurveyFeedbackFormController {
   async getForm(
     @Param('id') id: number,
     @Req() request: Request,
+    @Headers('authorization') jwt: string,
   ): Promise<any> {
-    // Truyền request để lấy userId (nếu đăng nhập) hoặc sessionId (nếu có)
+    const user = await this.userService.getUserByJwt(jwt);
+    if (user) {
+      return this.surveyFeedbackFormService.getFormByIdForClient(
+        id,
+        null,
+        user.id,
+      );
+    }
     return this.surveyFeedbackFormService.getFormByIdForClient(id, {
-      user: request.user,
-      sessionId: request.headers['x-session-id'] as string, // Lấy từ header
+      user: user.id,
+      sessionId: request.headers['x-session-id'] as string,
     });
   }
 
@@ -93,7 +104,17 @@ export class SurveyFeedbackFormController {
       ratingValue?: number;
     },
     @Req() request: any,
+    @Headers('authorization') jwt: string,
   ) {
+    const user = await this.userService.getUserByJwt(jwt);
+    if (user) {
+      return this.surveyFeedbackFormService.submitResponseForClient(
+        id,
+        responseDto,
+        request,
+        user.id,
+      );
+    }
     return this.surveyFeedbackFormService.submitResponseForClient(
       id,
       responseDto,

@@ -228,7 +228,6 @@ export class SurveyFeedbackDataService {
       response.questionId,
     );
 
-    console.log(settings, 'settings');
     let questionSetting: QuestionSetting | undefined;
 
     if (Array.isArray(settings)) {
@@ -271,9 +270,14 @@ export class SurveyFeedbackDataService {
     switch (questionType) {
       case 'SINGLE_CHOICE':
       case 'PICTURE_SELECTION':
-        if (questionSettings.required && !response.answerOptionId) {
+        if (
+          (questionSettings.required && !response.answerOptionId) ||
+          !response.answerOptionId
+        ) {
           throw new BadRequestException(
-            `Question ID ${response.questionId} requires an answer.`,
+            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+              args: { questionId: response.questionId },
+            }),
           );
         }
         if (
@@ -292,7 +296,7 @@ export class SurveyFeedbackDataService {
         if (response.answerOptionId) {
           if (
             response.answerOptionId.length <
-            (questionSettings.minSelections || 1)
+            (questionSettings.minSelections || 1 || !response.answerOptionId)
           ) {
             throw new BadRequestException(
               this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
@@ -338,7 +342,7 @@ export class SurveyFeedbackDataService {
 
         if (
           response.ratingValue !== undefined &&
-          (response.ratingValue > parseFloat(questionSettings.range) ||
+          (response.ratingValue > parseFloat(questionSettings.settings.range) ||
             response.ratingValue <= 0)
         ) {
           throw new BadRequestException(
@@ -827,7 +831,9 @@ export class SurveyFeedbackDataService {
     // Get question type information
     const question = await this.questionService.getQuestionById(questionId);
     if (!question) {
-      throw new NotFoundException('Question not found');
+      throw new NotFoundException(
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+      );
     }
 
     // Delete old answers (if any)
@@ -837,7 +843,6 @@ export class SurveyFeedbackDataService {
       formId,
     );
 
-    console.log(responseData, 'respo5555555555555555555nseData');
     if (
       (!responseData.answerOptionId &&
         !responseData.answer &&
@@ -845,8 +850,6 @@ export class SurveyFeedbackDataService {
       (Array.isArray(responseData.answerOptionId) &&
         responseData.answerOptionId.length === 0)
     ) {
-      console.log('ski555555555555555555ped');
-
       return await this.userResponseRepository.createResponseSkiped(
         userResponse.id,
         questionId,
@@ -981,10 +984,10 @@ export class SurveyFeedbackDataService {
       );
 
       if (previousQuestion) {
-        break; // Nếu tìm thấy câu hỏi hợp lệ thì dừng vòng lặp
+        break;
       }
 
-      previousIndex--; // Giảm index để tìm tiếp
+      previousIndex--;
     }
 
     const result = await this.userResponseRepository.getPreviousResponses(

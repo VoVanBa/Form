@@ -23,6 +23,7 @@ import { QuestionService } from 'src/question/question.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
+import { QuestionConditionService } from 'src/question-condition/question-condition.service';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -38,6 +39,7 @@ export class SurveyFeedackFormService {
     private readonly i18n: I18nService,
     private responseRepository: PrismaUserResponseRepository,
     private responseService: SurveyFeedbackDataService,
+    private questionCondition: QuestionConditionService,
   ) {}
   async createForm(
     createFormDto: CreatesurveyFeedbackDto,
@@ -146,6 +148,18 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
+        condition: question.questionConditions.map((condition) => ({
+          id: condition.id,
+          role: condition.role,
+          logic: condition.questionLogic
+            ? {
+                id: condition.questionLogic.id,
+                type: condition.questionLogic.conditionType,
+                value: condition.questionLogic.conditionValue,
+                operator: condition.questionLogic.logicalOperator,
+              }
+            : null,
+        })),
         setting: question.businessQuestionConfiguration?.settings || {},
       })),
       ending: surveyEnding
@@ -162,8 +176,8 @@ export class SurveyFeedackFormService {
   private generateSessionId(): string {
     return uuidv4();
   }
-  async getFormByIdForClient(id: number, request?: any) {
-    const userId = request?.user?.id; // userId từ token nếu đăng nhập
+  async getFormByIdForClient(id: number, request?: any, user?: number) {
+    const userId = user; // userId từ token nếu đăng nhập
     let sessionId = request?.sessionId || this.generateSessionId(); // Sinh sessionId nếu ẩn danh
 
     // Lấy thông tin khảo sát
@@ -291,9 +305,10 @@ export class SurveyFeedackFormService {
       ratingValue?: number;
     },
     request?: any,
+    user?: number,
   ) {
     const tx = request?.tx;
-    const userId = request?.user?.id;
+    const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
     const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
@@ -314,13 +329,11 @@ export class SurveyFeedackFormService {
         this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
+    console.log(currentQuestion, 'ádhkạdhkáhkádhạkshdạksdhạkshd');
 
-    // 🔥 Đảm bảo settings luôn là mảng (hoặc mặc định thành [])
     const settings = await this.questionSerivce.getQuestionSettingByQuestionId(
       currentQuestion.id,
     );
-
-    console.log(settings, 'settings123456789');
 
     // 🔥 Validate response trước khi lưu
     const validatedResponseDto = {
@@ -331,21 +344,23 @@ export class SurveyFeedackFormService {
           ? [responseDto.answerOptionId]
           : [],
     };
+
+    console.log(
+      validatedResponseDto,
+      'sdfsdjfhsdfhskdjhfkadskfhskdfhkdsjfhkdsjfhkdss',
+    );
     await this.responseService.validateQuestionResponses(
       validatedResponseDto,
       settings,
     );
 
-    // Save response
     await this.responseService.createResponse(
       id,
       responseDto.questionId,
-      responseDto, // Truyền toàn bộ responseDto để có thể lưu các loại câu trả lời khác nhau
+      responseDto,
       userId,
       sessionId,
     );
-
-    // Tìm câu hỏi hiện tại
 
     // Xử lý logic điều kiện
     const conditions = currentQuestion.questionConditions.filter(
@@ -357,16 +372,11 @@ export class SurveyFeedackFormService {
       // Xử lý theo loại câu hỏi
       const matchedCondition = conditions.find((c) => {
         const conditionValue = (() => {
-          try {
-            return typeof c.questionLogic?.conditionValue === 'string'
-              ? JSON.parse(c.questionLogic.conditionValue)
-              : {};
-          } catch (error) {
-            console.error(c.questionLogic?.conditionValue, error);
-            return {};
-          }
+          console.log(c.questionLogic?.conditionValue);
+          return c.questionLogic?.conditionValue;
         })();
 
+        console.log(conditionValue.answerOptionId);
         switch (currentQuestion.questionType) {
           case 'SINGLE_CHOICE':
             return conditionValue.answerOptionId === responseDto.answerOptionId;
@@ -415,11 +425,14 @@ export class SurveyFeedackFormService {
       });
 
       if (matchedCondition) {
-        const targetQuestionId =
-          matchedCondition.questionLogic?.conditionValue?.targetQuestionId;
-        if (targetQuestionId) {
+        const getTargetQuestionId =
+          await this.questionCondition.getTargeByLogiId(
+            matchedCondition.questionLogic.id,
+          );
+
+        if (getTargetQuestionId) {
           nextQuestion = surveyFeedback.questions.find(
-            (q) => q.id === targetQuestionId,
+            (q) => q.id === getTargetQuestionId.questionId,
           );
         }
       }
@@ -555,47 +568,6 @@ export class SurveyFeedackFormService {
             : null,
         })),
         setting: question.businessQuestionConfiguration?.settings || {},
-        questionCondition: question.questionConditions.map((condition) => {
-          const result = {
-            id: condition.id,
-            role: condition.role,
-            relatedTargetQuestion: condition.questionId,
-            questionLogic: condition.questionLogic
-              ? {
-                  conditionType: condition.questionLogic.conditionType,
-                  conditionValue: condition.questionLogic.conditionValue,
-                  logicalOperator: condition.questionLogic.logicalOperator,
-                }
-              : null,
-          };
-
-          // Add appropriate related question IDs based on role
-          if (condition.role === 'SOURCE') {
-            // Find the matching TARGET questions with the same logic
-            if (
-              condition.questionLogicId &&
-              logicMap.has(condition.questionLogicId)
-            ) {
-              result.relatedTargetQuestion =
-                logicMap.get(condition.questionLogicId).targets[0] || null;
-            } else {
-              result.relatedTargetQuestion = null;
-            }
-          } else if (condition.role === 'TARGET') {
-            // Find the matching SOURCE questions with the same logic
-            if (
-              condition.questionLogicId &&
-              logicMap.has(condition.questionLogicId)
-            ) {
-              result.relatedTargetQuestion =
-                logicMap.get(condition.questionLogicId).sources[0] || null;
-            } else {
-              result.relatedTargetQuestion = null;
-            }
-          }
-
-          return result;
-        }),
       })),
       ending: surveyEnding
         ? {
@@ -629,7 +601,6 @@ export class SurveyFeedackFormService {
       );
     }
 
-    // Tìm câu hỏi hiện tại
     const currentQuestion = surveyFeedback.questions.find(
       (q) => q.id === currentQuestionId,
     );
@@ -655,16 +626,99 @@ export class SurveyFeedackFormService {
 
     console.log(userResponses.id, 'ssssss');
 
-    // Lấy thông tin về câu hỏi trước và câu trả lời tương ứng
-    const previousResponse = await this.responseService.getPreviousQuestion(
+    const previousQuestion = await this.responseService.getPreviousQuestion(
       id,
       currentQuestionId,
       userResponses.id,
       sessionId,
       tx,
     );
+    // --------------------------------------------------
+    // const previousResponse = await this.responseService.getUserResponse
+    // console.log(previousResponse, 'ádhaksd5555hkádhạksd');
 
-    console.log(previousResponse, 'sssss');
+    // const conditions = currentQuestion.questionConditions.filter(
+    //   (c) => c.role === 'SOURCE',
+    // );
+    // let nextQuestion = null;
+
+    // if (conditions.length > 0) {
+    //   // Xử lý theo loại câu hỏi
+    //   const matchedCondition = conditions.find((c) => {
+    //     const conditionValue = (() => {
+    //       console.log(c.questionLogic?.conditionValue);
+    //       return c.questionLogic?.conditionValue;
+    //     })();
+
+    //     console.log(conditionValue.answerOptionId);
+    //     switch (currentQuestion.questionType) {
+    //       case 'SINGLE_CHOICE':
+    //         return conditionValue.answerOptionId === responseDto.answerOptionId;
+
+    //       case 'MULTI_CHOICE':
+    //         if (Array.isArray(responseDto.answerOptionId)) {
+    //           if (c.questionLogic?.conditionType === 'CONTAINS') {
+    //             return responseDto.answerOptionId.includes(
+    //               conditionValue.answerOptionId,
+    //             );
+    //           } else if (c.questionLogic?.conditionType === 'NOT_CONTAINS') {
+    //             return !responseDto.answerOptionId.includes(
+    //               conditionValue.answerOptionId,
+    //             );
+    //           }
+    //         }
+    //         return false;
+
+    //       case 'RATING_SCALE':
+    //         const rating = responseDto.ratingValue;
+    //         if (c.questionLogic?.conditionType === 'EQUALS') {
+    //           return rating === conditionValue.value;
+    //         } else if (c.questionLogic?.conditionType === 'GREATER_THAN') {
+    //           return rating > conditionValue.value;
+    //         } else if (c.questionLogic?.conditionType === 'LESS_THAN') {
+    //           return rating < conditionValue.value;
+    //         } else if (c.questionLogic?.conditionType === 'BETWEEN') {
+    //           return (
+    //             rating >= conditionValue.min && rating <= conditionValue.max
+    //           );
+    //         }
+    //         return false;
+
+    //       case 'INPUT_TEXT':
+    //         const text = responseDto.answer;
+    //         if (c.questionLogic?.conditionType === 'EQUALS') {
+    //           return text === conditionValue.value;
+    //         } else if (c.questionLogic?.conditionType === 'CONTAINS') {
+    //           return text.includes(conditionValue.value);
+    //         }
+    //         return false;
+
+    //       default:
+    //         return false;
+    //     }
+    //   });
+
+    //   if (matchedCondition) {
+    //     const getTargetQuestionId =
+    //       await this.questionCondition.getTargeByLogiId(
+    //         matchedCondition.questionLogic.id,
+    //       );
+
+    //     if (getTargetQuestionId) {
+    //       previousResponse = surveyFeedback.questions.find(
+    //         (q) => q.id === getTargetQuestionId.questionId,
+    //       );
+    //     }
+    //   }
+    // }
+
+    // if (!previousResponse) {
+    //   const nextIndex = currentQuestion.index + 1;
+    //   nextQuestion = surveyFeedback.questions.find(
+    //     (q) => q.index === nextIndex,
+    //   );
+    // }
+    // console.log(previousResponse, 'sssss');
 
     // Xử lý dữ liệu trả về cho client
     return {
@@ -672,17 +726,17 @@ export class SurveyFeedackFormService {
       surveyName: surveyFeedback.name,
       sessionId,
       currentQuestion: {
-        id: previousResponse.id,
-        text: previousResponse.headline,
-        type: previousResponse.questionType,
-        index: previousResponse.index,
-        media: previousResponse.questionOnMedia?.media
+        id: previousQuestion.id,
+        text: previousQuestion.headline,
+        type: previousQuestion.questionType,
+        index: previousQuestion.index,
+        media: previousQuestion.questionOnMedia?.media
           ? {
-              id: previousResponse.questionOnMedia.media.id,
-              url: previousResponse.questionOnMedia.media.url,
+              id: previousQuestion.questionOnMedia.media.id,
+              url: previousQuestion.questionOnMedia.media.url,
             }
           : null,
-        answerOptions: previousResponse.answerOptions.map((ao) => ({
+        answerOptions: previousQuestion.answerOptions.map((ao) => ({
           id: ao.id,
           label: ao.label,
           index: ao.index,
@@ -693,7 +747,7 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: previousResponse.businessQuestionConfiguration?.settings || {},
+        setting: previousQuestion.businessQuestionConfiguration?.settings || {},
         previousAnswer: previousResponse
           ? this.formatPreviousAnswer(
               previousResponse.questionType,

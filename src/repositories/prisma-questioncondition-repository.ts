@@ -1,3 +1,4 @@
+import { LogicalOperator } from 'src/models/enums/LogicalOperator';
 import { Injectable } from '@nestjs/common';
 import { QuestionCondition } from 'src/models/QuestionCondition';
 import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
@@ -5,6 +6,7 @@ import { UpdateQuestionConditionDto } from 'src/question-condition/dtos/update-q
 import { PrismaService } from 'src/config/providers/prisma.service';
 import { IQuestionConditionRepository } from './i-repositories/question-consition.repository';
 import { QuestionLogic } from 'src/models/QuestionLogic';
+import { QuestionRole } from 'src/models/enums/QuestionRole';
 
 @Injectable()
 export class PrismaQuestionConditionRepository
@@ -72,7 +74,7 @@ export class PrismaQuestionConditionRepository
       data: {
         questionId: data.questionId,
         role: data.role,
-        questionLogicId:questionLogicId,
+        questionLogicId: questionLogicId,
       },
       include: {
         question: true,
@@ -94,7 +96,6 @@ export class PrismaQuestionConditionRepository
         conditionType: data.conditionType,
         conditionValue: data.conditionValue,
         logicalOperator: data.logicalOperator,
-        
       },
     });
     console.log('Prisma created condition:', condition);
@@ -159,5 +160,15 @@ export class PrismaQuestionConditionRepository
       where: { id },
       data: { questionLogicId: questionLogicId },
     });
+  }
+
+  async getTargetByLogicId(logicId: number): Promise<QuestionCondition> {
+    const data = await this.prisma.questionCondition.findFirst({
+      where: {
+        questionLogicId: logicId,
+        role: QuestionRole.TARGET,
+      },
+    });
+    return QuestionCondition.fromPrisma(data);
   }
 }

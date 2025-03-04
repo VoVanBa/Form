@@ -293,4 +293,10 @@ export class QuestionConditionService {
       tx,
     );
   }
+
+  async getTargeByLogiId(logicId: number) {
+    return await this.questionConditionRepository.getTargetByLogicId(logicId);
+  }
+
+
 }

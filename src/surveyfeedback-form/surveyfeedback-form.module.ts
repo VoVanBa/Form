@@ -13,6 +13,8 @@ import { AnswerOptionModule } from 'src/answer-option/answer-option.module';
 import { BusinessModule } from 'src/business/business.module';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { SurveyFeedbackDataModule } from 'src/survey-feedback-data/survey-feedback-data.module';
+import { UsersModule } from 'src/users/users.module';
+import { QuestionConditionModule } from 'src/question-condition/question-condition.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { SurveyFeedbackDataModule } from 'src/survey-feedback-data/survey-feedba
     AnswerOptionModule,
     BusinessModule,
     SurveyFeedbackDataModule,
+    UsersModule,
+    QuestionConditionModule
   ],
   controllers: [SurveyFeedbackFormController],
   providers: [
