@@ -380,26 +380,6 @@ export class PrismaUserResponseRepository {
     });
   }
 
-  async getPreviousResponses(
-    formId: number,
-    userResponseId: number,
-    questionId?: number,
-    sessionId?: string,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const prisma = tx || this.prisma;
-
-    const previousResponse = await prisma.responseOnQuestion.findFirst({
-      where: {
-        useronResponseId: userResponseId,
-        questionId: questionId,
-        formId,
-      },
-    });
-
-    return previousResponse;
-  }
-
   // Xóa câu trả lời hiện tại để quay lại câu hỏi trước
   async removeResponseForQuestion(
     formId: number,

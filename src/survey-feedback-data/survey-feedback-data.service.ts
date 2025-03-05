@@ -990,18 +990,22 @@ export class SurveyFeedbackDataService {
       previousIndex--;
     }
 
-    const result = await this.userResponseRepository.getPreviousResponses(
-      surveyId,
-      userId,
-      previousQuestion.id,
-      sessionId,
-      tx,
-    );
-
-    const question = await this.questionService.getQuestionById(
-      result.questionId,
-    );
-
+    const question = await this.questionService.getQuestionById(previousIndex);
     return question;
+  }
+
+  async getPreviosResponse(
+    surveyId: number,
+    userId?: number | null,
+    sessionId?: string,
+  ) {
+    const result =
+      await this.userResponseRepository.getResponsesBySurveyAndUser(
+        surveyId,
+        userId,
+        sessionId,
+      );
+
+    return result;
   }
 }

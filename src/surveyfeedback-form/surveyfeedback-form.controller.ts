@@ -20,6 +20,7 @@ import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { UseTransaction } from 'src/common/decorater/transaction.decorator';
 import { Request } from 'express';
 import { UsersService } from 'src/users/users.service';
+import { use } from 'passport';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -65,7 +66,17 @@ export class SurveyFeedbackFormController {
     @Param('id') id: number,
     @Body() backDto: { currentQuestionId: number },
     @Req() request,
+    @Headers('authorization') jwt: string,
   ) {
+    const user = await this.userService.getUserByJwt(jwt);
+    if (user) {
+      return this.surveyFeedbackFormService.goBackToPreviousQuestion(
+        id,
+        backDto.currentQuestionId,
+        request,
+        user.id,
+      );
+    }
     return this.surveyFeedbackFormService.goBackToPreviousQuestion(
       id,
       backDto.currentQuestionId,

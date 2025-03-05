@@ -12,6 +12,7 @@ import { QuestionType } from 'src/models/enums/QuestionType';
 import { ConditionType } from 'src/models/enums/ConditionType';
 import { LogicalOperator } from 'src/models/enums/LogicalOperator';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
+import { QuestionRole } from 'src/models/enums/QuestionRole';
 
 @Injectable()
 export class QuestionConditionService {
@@ -294,9 +295,10 @@ export class QuestionConditionService {
     );
   }
 
-  async getTargeByLogiId(logicId: number) {
-    return await this.questionConditionRepository.getTargetByLogicId(logicId);
+  async getTargeByLogiId(logicId: number, role: QuestionRole) {
+    return await this.questionConditionRepository.getTargetByLogicId(
+      logicId,
+      role,
+    );
   }
-
-
 }

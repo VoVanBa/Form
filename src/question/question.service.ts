@@ -90,6 +90,7 @@ export class QuestionService {
     updateQuestionsDtos: UpdateQuestionDto[],
     tx?: any,
   ) {
+    console.log(updateQuestionsDtos, 'update11111111dđ111QuestionsDtos');
     const form = await this.validateForm(formId, tx);
 
     const currentMaxIndex =

@@ -162,11 +162,14 @@ export class PrismaQuestionConditionRepository
     });
   }
 
-  async getTargetByLogicId(logicId: number): Promise<QuestionCondition> {
+  async getTargetByLogicId(
+    logicId: number,
+    role: QuestionRole,
+  ): Promise<QuestionCondition> {
     const data = await this.prisma.questionCondition.findFirst({
       where: {
         questionLogicId: logicId,
-        role: QuestionRole.TARGET,
+        role: role,
       },
     });
     return QuestionCondition.fromPrisma(data);
