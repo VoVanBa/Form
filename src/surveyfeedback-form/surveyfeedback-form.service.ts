@@ -109,24 +109,70 @@ export class SurveyFeedackFormService {
       id,
       tx,
     );
+
     if (!surveyFeedback) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
       );
     }
 
+    if (surveyFeedback.status !== FormStatus.PUBLISHED) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
+      );
+    }
+
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+
+    // 1️⃣ **Tạo logic map: ánh xạ `questionLogicId` với `sources` và `targets`**
+    const logicMap = new Map();
+
+    surveyFeedback.questions.forEach((question) => {
+      question.questionConditions.forEach((condition) => {
+        if (condition.questionLogicId) {
+          const key = condition.questionLogicId;
+          if (!logicMap.has(key)) {
+            logicMap.set(key, { sources: [], targets: [] });
+          }
+
+          if (condition.role === 'SOURCE') {
+            logicMap.get(key).sources.push({
+              id: condition.questionId,
+              headline: question.headline, // Thêm headline của câu hỏi vào source
+            });
+          } else if (condition.role === 'TARGET') {
+            logicMap.get(key).targets.push({
+              id: condition.questionId,
+              headline: question.headline, // Thêm headline của câu hỏi vào target
+            });
+          }
+        }
+      });
+    });
+
+    // 2️⃣ **Hàm ánh xạ điều kiện logic**
+    const mapCondition = (condition) => {
+      const logic = logicMap.get(condition.questionLogicId);
+      return {
+        source: {
+          questionId: logic?.sources?.[0]?.id || null, // Lấy questionId của source
+          questionHeadline: logic?.sources?.[0]?.headline || null, // Lấy headline của source
+          operator: condition.questionLogic?.conditionType || 'equals',
+          value: condition.questionLogic?.conditionValue || null,
+        },
+        target: {
+          questionId: logic?.targets?.[0]?.id || null, // Lấy questionId của target
+          questionHeadline: logic?.targets?.[0]?.headline || null, // Lấy headline của target
+        },
+      };
+    };
 
     return {
       id: surveyFeedback.id,
       name: surveyFeedback.name,
       description: surveyFeedback.description,
-      createdBy: surveyFeedback.createdBy,
       type: surveyFeedback.type,
-      allowAnonymous: surveyFeedback.allowAnonymous,
-      status: surveyFeedback.status,
-      businessId: surveyFeedback.businessId,
       questions: surveyFeedback.questions.map((question) => ({
         id: question.id,
         text: question.headline,
@@ -149,19 +195,10 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        condition: question.questionConditions.map((condition) => ({
-          id: condition.id,
-          role: condition.role,
-          logic: condition.questionLogic
-            ? {
-                id: condition.questionLogic.id,
-                type: condition.questionLogic.conditionType,
-                value: condition.questionLogic.conditionValue,
-                operator: condition.questionLogic.logicalOperator,
-              }
-            : null,
-        })),
         setting: question.businessQuestionConfiguration?.settings || {},
+        questionCondition: question.questionConditions
+          .filter((condition) => condition.role !== 'TARGET') // Chỉ giữ lại điều kiện không phải TARGET
+          .map(mapCondition), // Ánh xạ điều kiện logic
       })),
       ending: surveyEnding
         ? {
@@ -954,7 +991,6 @@ export class SurveyFeedackFormService {
     const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
-    // Kiểm tra khảo sát có tồn tại không
     const surveyFeedback = await this.formRepository.getSurveyFeedbackById(
       id,
       tx,
@@ -974,13 +1010,6 @@ export class SurveyFeedackFormService {
       );
     }
 
-    // Kiểm tra xem có thể quay lại không
-    if (currentQuestion.index <= 0) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
-      );
-    }
-
     const userResponses =
       await this.responseRepository.getResponsesBySurveyAndUser(
         id,
@@ -988,69 +1017,76 @@ export class SurveyFeedackFormService {
         sessionId,
       );
 
-    const previousQuestion = await this.responseService.getPreviousQuestion(
-      id,
+    const responseHistory = userResponses.responseOnQuestions.sort(
+      (a, b) => a.createdAt - b.createdAt,
+    );
+    console.log(
+      'Response History:',
+      responseHistory.map((r) => ({
+        questionId: r.questionId,
+        createdAt: r.createdAt,
+      })),
+    );
+
+    const currentResponseIndex = responseHistory.findIndex(
+      (response) => response.questionId === currentQuestionId,
+    );
+    console.log(
+      'Current Question ID:',
       currentQuestionId,
-      userResponses.id,
-      sessionId,
-      tx,
-    );
-    const previousResponse = await this.responseService.getPreviosResponse(
-      id,
-      userId,
-      sessionId,
+      'Index in history:',
+      currentResponseIndex,
     );
 
-    const isPreviousQuestion = previousResponse.responseOnQuestions.find(
-      (response) => response.questionId === previousQuestion.id,
-    );
+    let prevQuestion;
+    let previousResponse;
 
-    const previousAnswer = isPreviousQuestion
-      ? this.formatPreviousAnswer(
-          previousQuestion.questionType,
-          isPreviousQuestion,
-        )
-      : null;
-
-    const conditions = currentQuestion.questionConditions.filter(
-      (c) => c.role === 'TARGET',
-    );
-
-    let prevQuestion = null;
-
-    if (conditions.length > 0) {
-      // Xử lý theo loại câu hỏi
-      const matchedCondition = conditions.find((c) => {
-        const conditionValue = (() => {
-          console.log(c.questionLogic?.conditionValue);
-          return c.questionLogic?.conditionValue;
-        })();
-      });
-
-      if (matchedCondition) {
-        const getTargetQuestionId =
-          await this.questionCondition.getTargeByLogiId(
-            matchedCondition.questionLogic.id,
-            QuestionRole.SOURCE,
-          );
-
-        if (getTargetQuestionId) {
-          prevQuestion = surveyFeedback.questions.find(
-            (q) => q.id === getTargetQuestionId.questionId,
+    if (currentResponseIndex === -1) {
+      // Chưa trả lời câu hiện tại
+      if (responseHistory.length > 0) {
+        // Lấy câu hỏi cuối cùng trong lịch sử trả lời
+        previousResponse = responseHistory[responseHistory.length - 1];
+        prevQuestion = surveyFeedback.questions.find(
+          (q) => q.id === previousResponse.questionId,
+        );
+      } else {
+        // Chưa trả lời câu nào, thử tìm câu hỏi trước dựa trên điều kiện hoặc index
+        prevQuestion = await this.responseService.getPreviousQuestion(
+          id,
+          currentQuestionId,
+          userResponses.id,
+          sessionId,
+          tx,
+        );
+        if (!prevQuestion) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.NOPREVIOUSQUESTION'),
           );
         }
       }
+    } else if (currentResponseIndex <= 0) {
+      // Là câu đầu tiên trong lịch sử, không thể quay lại
+      throw new BadRequestException(
+        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
+      );
+    } else {
+      // Đã trả lời, lấy câu hỏi trước đó trong lịch sử
+      previousResponse = responseHistory[currentResponseIndex - 1];
+      prevQuestion = surveyFeedback.questions.find(
+        (q) => q.id === previousResponse.questionId,
+      );
     }
 
     if (!prevQuestion) {
-      const nextIndex = currentQuestion.index - 1;
-      prevQuestion = surveyFeedback.questions.find(
-        (q) => q.index === nextIndex,
+      throw new NotFoundException(
+        this.i18n.translate('errors.QUESTIONNOTFOUND'),
       );
     }
-    console.log(previousResponse, 'sssss');
 
-    // Xử lý dữ liệu trả về cho client
+    const previousAnswer = previousResponse
+      ? this.formatPreviousAnswer(prevQuestion.questionType, previousResponse)
+      : null;
+
     return {
       surveyId: surveyFeedback.id,
       surveyName: surveyFeedback.name,

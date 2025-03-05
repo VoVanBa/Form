@@ -1008,4 +1008,18 @@ export class SurveyFeedbackDataService {
 
     return result;
   }
+
+  async removeResponseForQuestion(
+    formId: number,
+    questionId: number,
+    userResponseId: number,
+    tx?: any,
+  ) {
+    return this.userResponseRepository.deleteExistingResponses(
+      formId,
+      questionId,
+      userResponseId,
+      tx,
+    );
+  }
 }

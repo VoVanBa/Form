@@ -98,5 +98,21 @@ export class PrismaResponseQuestionRepository {
     });
   }
 
-  
+  async deleteResponsesForQuestions(
+    surveyId: number,
+    questionIds: number[],
+    userId: number,
+  ): Promise<void> {
+    await this.prisma.responseOnQuestion.deleteMany({
+      where: {
+        formId: surveyId,
+        questionId: {
+          in: questionIds,
+        },
+        userResponse: {
+          userId: userId,
+        },
+      },
+    });
+  }
 }

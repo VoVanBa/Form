@@ -301,4 +301,97 @@ export class QuestionConditionService {
       role,
     );
   }
+  async findConditionalQuestionsFromResponse(
+    surveyId: number,
+    sourceQuestionId: number,
+    previousResponse: any,
+  ): Promise<number[]> {
+    // Tìm các điều kiện của câu hỏi nguồn
+    const sourceConditions =
+      await this.questionConditionRepository.findBySourceQuestionId(
+        sourceQuestionId,
+      );
+
+    const conditionalQuestionIds: number[] = [];
+
+    // Duyệt qua từng điều kiện
+    for (const condition of sourceConditions) {
+      const conditionLogic = condition.questionLogic;
+
+      if (!conditionLogic) continue;
+
+      // Kiểm tra điều kiện dựa trên loại câu hỏi và câu trả lời
+      const isConditionMet = this.checkCondition(
+        condition.question.questionType,
+        previousResponse,
+        conditionLogic.conditionValue,
+        conditionLogic.conditionType,
+      );
+
+      // Nếu điều kiện thỏa mãn, tìm câu hỏi đích
+      if (isConditionMet) {
+        const targetCondition =
+          await this.questionConditionRepository.getTargetByLogicId(
+            conditionLogic.id,
+            QuestionRole.TARGET,
+          );
+
+        if (targetCondition) {
+          conditionalQuestionIds.push(targetCondition.questionId);
+        }
+      }
+    }
+
+    return conditionalQuestionIds;
+  }
+
+  private checkCondition(
+    questionType: QuestionType,
+    previousResponse: any,
+    conditionValue: any,
+    conditionType: string,
+  ): boolean {
+    switch (questionType) {
+      case QuestionType.SINGLE_CHOICE:
+        return (
+          conditionValue.answerOptionId === previousResponse.answerOptionId
+        );
+
+      case QuestionType.MULTI_CHOICE:
+        const responseOptions = previousResponse.answerOptionId || [];
+        if (conditionType === 'CONTAINS') {
+          return responseOptions.includes(conditionValue.answerOptionId);
+        } else if (conditionType === 'NOT_CONTAINS') {
+          return !responseOptions.includes(conditionValue.answerOptionId);
+        }
+        return false;
+
+      case QuestionType.RATING_SCALE:
+        const rating = previousResponse.ratingValue;
+        switch (conditionType) {
+          case 'EQUALS':
+            return rating === conditionValue.value;
+          case 'GREATER_THAN':
+            return rating > conditionValue.value;
+          case 'LESS_THAN':
+            return rating < conditionValue.value;
+          case 'BETWEEN':
+            return rating >= conditionValue.min && rating <= conditionValue.max;
+        }
+        return false;
+
+      case QuestionType.INPUT_TEXT:
+        const text = previousResponse.answer;
+        switch (conditionType) {
+          case 'EQUALS':
+            return text === conditionValue.value;
+          case 'CONTAINS':
+            return text.includes(conditionValue.value);
+        }
+        return false;
+
+      default:
+        return false;
+    }
+  }
 }

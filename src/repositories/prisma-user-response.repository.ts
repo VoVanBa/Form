@@ -385,7 +385,7 @@ export class PrismaUserResponseRepository {
     formId: number,
     questionId: number,
     userResponseId: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ) {
     const prisma = tx || this.prisma;
     return prisma.responseOnQuestion.deleteMany({
