@@ -1161,13 +1161,8 @@ export class SurveyFeedackFormService {
   async updateSurveyEnding(
     surveyId: number,
     ending: { message: string; redirectUrl: string; mediaId: number },
-    request?: any,
   ) {
-    const tx = request?.tx;
-    const survey = await this.formRepository.getSurveyFeedbackById(
-      surveyId,
-      tx,
-    );
+    const survey = await this.formRepository.getSurveyFeedbackById(surveyId);
     if (!survey) {
       throw new NotFoundException(
         this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
@@ -1175,31 +1170,22 @@ export class SurveyFeedackFormService {
     }
 
     const existingEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(surveyId, tx);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(surveyId);
     if (existingEnding) {
-      return this.surveyEndingRepository.updateSurveyEnding(
-        surveyId,
-        ending,
-        tx,
-      );
+      return this.surveyEndingRepository.updateSurveyEnding(surveyId, ending);
     }
-    return this.surveyEndingRepository.createSurveyEnding(
-      {
-        formId: survey.id,
-        message: ending.message,
-        redirectUrl: ending.redirectUrl,
-      },
-      tx,
-    );
+    return this.surveyEndingRepository.createSurveyEnding({
+      formId: survey.id,
+      message: ending.message,
+      redirectUrl: ending.redirectUrl,
+    });
   }
 
   async saveForm(
     formId: number,
     updateFormDto: UpdatesurveyFeedbackDto,
     updateQuestionDto: UpdateQuestionDto[],
-    request?: any,
   ) {
-    const tx = request?.transaction;
     const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new NotFoundException(
@@ -1207,23 +1193,16 @@ export class SurveyFeedackFormService {
       );
     }
 
-    console.log(updateQuestionDto, 'updateFormDto');
-
-    await this.formRepository.updateSurveyFeedback(formId, updateFormDto, tx);
+    await this.formRepository.updateSurveyFeedback(formId, updateFormDto);
     const questions = await this.questionSerivce.addAndUpdateQuestions(
       form.id,
       updateQuestionDto,
-      tx,
     );
-    const ending = await this.updateSurveyEnding(
-      form.id,
-      {
-        message: updateFormDto.endingMessage,
-        redirectUrl: updateFormDto.endingRedirectUrl,
-        mediaId: updateFormDto.endingMediaId,
-      },
-      { tx },
-    );
+    const ending = await this.updateSurveyEnding(form.id, {
+      message: updateFormDto.endingMessage,
+      redirectUrl: updateFormDto.endingRedirectUrl,
+      mediaId: updateFormDto.endingMediaId,
+    });
 
     return {
       message: this.i18n.translate('errors.FORM_SAVED_SUCCESSFULLY'),

@@ -18,7 +18,6 @@ export class UpdateQuestionDto extends BaseQuestionDto {
   @IsInt()
   questionId: number;
 
-  // Thêm trường conditions để hỗ trợ cập nhật QuestionCondition
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateQuestionConditionDto)

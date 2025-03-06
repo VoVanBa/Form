@@ -90,10 +90,8 @@ export class QuestionService {
     updateQuestionsDtos: UpdateQuestionDto[],
     tx?: any,
   ) {
-    const form = await this.validateForm(formId, tx);
-
     const currentMaxIndex =
-      await this.prismaQuestionRepository.getMaxQuestionIndex(form.id, tx);
+      await this.prismaQuestionRepository.getMaxQuestionIndex(formId, tx);
     let nextIndex = currentMaxIndex + 1;
     const results = [];
 
@@ -108,7 +106,7 @@ export class QuestionService {
           );
           const handler = this.getHandlerForQuestionType(questionType);
           const result = await handler(
-            form.id,
+            formId,
             updateQuestionDto,
             nextIndex,
             tx,
@@ -118,7 +116,7 @@ export class QuestionService {
         } else {
           const result = await this.updateQuestion(
             questionId,
-            form.id,
+            formId,
             updateQuestionDto,
             tx,
           );
@@ -126,7 +124,7 @@ export class QuestionService {
         }
       } else {
         const handler = this.getHandlerForQuestionType(questionType);
-        const result = await handler(form.id, updateQuestionDto, nextIndex, tx);
+        const result = await handler(formId, updateQuestionDto, nextIndex);
         results.push(result);
         nextIndex++;
       }

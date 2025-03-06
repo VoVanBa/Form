@@ -17,10 +17,8 @@ import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
-import { UseTransaction } from 'src/common/decorater/transaction.decorator';
 import { Request } from 'express';
 import { UsersService } from 'src/users/users.service';
-import { use } from 'passport';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -189,7 +187,6 @@ export class SurveyFeedbackFormController {
   }
 
   @Put(':formId')
-  @UseTransaction()
   async updateSurvey(
     @Param('formId') formId: number,
     @Body()
@@ -197,14 +194,12 @@ export class SurveyFeedbackFormController {
       form: UpdatesurveyFeedbackDto;
       questions: UpdateQuestionDto[];
     },
-    @Req() req,
   ) {
     const { form, questions } = body;
     const result = await this.surveyFeedbackFormService.saveForm(
       formId,
       form,
       questions || [],
-      req,
     );
 
     return result;
