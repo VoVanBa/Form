@@ -27,7 +27,6 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 export class QuestionController {
   constructor(private questionService: QuestionService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':formId')
   async getAllQuestions(@Param('formId') formId: number) {
     return this.questionService.getAllQuestion(formId);
@@ -57,6 +56,15 @@ export class QuestionController {
       formId,
       updateQuestionDto,
     );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':formId/questions-from-index/:startIndex')
+  async getAllQuestionsFromIndex(
+    @Param('formId') formId: number,
+    @Param('startIndex') startIndex: number,
+  ) {
+    return this.questionService.getQuestionsFromIndex(formId, startIndex);
   }
 
   @Roles('ADMIN')

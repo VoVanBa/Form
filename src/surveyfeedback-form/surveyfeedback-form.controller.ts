@@ -46,7 +46,7 @@ export class SurveyFeedbackFormController {
   }
 
   @Get(':id/business/:businessId')
-  getFormByIdForBusiness(
+  getFormByIdForFeedback(
     @Param('id') id: number,
     @Param('businessId') businessId: number,
   ) {
@@ -65,8 +65,8 @@ export class SurveyFeedbackFormController {
   async goBackToPreviousQuestion(
     @Param('id') id: number,
     @Body() backDto: { currentQuestionId: number },
-    @Req() request,
-    @Headers('authorization') jwt: string,
+    @Req() request?,
+    @Headers('authorization') jwt?: string,
   ) {
     const user = await this.userService.getUserByJwt(jwt);
     if (user) {
@@ -87,8 +87,8 @@ export class SurveyFeedbackFormController {
   @Get(':id/business/:businessId/client')
   async getForm(
     @Param('id') id: number,
-    @Req() request: Request,
-    @Headers('authorization') jwt: string,
+    @Req() request?: Request,
+    @Headers('authorization') jwt?: string,
   ): Promise<any> {
     const user = await this.userService.getUserByJwt(jwt);
     if (user) {
@@ -114,8 +114,8 @@ export class SurveyFeedbackFormController {
       answerOptionId?: number | number[];
       ratingValue?: number;
     },
-    @Req() request: any,
-    @Headers('authorization') jwt: string,
+    @Req() request?: any,
+    @Headers('authorization') jwt?: string,
   ) {
     const user = await this.userService.getUserByJwt(jwt);
     if (user) {
@@ -168,6 +168,7 @@ export class SurveyFeedbackFormController {
     );
     return { message: 'Survey settings updated successfully' };
   }
+
   @Get(':formId/business/:businessId/setting')
   async getAllBusinessSettings(
     @Param('formId') formId: number,

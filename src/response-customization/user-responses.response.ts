@@ -65,7 +65,7 @@ export class UserResponse {
   guest: GuestResponse;
 
   @Expose()
-  user: User;
+  person: User;
 
   @Expose()
   sentAt: Date;

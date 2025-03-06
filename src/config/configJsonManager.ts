@@ -32,43 +32,6 @@ class ConfigManager {
     return config;
   }
 
-  get(key: string): any {
-    return this.config[key];
-  }
-
-  set(key: string, value: any): void {
-    const setting = new Setting(
-      value.enabled,
-      value.limit,
-      value.date,
-      value.position,
-    );
-
-    const errors = validateSync(setting);
-    if (errors.length > 0) {
-      throw new Error(`Invalid configuration for key ${key}: ${errors}`);
-    }
-
-    this.config[key] = setting;
-  }
-
-  has(key: string): boolean {
-    return this.config.hasOwnProperty(key);
-  }
-
-  delete(key: string): void {
-    delete this.config[key];
-  }
-
-  toJSON(): string {
-    return JSON.stringify(this.config);
-  }
-
-  fromJSON(jsonString: string): void {
-    const config = JSON.parse(jsonString);
-    this.config = this.validateConfig(config);
-  }
-
   transformSettings(settings: any[]): FormSettingDto[] {
     return settings.map((setting) => {
       const { enabled, limit, date, position } = setting.value || {};

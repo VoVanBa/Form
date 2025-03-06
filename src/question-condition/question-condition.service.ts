@@ -94,7 +94,7 @@ export class QuestionConditionService {
     condition: CreateQuestionConditionDto,
     tx?: any,
   ): Promise<number> {
-    // await this.validateQuestionOrder(questionId, 'SOURCE', tx);
+    await this.validateQuestionOrder(questionId, 'SOURCE', tx);
     await this.validateConditionData(condition, tx);
     const conditionLogic =
       await this.questionConditionRepository.createQuestionLogic(condition, tx);
@@ -144,50 +144,50 @@ export class QuestionConditionService {
     );
   }
 
-  // private async validateQuestionOrder(
-  //   questionId: number,
-  //   role: string,
-  //   tx?: any,
-  // ): Promise<void> {
-  //   const currentQuestion = await this.prismaQuestionRepository.getQuessionById(
-  //     questionId,
-  //     tx,
-  //   );
-  //   if (!currentQuestion) {
-  //     throw new BadRequestException(`Question with ID ${questionId} not found`);
-  //   }
+  private async validateQuestionOrder(
+    questionId: number,
+    role: string,
+    tx?: any,
+  ): Promise<void> {
+    const currentQuestion = await this.prismaQuestionRepository.getQuessionById(
+      questionId,
+      tx,
+    );
+    if (!currentQuestion) {
+      throw new BadRequestException(`Question with ID ${questionId} not found`);
+    }
 
-  //   if (role === 'SOURCE') {
-  //     const targetConditions =
-  //       await this.questionConditionRepository.findBySourceQuestionId(
-  //         questionId,
-  //       );
-  //     console.log('targetConditions', questionId);
-  //     for (const target of targetConditions) {
-  //       const targetQuestion = target.question;
-  //       if (currentQuestion.index >= targetQuestion.index) {
-  //         throw new BadRequestException(
-  //           'Source question must come before target question',
-  //         );
-  //       }
-  //     }
-  //   }
+    if (role === 'SOURCE') {
+      const targetConditions =
+        await this.questionConditionRepository.findBySourceQuestionId(
+          questionId,
+        );
+      console.log('targetConditions', questionId);
+      for (const target of targetConditions) {
+        const targetQuestion = target.question;
+        if (currentQuestion.index >= targetQuestion.index) {
+          throw new BadRequestException(
+            'Source question must come before target question',
+          );
+        }
+      }
+    }
 
-  //   if (role === 'TARGET') {
-  //     const sourceConditions =
-  //       await this.questionConditionRepository.findByTargetQuestionId(
-  //         questionId,
-  //       );
-  //     for (const source of sourceConditions) {
-  //       const sourceQuestion = source.question;
-  //       if (sourceQuestion.index >= currentQuestion.index) {
-  //         throw new BadRequestException(
-  //           'Source question must come before target question',
-  //         );
-  //       }
-  //     }
-  //   }
-  // }
+    if (role === 'TARGET') {
+      const sourceConditions =
+        await this.questionConditionRepository.findByTargetQuestionId(
+          questionId,
+        );
+      for (const source of sourceConditions) {
+        const sourceQuestion = source.question;
+        if (sourceQuestion.index >= currentQuestion.index) {
+          throw new BadRequestException(
+            'Source question must come before target question',
+          );
+        }
+      }
+    }
+  }
 
   private async validateConditionData(
     data: CreateQuestionConditionDto,

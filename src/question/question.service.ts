@@ -90,7 +90,6 @@ export class QuestionService {
     updateQuestionsDtos: UpdateQuestionDto[],
     tx?: any,
   ) {
-    console.log(updateQuestionsDtos, 'update11111111dđ111QuestionsDtos');
     const form = await this.validateForm(formId, tx);
 
     const currentMaxIndex =
@@ -525,11 +524,6 @@ export class QuestionService {
     );
   }
 
-  async findAllQuestion(formId: number, tx?: any) {
-    await this.validateForm(formId);
-    return this.prismaQuestionRepository.findAllQuestion(formId, tx);
-  }
-
   async createQuestionSettings(
     questionId: number,
     settings: any,
@@ -662,5 +656,19 @@ export class QuestionService {
       formId,
       index,
     );
+  }
+
+  async getQuestionsFromIndex(formId: number, startIndex: number) {
+    const question =
+      await this.prismaQuestionRepository.getAllQuestionsFromIndex(
+        formId,
+        startIndex,
+      );
+    return question.map((data) => {
+      return {
+        id: data.id,
+        headline: data.headline,
+      };
+    });
   }
 }

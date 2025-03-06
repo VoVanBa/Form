@@ -161,21 +161,35 @@ export class PrismaQuestionRepository implements QuestionRepository {
     const prisma = tx || this.prismaService;
     const data = await prisma.question.findUnique({
       where: { id: questionId },
-      include: { answerOptions: true },
+      include: {
+        answerOptions: {
+          include: {
+            answerOptionOnMedia: {
+              include: {
+                media: true,
+              },
+            },
+          },
+        },
+      },
     });
     console.log(data, '123456');
     return Question.fromPrisma(data);
   }
 
-  async findAllQuestion(
-    formId: number,
-    tx?: any,
-  ): Promise<Partial<Question>[]> {
-    const prisma = tx || this.prismaService;
-    const data = await prisma.question.findMany({
-      where: { formId },
+  async findAllQuestion(formId: number): Promise<Partial<Question>[]> {
+    const data = await this.prismaService.question.findMany({
+      where: { formId, deletedAt: null },
       include: {
-        answerOptions: { include: { answerOptionOnMedia: true } },
+        answerOptions: {
+          include: {
+            answerOptionOnMedia: {
+              include: {
+                media: true,
+              },
+            },
+          },
+        },
         questionOnMedia: true,
         businessQuestionConfiguration: true,
       },
@@ -288,6 +302,26 @@ export class PrismaQuestionRepository implements QuestionRepository {
         index: index,
         deletedAt: null,
       },
+    });
+  }
+
+  async getAllQuestionsFromIndex(
+    formId: number,
+    startIndex: number,
+    tx?: any,
+  ): Promise<Partial<Question>[]> {
+    const prisma = tx || this.prismaService;
+    const data = await prisma.question.findMany({
+      where: {
+        formId,
+        index: {
+          gte: startIndex,
+        },
+      },
+      orderBy: { index: 'asc' },
+    });
+    return data.map((question) => {
+      return Question.fromPrisma(question);
     });
   }
 }

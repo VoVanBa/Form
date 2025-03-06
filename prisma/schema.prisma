@@ -70,6 +70,9 @@ model UserOnResponse {
   responseOnQuestions ResponseOnQuestion[]
   form                SurveyFeedback       @relation(fields: [formId], references: [id], onDelete: Cascade)
   user                User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([userId])
 }
 
 model ResponseOnQuestion {
@@ -86,6 +89,8 @@ model ResponseOnQuestion {
   question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userResponse     UserOnResponse? @relation(fields: [useronResponseId], references: [id], onDelete: Cascade)
   form             SurveyFeedback  @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([useronResponseId])
 }
 
 model SettingTypes {
@@ -133,6 +138,8 @@ model Question {
   questionOnMedia               QuestionOnMedia?
   businessQuestionConfiguration BusinessQuestionConfiguration? @relation("BusinessQuestionConfig")
   questionConditions            QuestionCondition[]
+
+  @@index([formId])
 }
 
 model QuestionLogic {
@@ -146,8 +153,8 @@ model QuestionLogic {
 model QuestionCondition {
   id              Int          @id @default(autoincrement())
   questionId      Int
-  questionLogicId Int? // Logic điều kiện
-  role            QuestionRole // Vai trò: SOURCE hoặc TARGET
+  questionLogicId Int? 
+  role            QuestionRole 
 
   question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionLogic QuestionLogic? @relation(fields: [questionLogicId], references: [id], onDelete: Cascade)

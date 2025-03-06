@@ -550,13 +550,14 @@ export class SurveyFeedbackDataService {
 
     const formattedData = userResponsesPage.data.map((userResponse) => ({
       sentAt: userResponse.sentAt,
-      user:
+      person:
         userResponse.userId !== null && userResponse.user
           ? {
               name: userResponse.user.username || null,
               email: userResponse.user.email || null,
             }
           : null,
+
       guest: userResponse.guest
         ? this.configManager.mapGuestDataToJson(userResponse.guest)
         : null,
@@ -595,12 +596,6 @@ export class SurveyFeedbackDataService {
         };
       }),
     }));
-
-    // const caculSeverity = formattedData.map((format) => {
-    //   const severityScores = this.calculateSeverity(format);
-    //   return severityScores;
-    // });
-    // console.log(caculSeverity, 'severityScores');
 
     return plainToInstance(
       FormResponse,
@@ -766,8 +761,7 @@ export class SurveyFeedbackDataService {
         response.question.questionType === 'RATING_SCALE' &&
         response.ratingValue
       ) {
-        if (response.ratingValue <= 2)
-          score = 3; // High severity
+        if (response.ratingValue <= 2) score = 3;
         else if (response.answer === 3) score = 2; // Medium severity
       }
 
@@ -777,16 +771,14 @@ export class SurveyFeedbackDataService {
       ) {
         const answerText = response.answerText.toLowerCase().trim();
         if (negativeWords.some((word) => answerText.includes(word))) {
-          score = 3; // High severity nếu có từ tiêu cực
+          score = 3;
         }
       }
 
       severityScores.push(score);
     }
 
-    if (severityScores.length === 0) return 'low'; // Nếu không có câu trả lời nào
-
-    // Tính trung bình điểm severity
+    if (severityScores.length === 0) return 'low';
     const avgSeverity =
       severityScores.reduce((a, b) => a + b, 0) / severityScores.length;
 
@@ -861,7 +853,6 @@ export class SurveyFeedbackDataService {
     // Create answer data based on question type
     switch (question.questionType) {
       case 'SINGLE_CHOICE':
-      case 'PICTURE_SELECTION':
         if (typeof responseData.answerOptionId === 'number') {
           await this.userResponseRepository.createSingleChoiceResponse(
             userResponse.id,
@@ -873,6 +864,7 @@ export class SurveyFeedbackDataService {
         break;
 
       case 'MULTI_CHOICE':
+      case 'PICTURE_SELECTION':
         if (Array.isArray(responseData.answerOptionId)) {
           await Promise.all(
             responseData.answerOptionId.map((optionId) =>

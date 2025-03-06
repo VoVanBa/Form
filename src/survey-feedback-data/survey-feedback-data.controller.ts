@@ -14,6 +14,9 @@ import { UsersService } from 'src/users/users.service';
 import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.dto';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';
 import { UseTransaction } from 'src/common/decorater/transaction.decorator';
+import { Roles } from 'src/common/decorater/role.customize';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/role-auth.guard';
 
 @Controller('response')
 export class SurveyFeedbackDataController {
@@ -53,6 +56,8 @@ export class SurveyFeedbackDataController {
     return result;
   }
 
+  @Roles('ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':formId/get-ratio')
   async getRatioSurveyResponse(
     @Param('formId') formId: number,
@@ -111,8 +116,8 @@ export class SurveyFeedbackDataController {
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize: string = '10',
   ) {
-    const pageNum = parseInt(page, 10) || 1; // Default to page 1
-    const pageSizeNum = parseInt(pageSize, 10) || 10; // Default to 10 items per page
+    const pageNum = parseInt(page, 10) || 1;
+    const pageSizeNum = parseInt(pageSize, 10) || 10;
     return this.responseService.filterResponsesByOption(
       formId,
       range,
