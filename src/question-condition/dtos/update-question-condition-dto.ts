@@ -5,20 +5,13 @@ import { QuestionRole } from 'src/models/enums/QuestionRole';
 
 export class UpdateQuestionConditionDto {
   @IsInt()
-  @IsOptional()
+  questionLogicId;
+
+  @IsInt()
   questionId?: number;
-
+  
   @IsEnum(QuestionRole)
-  @IsOptional()
   role?: QuestionRole;
-
-  @IsInt()
-  @IsOptional()
-  sourceQuestionId?: number; // Thêm trường này
-
-  @IsInt()
-  @IsOptional()
-  targetQuestionId?: number; // Thêm trường này
 
   @IsEnum(ConditionType)
   @IsOptional()

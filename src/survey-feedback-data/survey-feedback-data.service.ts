@@ -49,14 +49,10 @@ export class SurveyFeedbackDataService {
     formId: number,
     createResponse: CreateResponseOnQuestionDto,
     userId?: number,
-    request?: any,
   ) {
     const { guestData, responses } = createResponse;
-    const tx = request?.transaction;
-    const existingForm = await this.formRepository.getSurveyFeedbackById(
-      formId,
-      tx,
-    );
+    const existingForm =
+      await this.formRepository.getSurveyFeedbackById(formId);
     if (!existingForm) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
@@ -74,7 +70,6 @@ export class SurveyFeedbackDataService {
     const settings = await this.formSetting.getAllFormSettingBusiness(
       businessId,
       formId,
-      tx,
     );
     const transformedSettings = this.configManager.transformSettings(settings);
 
@@ -112,7 +107,6 @@ export class SurveyFeedbackDataService {
               answerText,
               ratingValue,
               formId,
-              tx,
             ),
           ),
         );
@@ -124,7 +118,6 @@ export class SurveyFeedbackDataService {
           answerText,
           ratingValue,
           formId,
-          tx,
         );
       }
     });
@@ -959,7 +952,6 @@ export class SurveyFeedbackDataService {
     currentQuestionId: number,
     userId?: number,
     sessionId?: string,
-    tx?: any,
   ) {
     const currentQuestion =
       await this.questionService.getQuestionById(currentQuestionId);
@@ -1005,13 +997,11 @@ export class SurveyFeedbackDataService {
     formId: number,
     questionId: number,
     userResponseId: number,
-    tx?: any,
   ) {
     return this.userResponseRepository.deleteExistingResponses(
       formId,
       questionId,
       userResponseId,
-      tx,
     );
   }
 }

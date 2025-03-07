@@ -5,7 +5,6 @@ import { PrismaService } from 'src/config/providers/prisma.service';
 import { FormStatus } from 'src/models/enums/FormStatus';
 import { SurveyFeedback } from 'src/models/SurveyFeedback';
 import { ISurveyFeedbackRepository } from './i-repositories/survey-feedback.repository';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaSurveyFeedbackRepository
@@ -16,7 +15,6 @@ export class PrismaSurveyFeedbackRepository
   async createSurveyFeedback(
     data: CreatesurveyFeedbackDto,
     businessId: number,
-    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.create({
       data: {
@@ -27,10 +25,7 @@ export class PrismaSurveyFeedbackRepository
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
-  async getSurveyFeedbackById(
-    id: number,
-    tx?: Prisma.TransactionClient,
-  ): Promise<SurveyFeedback> {
+  async getSurveyFeedbackById(id: number): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.findFirst({
       where: { id },
       include: {
@@ -74,10 +69,7 @@ export class PrismaSurveyFeedbackRepository
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
-  async getAllSurveyFeedbacks(
-    businessId: number,
-    tx?: Prisma.TransactionClient,
-  ): Promise<SurveyFeedback[]> {
+  async getAllSurveyFeedbacks(businessId: number): Promise<SurveyFeedback[]> {
     const prismaData = await this.prisma.surveyFeedback.findMany({
       where: { businessId },
     });
@@ -87,7 +79,6 @@ export class PrismaSurveyFeedbackRepository
   async updateSurveyFeedback(
     id: number,
     data: UpdatesurveyFeedbackDto,
-    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.update({
       where: { id },
@@ -101,17 +92,13 @@ export class PrismaSurveyFeedbackRepository
     return SurveyFeedback.fromPrisma(surveyFeedback);
   }
 
-  async deleteSurveyFeedback(
-    id: number,
-    tx?: Prisma.TransactionClient,
-  ): Promise<void> {
+  async deleteSurveyFeedback(id: number): Promise<void> {
     await this.prisma.surveyFeedback.delete({ where: { id } });
   }
 
   async updateStatus(
     status: FormStatus,
     formId: number,
-    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.update({
       where: { id: formId },
@@ -123,7 +110,6 @@ export class PrismaSurveyFeedbackRepository
   async updateSurveyAllowAnonymous(
     formId: number,
     active: boolean,
-    tx?: Prisma.TransactionClient,
   ): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.update({
       where: { id: formId },

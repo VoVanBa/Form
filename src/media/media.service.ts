@@ -54,39 +54,31 @@ export class MediaService {
     return media.id;
   }
 
-  async getQuestionOnMediaByQuestionId(questionId: number, tx?: any) {
+  async getQuestionOnMediaByQuestionId(questionId: number) {
     return await this.prismaMediaRepository.getQuestionOnMediaByQuestionId(
       questionId,
-      tx,
     );
   }
   async deleteMediaById(mediaId: number, tx?: any) {
     return await this.prismaMediaRepository.deleteMediaById(mediaId, tx);
   }
-  async getQuestionOnMediaByMediaId(mediaId: number, tx: any) {
+  async getQuestionOnMediaByMediaId(mediaId: number) {
     return await this.prismaMediaRepository.getQuestionOnMediaByMediaId(
       mediaId,
-      tx,
     );
   }
 
-  async updateQuestionOnMedia(questionId: number, mediaId: number, tx: any) {
+  async updateQuestionOnMedia(questionId: number, mediaId: number) {
     return await this.prismaMediaRepository.updateQuestionOnMedia(
       questionId,
       mediaId,
-      tx,
     );
   }
 
-  async updateAnswerOptionOnMedia(
-    answerOptionId: number,
-    mediaId: number,
-    tx: any,
-  ) {
+  async updateAnswerOptionOnMedia(answerOptionId: number, mediaId: number) {
     return await this.prismaMediaRepository.updateAnswerOptionOnMedia(
       answerOptionId,
       mediaId,
-      tx,
     );
   }
 

@@ -10,7 +10,6 @@ import { PrismaQuestionConditionRepository } from 'src/repositories/prisma-quest
 import { QuestionCondition } from 'src/models/QuestionCondition';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { ConditionType } from 'src/models/enums/ConditionType';
-import { LogicalOperator } from 'src/models/enums/LogicalOperator';
 import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
 import { QuestionRole } from 'src/models/enums/QuestionRole';
 
@@ -23,7 +22,7 @@ export class QuestionConditionService {
     private prismaQuestionRepository: PrismaQuestionRepository,
   ) {}
 
-  async findById(id: number, tx?: any): Promise<QuestionCondition> {
+  async findById(id: number): Promise<QuestionCondition> {
     const condition = await this.questionConditionRepository.findById(id);
     if (!condition) {
       throw new NotFoundException(`Question condition with ID ${id} not found`);
@@ -31,45 +30,37 @@ export class QuestionConditionService {
     return condition;
   }
 
-  async create(
-    data: CreateQuestionConditionDto,
-    tx?: any,
-  ): Promise<QuestionCondition> {
-    // await this.validateQuestionOrder(data.questionId, data.role, tx);
-    await this.validateConditionData(data, tx);
+  async create(data: CreateQuestionConditionDto): Promise<QuestionCondition> {
+    // await this.validateQuestionOrder(data.questionId, data.role);
+    await this.validateConditionData(data);
 
-    return await this.questionConditionRepository.create(data, tx);
+    return await this.questionConditionRepository.create(data);
   }
 
   async update(
     id: number,
     data: UpdateQuestionConditionDto,
-    tx?: any,
   ): Promise<QuestionCondition> {
-    const existingCondition = await this.findById(id, tx);
+    const existingCondition = await this.findById(id);
 
     if (this.shouldValidateQuestionOrder(data, existingCondition)) {
       const questionId = data.questionId || existingCondition.questionId;
       const role = data.role || existingCondition.role;
-      // await this.validateQuestionOrder(questionId, role, tx);
+      // await this.validateQuestionOrder(questionId, role);
     }
 
     if (data.conditionValue || data.conditionType || data.logicalOperator) {
-      await this.validateConditionData(
-        {
-          questionId: existingCondition.questionId,
-          role: existingCondition.role,
-          conditionType:
-            data.conditionType || existingCondition.questionLogic.conditionType,
-          conditionValue:
-            data.conditionValue ||
-            existingCondition.questionLogic.conditionValue,
-          logicalOperator:
-            data.logicalOperator ||
-            existingCondition.questionLogic.logicalOperator,
-        },
-        tx,
-      );
+      await this.validateConditionData({
+        questionId: existingCondition.questionId,
+        role: existingCondition.role,
+        conditionType:
+          data.conditionType || existingCondition.questionLogic.conditionType,
+        conditionValue:
+          data.conditionValue || existingCondition.questionLogic.conditionValue,
+        logicalOperator:
+          data.logicalOperator ||
+          existingCondition.questionLogic.logicalOperator,
+      });
     }
 
     return await this.questionConditionRepository.update(id, data);
@@ -78,13 +69,16 @@ export class QuestionConditionService {
   async updateQuestionConditions(
     questionId: number,
     conditions: CreateQuestionConditionDto[],
-    tx?: any,
   ): Promise<void> {
     for (const condition of conditions) {
       if (condition.role === 'SOURCE') {
-        await this.handleSourceCondition(questionId, condition, tx);
+        await this.handleSourceCondition(questionId, condition);
       } else if (condition.role === 'TARGET') {
-        await this.handleTargetCondition(questionId, condition, tx);
+        await this.handleTargetCondition(
+          questionId,
+          condition.questionId,
+          condition,
+        );
       }
     }
   }
@@ -92,16 +86,14 @@ export class QuestionConditionService {
   async handleSourceCondition(
     questionId: number,
     condition: CreateQuestionConditionDto,
-    tx?: any,
   ): Promise<number> {
-    await this.validateQuestionOrder(questionId, 'SOURCE', tx);
-    await this.validateConditionData(condition, tx);
+    await this.validateQuestionOrder(questionId, 'SOURCE');
+    await this.validateConditionData(condition);
     const conditionLogic =
-      await this.questionConditionRepository.createQuestionLogic(condition, tx);
+      await this.questionConditionRepository.createQuestionLogic(condition);
     const questionSource = await this.questionConditionRepository.create(
       condition,
       conditionLogic.id,
-      tx,
     );
     return questionSource.questionLogicId;
   }
@@ -115,17 +107,15 @@ export class QuestionConditionService {
 
   async handleTargetCondition(
     questionId: number,
-    condition: CreateQuestionConditionDto,
     questionLogicId: number,
-    tx?: any,
+    condition: CreateQuestionConditionDto,
   ): Promise<any> {
-    // await this.validateQuestionOrder(questionId, 'TARGET', tx);
-    await this.validateConditionData(condition, tx);
+    await this.validateQuestionOrder(questionId, 'TARGET');
+    await this.validateConditionData(condition);
 
     const data = await this.questionConditionRepository.create(
       condition,
       questionLogicId,
-      tx,
     );
 
     return data;
@@ -134,25 +124,19 @@ export class QuestionConditionService {
   async updateConditionLogicId(
     conditionId: number,
     questionLogicId: number,
-
-    tx?: any,
   ): Promise<void> {
     await this.questionConditionRepository.updateConditionLogicId(
       conditionId,
       questionLogicId,
-      tx,
     );
   }
 
   private async validateQuestionOrder(
     questionId: number,
     role: string,
-    tx?: any,
   ): Promise<void> {
-    const currentQuestion = await this.prismaQuestionRepository.getQuessionById(
-      questionId,
-      tx,
-    );
+    const currentQuestion =
+      await this.prismaQuestionRepository.getQuessionById(questionId);
     if (!currentQuestion) {
       throw new BadRequestException(`Question with ID ${questionId} not found`);
     }
@@ -191,7 +175,6 @@ export class QuestionConditionService {
 
   private async validateConditionData(
     data: CreateQuestionConditionDto,
-    tx?: any,
   ): Promise<void> {
     if (data.role === 'TARGET') {
       // Kiểm tra xem sourceQuestionId có tồn tại không
@@ -281,17 +264,13 @@ export class QuestionConditionService {
     );
   }
 
-  async delete(conditionId: number, tx?: any): Promise<void> {
+  async delete(conditionId: number): Promise<void> {
     await this.questionConditionRepository.delete(conditionId);
   }
 
-  async findAllByQuestionId(
-    questionId: number,
-    tx?: any,
-  ): Promise<QuestionCondition[]> {
+  async findAllByQuestionId(questionId: number): Promise<QuestionCondition[]> {
     return await this.questionConditionRepository.findAllByQuestionId(
       questionId,
-      tx,
     );
   }
 
