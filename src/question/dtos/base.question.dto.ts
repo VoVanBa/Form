@@ -6,7 +6,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { AnswerOption } from 'src/models/AnswerOption';
 import { QuestionType } from 'src/models/enums/QuestionType';
 import { AddAnswerOptionDto } from '../../answer-option/dtos/add.answer.option.dto';
 import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
@@ -22,8 +21,6 @@ export class BaseQuestionDto {
   @IsInt()
   imageId?: number;
 
-  // @IsString()
-  // key: string;
 
   settings?: any; // Có thể tạo interface riêng cho settings
 

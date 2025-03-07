@@ -31,7 +31,6 @@ import { AnswerOptionModule } from './answer-option/answer-option.module';
       loaderOptions: {
         path: join(__dirname, '/i18n/'),
         watch: true,
-        filePattern: '*.json',
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] }, // Lấy từ query ?lang=vi

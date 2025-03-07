@@ -25,6 +25,8 @@ import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-respo
 import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
 import { QuestionConditionService } from 'src/question-condition/question-condition.service';
 import { QuestionRole } from 'src/models/enums/QuestionRole';
+import { QuestionType } from 'src/models/enums/QuestionType';
+import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -1117,6 +1119,42 @@ export class SurveyFeedackFormService {
     });
   }
 
+  private validateForm(form: UpdatesurveyFeedbackDto): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const errors: string[] = [];
+
+    // Validate name (required)
+    if (!form.name || form.name.trim() === '') {
+      errors.push(this.i18n.translate('errors.MISSING_FORM_NAME'));
+    }
+
+    // Validate status (required and must be valid)
+    if (!form.status) {
+      errors.push(this.i18n.translate('errors.MISSING_FORM_STATUS'));
+    } else {
+      const validStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
+      if (!validStatuses.includes(form.status)) {
+        errors.push(
+          this.i18n.translate('errors.INVALID_FORM_STATUS', {
+            args: { status: form.status },
+          }),
+        );
+      }
+    }
+
+    if (
+      form.endingMessage !== undefined &&
+      form.endingMessage !== null &&
+      form.endingMessage.trim() === ''
+    ) {
+      errors.push(this.i18n.translate('errors.EMPTY_ENDING_MESSAGE'));
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
   async saveForm(
     formId: number,
     updateFormDto: UpdatesurveyFeedbackDto,
@@ -1129,11 +1167,20 @@ export class SurveyFeedackFormService {
       );
     }
 
+    const validationResult = this.questionSerivce.validateQuestions(updateQuestionDto);
+    if (!validationResult.isValid) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validationResult.errors,
+      });
+    }
+
     await this.formRepository.updateSurveyFeedback(formId, updateFormDto);
     const questions = await this.questionSerivce.addAndUpdateQuestions(
       form.id,
       updateQuestionDto,
     );
+
     const ending = await this.updateSurveyEnding(form.id, {
       message: updateFormDto.endingMessage,
       redirectUrl: updateFormDto.endingRedirectUrl,

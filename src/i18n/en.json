@@ -34,7 +34,10 @@
     "INVALIDRESPONSE": "Invalid response",
     "MAX_SELECTIONS_EXCEEDED": "Question ID {{questionId}} allows a maximum of {{maxSelections}} selections.",
     "INVALID_DATE_RANGE_OPTION": "Invalid date range option: {{option}}",
-    "UNSUPPORTED_QUESTION_TYPE": "Unsupported question type: {{questionType}}"
+    "UNSUPPORTED_QUESTION_TYPE": "Unsupported question type: {{questionType}}",
+    "INVALID_CONDITION_ROLE": "Invalid condition role at index {{index}}: {{role}}",
+    "INVALID_CONDITION_TYPE": "Invalid condition type at index {{index}}: {{type}}",
+    "MISSING_CONDITION_VALUE": "Missing condition value at index {{index}}"
   },
   "messages": {
     "QUESTIONMOVEDUP": "Question moved up successfully",

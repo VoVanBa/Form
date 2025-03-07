@@ -17,10 +17,4 @@ export class UpdateQuestionDto extends BaseQuestionDto {
   @IsNotEmpty()
   @IsInt()
   questionId: number;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateQuestionConditionDto)
-  @IsOptional()
-  conditions?: CreateQuestionConditionDto[];
 }

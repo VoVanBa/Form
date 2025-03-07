@@ -607,4 +607,168 @@ export class QuestionService {
       };
     });
   }
+
+   validateQuestions(questions: UpdateQuestionDto[]): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return {
+        isValid: false,
+        errors: [this.i18n.translate('errors.QUESTIONS_MUST_BE_ARRAY')],
+      };
+    }
+
+    const errors: string[] = [];
+
+    // Kiểm tra trùng questionId
+    const questionIds = questions.map((q) => q.questionId).filter(Boolean);
+    if (new Set(questionIds).size !== questionIds.length) {
+      errors.push(this.i18n.translate('errors.DUPLICATE_QUESTION_IDS'));
+    }
+
+    const validQuestionTypes = new Set(Object.values(QuestionType));
+
+    // Duyệt từng câu hỏi và kiểm tra
+    questions.forEach((question, index) => {
+      const questionIndex = index + 1;
+
+      if (!question.headline) {
+        errors.push(
+          this.i18n.translate('errors.MISSING_HEADLINE', {
+            args: { index: questionIndex },
+          }),
+        );
+      }
+
+      if (
+        !question.questionType ||
+        !validQuestionTypes.has(question.questionType as QuestionType)
+      ) {
+        errors.push(
+          this.i18n.translate('errors.INVALID_QUESTION_TYPE', {
+            args: { type: question.questionType, index: questionIndex },
+          }),
+        );
+      }
+
+      if (
+        ['SINGLE_CHOICE', 'MULTI_CHOICE', 'PICTURE_SELECTION'].includes(
+          question.questionType,
+        )
+      ) {
+        this.validateAnswerOptions(question, questionIndex, errors);
+      }
+
+      if (question.questionType === 'RATING_SCALE') {
+        this.validateRatingScale(question, questionIndex, errors);
+      }
+
+      if (question.conditions?.length) {
+        this.validateConditions(question.conditions, questionIndex, errors);
+      }
+    });
+
+    return { isValid: errors.length === 0, errors };
+  }
+   validateAnswerOptions(
+    question: UpdateQuestionDto,
+    index: number,
+    errors: string[],
+  ) {
+    if (
+      !Array.isArray(question.answerOptions) ||
+      question.answerOptions.length < 2
+    ) {
+      errors.push(
+        this.i18n.translate('errors.MUSTHAVEATLEASTTWOCHOICES', {
+          args: { index },
+        }),
+      );
+      return;
+    }
+
+    const optionIds = question.answerOptions
+      .map((opt) => opt.answerOptionId)
+      .filter(Boolean);
+    if (new Set(optionIds).size !== optionIds.length) {
+      errors.push(
+        this.i18n.translate('errors.DUPLICATE_OPTION_IDS', { args: { index } }),
+      );
+    }
+
+    if (question.answerOptions.some((opt) => !opt.label)) {
+      errors.push(
+        this.i18n.translate('errors.MISSING_OPTION_LABELS', {
+          args: { index },
+        }),
+      );
+    }
+  }
+
+   validateRatingScale(
+    question: UpdateQuestionDto,
+    index: number,
+    errors: string[],
+  ) {
+    if (
+      !question.settings?.range ||
+      question.settings.range < 2 ||
+      question.settings.range > 10
+    ) {
+      errors.push(
+        this.i18n.translate('errors.INVALID_RATING_RANGE', { args: { index } }),
+      );
+    }
+  }
+
+   validateConditions(
+    conditions: CreateQuestionConditionDto[],
+    index: number,
+    errors: string[],
+  ) {
+    const validRoles = new Set(['SOURCE', 'TARGET']);
+    const validConditionTypes = new Set([
+      'EQUALS',
+      'NOT_EQUALS',
+      'GREATER_THAN',
+      'LESS_THAN',
+    ]);
+
+    conditions.forEach((condition) => {
+      if (!condition.questionId) {
+        errors.push(
+          this.i18n.translate('errors.MISSING_CONDITION_QUESTION_ID', {
+            args: { index },
+          }),
+        );
+      }
+
+      if (!validRoles.has(condition.role)) {
+        errors.push(
+          this.i18n.translate('errors.INVALID_CONDITION_ROLE', {
+            args: { index, role: condition.role },
+          }),
+        );
+      }
+
+      if (condition.role === 'SOURCE') {
+        if (!validConditionTypes.has(condition.conditionType)) {
+          errors.push(
+            this.i18n.translate('errors.INVALID_CONDITION_TYPE', {
+              args: { index, type: condition.conditionType },
+            }),
+          );
+        }
+
+        if (!condition.conditionValue) {
+          errors.push(
+            this.i18n.translate('errors.MISSING_CONDITION_VALUE', {
+              args: { index },
+            }),
+          );
+        }
+      }
+    });
+  }
 }

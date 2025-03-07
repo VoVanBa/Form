@@ -33,7 +33,10 @@
     "INVALIDRESPONSE": "Phản hồi không hợp lệ",
     "MAX_SELECTIONS_EXCEEDED": "Câu hỏi ID {{questionId}} cho phép tối đa {{maxSelections}} lựa chọn.",
     "INVALID_DATE_RANGE_OPTION": "Tùy chọn phạm vi ngày không hợp lệ: {{option}}",
-    "UNSUPPORTED_QUESTION_TYPE": "Loại câu hỏi không được hỗ trợ: {{questionType}}"
+    "UNSUPPORTED_QUESTION_TYPE": "Loại câu hỏi không được hỗ trợ: {{questionType}}",
+    "INVALID_CONDITION_ROLE": "Vai trò điều kiện không hợp lệ tại chỉ số {{index}}: {{role}}",
+    "INVALID_CONDITION_TYPE": "Loại điều kiện không hợp lệ tại chỉ số {{index}}: {{type}}",
+    "MISSING_CONDITION_VALUE": "Thiếu giá trị điều kiện tại chỉ số {{index}}"
   },
   "messages": {
     "QUESTIONMOVEDUP": "Di chuyển câu hỏi lên thành công",
