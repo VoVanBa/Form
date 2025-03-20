@@ -8,25 +8,24 @@ import {
 import { CreatesurveyFeedbackDto } from './dtos/create.form.dto';
 import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { v4 as uuidv4 } from 'uuid';
-import { FormStatus } from 'src/models/enums/FormStatus';
-import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
-import { FormSettingTypeResponse } from 'src/response-customization/survey-feedback-setting-response';
+import { FormStatus } from 'src/surveyfeedback-form/entities/enums/FormStatus';
 import { I18nService } from 'nestjs-i18n';
 import { AddQuestionDto } from 'src/question/dtos/add.question.dto';
-import { PrismaSurveyEndingRepository } from 'src/repositories/prisma-survey-feedback-ending-repository';
+import { PrismaSurveyEndingRepository } from 'src/surveyfeedback-form/repositories/prisma-survey-feedback-ending-repository';
 import { BusinessService } from 'src/business/business.service';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
-import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
-import { plainToInstance } from 'class-transformer';
-import { MediaService } from 'src/media/media.service';
-import { QuestionService } from 'src/question/question.service';
+import { MediaService } from 'src/media/services/media.service';
+import { QuestionService } from 'src/question/service/question.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
-import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
-import { QuestionConditionService } from 'src/question-condition/question-condition.service';
-import { QuestionRole } from 'src/models/enums/QuestionRole';
-import { QuestionType } from 'src/models/enums/QuestionType';
-import { CreateQuestionConditionDto } from 'src/question-condition/dtos/create-question-condition-dto';
+import { QuestionConditionService } from 'src/question/service/question-condition.service';
+import { QuestionRole } from 'src/question/entities/enums/QuestionRole';
+import { QuestionMediaService } from 'src/media/services/question-media.service';
+import { AnswerOptionMediaService } from 'src/media/services/answer-option-media.service';
+import { PrismaSurveyFeedbackRepository } from './repositories/prisma-survey-feeback.repository';
+import { SettingsService } from 'src/settings/settings.service';
+import { SurveyFeedbackType } from './entities/enums/SurveyFeedbackType';
+import { UpdateFormEndingDto } from './dtos/update.form.ending';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -34,22 +33,29 @@ export class SurveyFeedackFormService {
     private formRepository: PrismaSurveyFeedbackRepository,
     private businessService: BusinessService,
     private answerOptionService: AnswerOptionService,
-    private mediaService: MediaService,
-    private settingRepository: PrismaFormSettingRepository,
+    private settingsService: SettingsService,
     private surveyEndingRepository: PrismaSurveyEndingRepository,
     @Inject(forwardRef(() => QuestionService))
     private questionSerivce: QuestionService,
     private readonly i18n: I18nService,
-    private responseRepository: PrismaUserResponseRepository,
     private responseService: SurveyFeedbackDataService,
     private questionCondition: QuestionConditionService,
+    private mediaService: MediaService,
+    private questionMediaService: QuestionMediaService,
+    private answerOptionMediaService: AnswerOptionMediaService,
   ) {}
-  async createForm(
-    createFormDto: CreatesurveyFeedbackDto,
-    businessId: number,
-    request?: any,
-  ) {
-    const tx = request?.tx;
+
+  async validateForm(formId: number) {
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
+    if (!form) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+      );
+    }
+    return form;
+  }
+
+  async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
     const save = await this.formRepository.createSurveyFeedback(
       createFormDto,
       businessId,
@@ -60,9 +66,9 @@ export class SurveyFeedackFormService {
       message: 'Cảm ơn quý khách đã trả lời khảo sát',
     });
 
-    const formSetting = await this.settingRepository.getAllFormSetting(tx);
+    const formSetting = await this.settingsService.getAllFormSetting();
     const saveSettingsPromises = formSetting.map((form) =>
-      this.settingRepository.saveSetting(
+      this.settingsService.saveSetting(
         save.id,
         businessId,
         form.key,
@@ -75,17 +81,9 @@ export class SurveyFeedackFormService {
     return this.i18n.translate('success.SURVEYFEEDBACKCREATED');
   }
 
-  async getSurveyFeedbackById(formId: number) {
-    return this.formRepository.getSurveyFeedbackById(formId);
-  }
-
   async getForms(businessId: number) {
     const form = await this.formRepository.getAllSurveyFeedbacks(businessId);
-    if (form.length === 0) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+
     return {
       data: form.map((form) => ({
         id: form.id,
@@ -99,24 +97,11 @@ export class SurveyFeedackFormService {
     };
   }
 
-  async getFormByIdForBusiness(id: number, request?: any) {
-    const tx = request?.tx;
-    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
-
-    if (!surveyFeedback) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
-
-    if (surveyFeedback.status !== FormStatus.PUBLISHED) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
-      );
-    }
+  async getBusinessFormById(id: number) {
+    const surveyFeedback = await this.validateForm(id);
 
     const surveyEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
     const logicMap = new Map();
 
@@ -210,28 +195,31 @@ export class SurveyFeedackFormService {
     return uuidv4();
   }
 
-  async getFormByIdForClientFeedBack(id: number, request?: any) {
-    const tx = request?.tx;
-    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
-    if (!surveyFeedback) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
-    if (surveyFeedback.status !== FormStatus.PUBLISHED) {
+  async getSurveyEndingBySurveyId(id: number) {
+    const surveyEnding =
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+    return surveyEnding;
+  }
+
+  async getClientFeedbackFormById(id: number) {
+    const feedBack = await this.validateForm(id);
+    if (feedBack.status !== FormStatus.PUBLISHED) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
       );
     }
-    const surveyEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+    if (feedBack.type !== SurveyFeedbackType.FEEDBACK) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
+      );
+    }
 
     return {
-      id: surveyFeedback.id,
-      name: surveyFeedback.name,
-      description: surveyFeedback.description,
-      type: surveyFeedback.type,
-      questions: surveyFeedback.questions.map((question) => ({
+      id: feedBack.id,
+      name: feedBack.name,
+      description: feedBack.description,
+      type: feedBack.type,
+      questions: feedBack.questions.map((question) => ({
         id: question.id,
         text: question.headline,
         type: question.questionType,
@@ -255,15 +243,15 @@ export class SurveyFeedackFormService {
         })),
         setting: question.businessQuestionConfiguration?.settings || {},
       })),
-      ending: surveyEnding
-        ? {
-            message: surveyEnding.message,
-            redirectUrl: surveyEnding.redirectUrl || null,
-            media: surveyEnding.media
-              ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
-              : null,
-          }
-        : null,
+      // ending: surveyEnding
+      //   ? {
+      //       message: surveyEnding.message,
+      //       redirectUrl: surveyEnding.redirectUrl || null,
+      //       media: surveyEnding.media
+      //         ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
+      //         : null,
+      //     }
+      //   : null,
     };
   }
   private matchCondition(
@@ -273,88 +261,87 @@ export class SurveyFeedackFormService {
   ): boolean {
     if (!conditionLogic || !responseDto) return false;
 
-    const conditionValue = conditionLogic.conditionValue;
-    const conditionType = conditionLogic.conditionType;
+    const { conditionValue, conditionType } = conditionLogic;
 
-    switch (questionType) {
-      case 'SINGLE_CHOICE':
+    // Use a strategy pattern with handler functions for each question type
+    const handlers = {
+      SINGLE_CHOICE: () => {
         return conditionValue.answerOptionId === responseDto.answerOptionId;
+      },
 
-      case 'MULTI_CHOICE':
+      MULTI_CHOICE: () => {
         if (!Array.isArray(responseDto.answerOptionId)) return false;
-        switch (conditionType) {
-          case 'CONTAINS':
-            return responseDto.answerOptionId.includes(
-              conditionValue.answerOptionId,
-            );
-          case 'NOT_CONTAINS':
-            return !responseDto.answerOptionId.includes(
-              conditionValue.answerOptionId,
-            );
-          default:
-            return false;
-        }
 
-      case 'RATING_SCALE':
+        const conditionHandlers = {
+          CONTAINS: () =>
+            responseDto.answerOptionId.includes(conditionValue.answerOptionId),
+          EQUALS: () =>
+            responseDto.answerOptionId.length === 1 &&
+            responseDto.answerOptionId[0] === conditionValue.answerOptionId,
+          NOT_CONTAINS: () =>
+            !responseDto.answerOptionId.includes(conditionValue.answerOptionId),
+          DEFAULT: () => false,
+        };
+
+        return (
+          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
+        )();
+      },
+
+      RATING_SCALE: () => {
         const rating = responseDto.ratingValue;
-        switch (conditionType) {
-          case 'EQUALS':
-            return rating === conditionValue.value;
-          case 'GREATER_THAN':
-            return rating > conditionValue.value;
-          case 'LESS_THAN':
-            return rating < conditionValue.value;
-          case 'BETWEEN':
-            return rating >= conditionValue.min && rating <= conditionValue.max;
-          default:
-            return false;
-        }
 
-      case 'INPUT_TEXT':
+        const conditionHandlers = {
+          EQUALS: () => rating === conditionValue.value,
+          GREATER_THAN: () => rating > conditionValue.value,
+          LESS_THAN: () => rating < conditionValue.value,
+          BETWEEN: () =>
+            rating >= conditionValue.min && rating <= conditionValue.max,
+          DEFAULT: () => false,
+        };
+
+        return (
+          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
+        )();
+      },
+
+      INPUT_TEXT: () => {
         const text = responseDto.answer;
-        switch (conditionType) {
-          case 'EQUALS':
-            return text === conditionValue.value;
-          case 'CONTAINS':
-            return text.includes(conditionValue.value);
-          default:
-            return false;
-        }
 
-      default:
-        return false;
-    }
+        const conditionHandlers = {
+          EQUALS: () => text === conditionValue.value,
+          CONTAINS: () => text.includes(conditionValue.value),
+          DEFAULT: () => false,
+        };
+
+        return (
+          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
+        )();
+      },
+
+      DEFAULT: () => false,
+    };
+
+    return (handlers[questionType] || handlers.DEFAULT)();
   }
 
-  async getFormByIdForClient(id: number, request?: any, user?: number) {
+  async getSurveyForm(id: number, request?: any, user?: number) {
     const userId = user; // userId từ token nếu đăng nhập
-    const sessionId = request?.sessionId || this.generateSessionId(); // Sinh sessionId nếu ẩn danh
-
+    const sessionId = request?.sessionId;
     // Lấy thông tin khảo sát
-    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
-    if (!surveyFeedback) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const surveyFeedback = await this.validateForm(id);
     if (surveyFeedback.status !== 'PUBLISHED') {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
       );
     }
 
-    const surveyEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+    const userResponses = await this.responseService.getPreviosResponse(
+      id,
+      userId,
+      sessionId,
+    );
 
-    // Lấy phản hồi của client cụ thể
-    const userResponses =
-      await this.responseRepository.getResponsesBySurveyAndUser(
-        id,
-        userId,
-        sessionId,
-      );
-
-    console.log('userResponses sjasdjasdjasdjasdjasjd', userResponses);
     const answeredQuestionIds = userResponses?.responseOnQuestions?.length
       ? userResponses.responseOnQuestions.map((r) => r.questionId)
       : [];
@@ -423,19 +410,19 @@ export class SurveyFeedackFormService {
               currentQuestion.businessQuestionConfiguration?.settings || {},
           }
         : null,
-      isLastQuestion:
-        !currentQuestion ||
-        currentQuestion.index === surveyFeedback.questions.length,
-      ending:
-        !currentQuestion && surveyEnding
-          ? {
-              message: surveyEnding.message,
-              redirectUrl: surveyEnding.redirectUrl || null,
-              media: surveyEnding.media
-                ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
-                : null,
-            }
-          : null,
+      isLastQuestion: !currentQuestion,
+      ending: !currentQuestion
+        ? {
+            message: surveyFeedback.ending.message,
+            redirectUrl: surveyFeedback.ending.redirectUrl || null,
+            media: surveyFeedback.ending.media
+              ? {
+                  id: surveyFeedback.ending.media.id,
+                  url: surveyFeedback.ending.media.url,
+                }
+              : null,
+          }
+        : null,
     };
 
     // Gửi sessionId cho client nếu ẩn danh
@@ -445,7 +432,7 @@ export class SurveyFeedackFormService {
     return response;
   }
 
-  async submitResponseForClient(
+  async submitSurvey(
     id: number,
     responseDto: {
       questionId: number;
@@ -459,12 +446,7 @@ export class SurveyFeedackFormService {
     const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
-    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
-    if (!surveyFeedback) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const surveyFeedback = await this.validateForm(id);
 
     const currentQuestion = surveyFeedback.questions.find(
       (q) => q.id === responseDto.questionId,
@@ -475,10 +457,6 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const settings = await this.questionSerivce.getQuestionSettingByQuestionId(
-      currentQuestion.id,
-    );
-
     const validatedResponseDto = {
       ...responseDto,
       answerOptionId: Array.isArray(responseDto.answerOptionId)
@@ -488,80 +466,33 @@ export class SurveyFeedackFormService {
           : [],
     };
 
-    await this.responseService.validateQuestionResponses(
+    await this.responseService.validateResponsesByQuestionSettings(
       validatedResponseDto,
-      settings,
+      currentQuestion.businessQuestionConfiguration,
     );
 
-    await this.responseService.createResponse(
+    const userResponse = await this.responseService.createResponse(
       id,
-      responseDto.questionId,
+      currentQuestion.id,
       responseDto,
       userId,
       sessionId,
     );
 
-    // Xử lý logic điều kiện
     const conditions = currentQuestion.questionConditions.filter(
       (c) => c.role === 'SOURCE',
     );
     let nextQuestion = null;
 
     if (conditions.length > 0) {
-      // Xử lý theo loại câu hỏi
-      const matchedCondition = conditions.find((c) => {
-        const conditionValue = (() => {
-          console.log(c.questionLogic?.conditionValue);
-          return c.questionLogic?.conditionValue;
-        })();
-
-        console.log(conditionValue.answerOptionId);
-        switch (currentQuestion.questionType) {
-          case 'SINGLE_CHOICE':
-            return conditionValue.answerOptionId === responseDto.answerOptionId;
-
-          case 'MULTI_CHOICE':
-            if (Array.isArray(responseDto.answerOptionId)) {
-              if (c.questionLogic?.conditionType === 'CONTAINS') {
-                return responseDto.answerOptionId.includes(
-                  conditionValue.answerOptionId,
-                );
-              } else if (c.questionLogic?.conditionType === 'NOT_CONTAINS') {
-                return !responseDto.answerOptionId.includes(
-                  conditionValue.answerOptionId,
-                );
-              }
-            }
-            return false;
-
-          case 'RATING_SCALE':
-            const rating = responseDto.ratingValue;
-            if (c.questionLogic?.conditionType === 'EQUALS') {
-              return rating === conditionValue.value;
-            } else if (c.questionLogic?.conditionType === 'GREATER_THAN') {
-              return rating > conditionValue.value;
-            } else if (c.questionLogic?.conditionType === 'LESS_THAN') {
-              return rating < conditionValue.value;
-            } else if (c.questionLogic?.conditionType === 'BETWEEN') {
-              return (
-                rating >= conditionValue.min && rating <= conditionValue.max
-              );
-            }
-            return false;
-
-          case 'INPUT_TEXT':
-            const text = responseDto.answer;
-            if (c.questionLogic?.conditionType === 'EQUALS') {
-              return text === conditionValue.value;
-            } else if (c.questionLogic?.conditionType === 'CONTAINS') {
-              return text.includes(conditionValue.value);
-            }
-            return false;
-
-          default:
-            return false;
-        }
-      });
+      // Use the refactored matchCondition method instead of inline logic
+      const matchedCondition = conditions.find((c) =>
+        this.matchCondition(
+          currentQuestion.questionType,
+          c.questionLogic,
+          responseDto,
+        ),
+      );
 
       if (matchedCondition) {
         const getTargetQuestionId =
@@ -595,6 +526,11 @@ export class SurveyFeedackFormService {
         nextQuestion = allQuestions[currentIndex + 1]; // Lấy trực tiếp từ mảng
       }
     }
+    if (!nextQuestion) {
+      const completed = await this.responseService.updateCompleted(
+        userResponse.id,
+      );
+    }
 
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
@@ -627,11 +563,11 @@ export class SurveyFeedackFormService {
                   }
                 : null,
             })),
+
             setting: nextQuestion.businessQuestionConfiguration?.settings || {},
           }
         : null,
-      isLastQuestion:
-        !nextQuestion || nextQuestion.index === surveyFeedback.questions.length,
+      isLastQuestion: !nextQuestion,
       ending:
         !nextQuestion && surveyEnding
           ? {
@@ -650,7 +586,8 @@ export class SurveyFeedackFormService {
 
     return response;
   }
-  async goBackToPreviousQuestion(
+
+  async goBackToPreviousSurveyQuestion(
     id: number,
     currentQuestionId: number,
     request?: any,
@@ -675,32 +612,18 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const userResponses =
-      await this.responseRepository.getResponsesBySurveyAndUser(
-        id,
-        userId,
-        sessionId,
-      );
+    const userResponses = await this.responseService.getPreviosResponse(
+      id,
+      userId,
+      sessionId,
+    );
 
     const responseHistory = userResponses.responseOnQuestions.sort(
       (a, b) => a.createdAt - b.createdAt,
     );
-    console.log(
-      'Response History:',
-      responseHistory.map((r) => ({
-        questionId: r.questionId,
-        createdAt: r.createdAt,
-      })),
-    );
 
     const currentResponseIndex = responseHistory.findIndex(
       (response) => response.questionId === currentQuestionId,
-    );
-    console.log(
-      'Current Question ID:',
-      currentQuestionId,
-      'Index in history:',
-      currentResponseIndex,
     );
 
     let prevQuestion;
@@ -828,12 +751,7 @@ export class SurveyFeedackFormService {
     return { message: 'Survey deleted successfully' };
   }
 
-  async updateStatus(
-    status: FormStatus,
-    formId: number,
-    businessId: number,
-    request?: any,
-  ) {
+  async updateStatus(status: FormStatus, formId: number, businessId: number) {
     const existingBusiness =
       await this.businessService.getbusinessbyId(businessId);
     if (!existingBusiness) {
@@ -842,24 +760,14 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const existingForm = await this.getFormByIdForBusiness(formId, request);
-    if (!existingForm) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    await this.validateForm(formId);
 
     return this.formRepository.updateStatus(status, formId);
   }
 
-  async updateSurveyAllowAnonymous(surveyId: number, active: boolean) {
-    const survey = await this.formRepository.getSurveyFeedbackById(surveyId);
-    if (!survey) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYIDNOTEXISTING'),
-      );
-    }
-    return this.formRepository.updateSurveyAllowAnonymous(surveyId, active);
+  async updateSurveyAllowAnonymous(formId: number, active: boolean) {
+    await this.validateForm(formId);
+    return this.formRepository.updateSurveyAllowAnonymous(formId, active);
   }
 
   async updateFormSettings(
@@ -867,8 +775,8 @@ export class SurveyFeedackFormService {
     businessId: number | null,
     settings: { key: string; value: any }[],
   ) {
-    const allFormSettings = await this.settingRepository.getAllFormSetting();
-    const currentSettings = await this.settingRepository.getDefaultSetting(
+    const allFormSettings = await this.settingsService.getAllFormSetting();
+    const currentSettings = await this.settingsService.getDefaultSetting(
       businessId,
       formId,
     );
@@ -890,7 +798,7 @@ export class SurveyFeedackFormService {
       if (!formSetting) {
         throw new Error(`FormSetting not found for key: ${newSetting.key}`);
       }
-      return this.settingRepository.upsertSetting(
+      return this.settingsService.upsertSetting(
         formId,
         businessId,
         formSetting.id,
@@ -906,38 +814,72 @@ export class SurveyFeedackFormService {
   async getAllBusinessSettings(
     businessId: number,
     formId: number,
-  ): Promise<any> {
+  ): Promise<{ businessId: number; formId: number; settings: any[] }> {
     const businessSettings =
-      await this.settingRepository.getAllBusinessSettingTypes(
+      await this.settingsService.getAllBusinessSettingTypes(businessId, formId);
+
+    if (!businessSettings.length) {
+      return {
         businessId,
         formId,
+        settings: [],
+      };
+    }
+
+    // Nhóm cài đặt theo loại
+    const groupedSettings = new Map<number, any>();
+
+    for (const setting of businessSettings) {
+      const { formSetting } = setting;
+      if (!formSetting?.formSettingTypes) continue;
+
+      const { formSettingTypes } = formSetting;
+      const typeId = formSettingTypes.id;
+
+      if (!groupedSettings.has(typeId)) {
+        groupedSettings.set(typeId, {
+          id: typeId,
+          name: formSettingTypes.name,
+          description: formSettingTypes.description,
+          settings: [],
+        });
+      }
+
+      const group = groupedSettings.get(typeId);
+
+      const existingSettingIndex = group.settings.findIndex(
+        (s) => s.id === formSetting.id,
       );
 
-    if (!Array.isArray(businessSettings) || businessSettings.length === 0) {
-      throw new Error('No settings found');
+      if (existingSettingIndex === -1) {
+        group.settings.push({
+          id: formSetting.id,
+          key: formSetting.key,
+          label: formSetting.label || formSetting.key,
+          description: formSetting.description,
+          businessSettings: [
+            {
+              key: setting.key,
+              value: setting.value,
+            },
+          ],
+        });
+      } else {
+        group.settings[existingSettingIndex].businessSettings.push({
+          key: setting.key,
+          value: setting.value,
+        });
+      }
     }
-    const formattedData = businessSettings.map((type) => ({
-      name: type.name,
-      description: type.description,
-      settings: type.settings.map((setting) => ({
-        label: setting.label,
-        description: setting.description,
-        businessSettings: setting.businessSurveyFeedbackSettings.map(
-          (businessSetting) => ({
-            key: businessSetting.key,
-            value: businessSetting.value,
-          }),
-        ),
-      })),
-    }));
 
-    return plainToInstance(FormSettingTypeResponse, formattedData, {
-      excludeExtraneousValues: true,
-    });
+    return {
+      businessId,
+      formId,
+      settings: Array.from(groupedSettings.values()),
+    };
   }
 
-  async duplicateSurvey(id: number, businessId: number, request?: any) {
-    const tx = request?.tx;
+  async duplicateSurvey(id: number, businessId: number) {
     const formExisting = await this.formRepository.getSurveyFeedbackById(id);
     if (!formExisting) {
       throw new NotFoundException(
@@ -958,7 +900,7 @@ export class SurveyFeedackFormService {
     );
 
     const existingEnding =
-      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id, tx);
+      await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
     if (existingEnding) {
       await this.surveyEndingRepository.createSurveyEnding({
         formId: newForm.id,
@@ -988,38 +930,52 @@ export class SurveyFeedackFormService {
     businessId: number,
   ) {
     const questions = await this.questionSerivce.getAllQuestion(originalFormId);
-    for (const question of questions) {
-      const addQuestionDto: AddQuestionDto = {
-        headline: question.headline,
-        questionType: question.questionType,
-      };
-      const newQuestion = await this.questionSerivce.createQuestion(
-        newFormId,
-        addQuestionDto,
-        question.index,
-      );
 
-      if (question.questionOnMedia) {
-        await this.duplicateQuestionMedia(question.id, newQuestion.id);
-      }
+    await Promise.all(
+      questions.map(async (question) => {
+        const addQuestionDto: AddQuestionDto = {
+          headline: question.headline,
+          questionType: question.questionType,
+        };
 
-      if (question.answerOptions.length > 0) {
-        await this.duplicateAnswerOptions(
-          question.id,
-          newQuestion.id,
-          businessId,
-        );
-      }
-
-      if (question.businessQuestionConfiguration) {
-        await this.questionSerivce.createQuestionSettings(
-          newQuestion.id,
-          question.businessQuestionConfiguration.settings,
-          question.businessQuestionConfiguration.key,
+        const newQuestion = await this.questionSerivce.createQuestion(
           newFormId,
+          addQuestionDto,
+          question.index,
         );
-      }
-    }
+
+        const promises: Promise<any>[] = [];
+
+        if (question.questionOnMedia) {
+          promises.push(
+            this.duplicateQuestionMedia(question.id, newQuestion.id),
+          );
+        }
+
+        if (question.answerOptions.length > 0) {
+          promises.push(
+            this.duplicateAnswerOptions(
+              question.id,
+              newQuestion.id,
+              businessId,
+            ),
+          );
+        }
+
+        if (question.businessQuestionConfiguration) {
+          promises.push(
+            this.questionSerivce.createQuestionSettings(
+              newQuestion.id,
+              question.businessQuestionConfiguration.settings,
+              question.businessQuestionConfiguration.key,
+              newFormId,
+            ),
+          );
+        }
+
+        await Promise.all(promises);
+      }),
+    );
   }
 
   private async duplicateAnswerOptions(
@@ -1045,7 +1001,7 @@ export class SurveyFeedackFormService {
             option.answerOptionOnMedia.mediaId,
           );
           if (media) {
-            await this.mediaService.createAnswerOptionOnMedia([
+            await this.answerOptionMediaService.createAnswerOptionOnMedia([
               { mediaId: media.id, answerOptionId: newAnswerOption.id },
             ]);
           }
@@ -1060,12 +1016,12 @@ export class SurveyFeedackFormService {
     newQuestionId: number,
   ) {
     const media =
-      await this.mediaService.getQuestionOnMediaByQuestionId(
+      await this.questionMediaService.getQuestionOnMediaByQuestionId(
         originalQuestionId,
       );
     if (media) {
-      await this.mediaService.createQuestionOnMedia({
-        mediaId: media.id,
+      await this.questionMediaService.createQuestionOnMedia({
+        mediaId: media.mediaId,
         questionId: newQuestionId,
       });
     }
@@ -1076,15 +1032,14 @@ export class SurveyFeedackFormService {
     newFormId: number,
     businessId: number,
   ) {
-    const surveySettings =
-      await this.settingRepository.getAllFormSettingBusiness(
-        businessId,
-        originalFormId,
-      );
+    const surveySettings = await this.settingsService.getAllFormSettingBusiness(
+      businessId,
+      originalFormId,
+    );
     if (surveySettings.length > 0) {
       await Promise.all(
         surveySettings.map((setting) =>
-          this.settingRepository.saveSetting(
+          this.settingsService.saveSetting(
             newFormId,
             businessId,
             setting.key,
@@ -1096,10 +1051,7 @@ export class SurveyFeedackFormService {
     }
   }
 
-  async updateSurveyEnding(
-    surveyId: number,
-    ending: { message: string; redirectUrl: string; mediaId: number },
-  ) {
+  async updateSurveyEnding(surveyId: number, ending: UpdateFormEndingDto) {
     const survey = await this.formRepository.getSurveyFeedbackById(surveyId);
     if (!survey) {
       throw new NotFoundException(
@@ -1114,12 +1066,12 @@ export class SurveyFeedackFormService {
     }
     return this.surveyEndingRepository.createSurveyEnding({
       formId: survey.id,
-      message: ending.message,
-      redirectUrl: ending.redirectUrl,
+      message: ending.endingMessage,
+      redirectUrl: ending.endingRedirectUrl,
     });
   }
 
-  private validateForm(form: UpdatesurveyFeedbackDto): {
+  private validateFormRequet(form: UpdatesurveyFeedbackDto): {
     isValid: boolean;
     errors: string[];
   } {
@@ -1144,11 +1096,7 @@ export class SurveyFeedackFormService {
       }
     }
 
-    if (
-      form.endingMessage !== undefined &&
-      form.endingMessage !== null &&
-      form.endingMessage.trim() === ''
-    ) {
+    if (!form.ending) {
       errors.push(this.i18n.translate('errors.EMPTY_ENDING_MESSAGE'));
     }
 
@@ -1160,6 +1108,7 @@ export class SurveyFeedackFormService {
     updateFormDto: UpdatesurveyFeedbackDto,
     updateQuestionDto: UpdateQuestionDto[],
   ) {
+    console.time('Execution Time');
     const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new NotFoundException(
@@ -1167,7 +1116,8 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const validationResult = this.questionSerivce.validateQuestions(updateQuestionDto);
+    const validationResult =
+      await this.questionSerivce.validateQuestions(updateQuestionDto);
     if (!validationResult.isValid) {
       throw new BadRequestException({
         message: 'Validation failed',
@@ -1181,15 +1131,10 @@ export class SurveyFeedackFormService {
       updateQuestionDto,
     );
 
-    const ending = await this.updateSurveyEnding(form.id, {
-      message: updateFormDto.endingMessage,
-      redirectUrl: updateFormDto.endingRedirectUrl,
-      mediaId: updateFormDto.endingMediaId,
-    });
+    console.timeEnd('Execution Time');
 
     return {
       message: this.i18n.translate('errors.FORM_SAVED_SUCCESSFULLY'),
-      data: { form, questions, ending },
     };
   }
 }

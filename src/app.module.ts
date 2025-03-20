@@ -13,13 +13,14 @@ import { AdminModule } from './admin/admin.module';
 import { join } from 'path';
 import { I18nModule, QueryResolver, AcceptLanguageResolver } from 'nestjs-i18n'; // Import I18nJsonLoader
 import { SurveyFeedbackDataModule } from './survey-feedback-data/survey-feedback-data.module';
-import { QuestionConditionModule } from './question-condition/question-condition.module';
 import { TransactionInterceptor } from './common/interceptors/transaction.interceptors';
-import { PrismaService } from './config/providers/prisma.service';
+import { PrismaService } from './helper/providers/prisma.service';
 import { PrismaTransactionManager } from './common/prisma-transaction.manager';
 import { MediaController } from './media/media.controller';
 import { MediaModule } from './media/media.module';
 import { AnswerOptionModule } from './answer-option/answer-option.module';
+import { SettingsController } from './settings/settings.controller';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -45,12 +46,11 @@ import { AnswerOptionModule } from './answer-option/answer-option.module';
     SurveyFeedbackFormModule,
     AdminModule,
     SurveyFeedbackDataModule,
-
-    QuestionConditionModule,
     MediaModule,
     AnswerOptionModule,
+    SettingsModule,
   ],
-  controllers: [AppController, MediaController],
+  controllers: [AppController, MediaController, SettingsController],
   providers: [
     TransactionInterceptor,
     PrismaService, // Phải có PrismaService ở đây

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaAnswerOptionRepository } from 'src/repositories/prisma-anwser-option.repository';
+import { PrismaAnswerOptionRepository } from 'src/answer-option/repositories/prisma-anwser-option.repository';
 import { AddAnswerOptionDto } from './dtos/add.answer.option.dto';
 
 @Injectable()
@@ -11,13 +11,11 @@ export class AnswerOptionService {
     questionId: number,
     answerOptions: AddAnswerOptionDto,
     index: number,
-    tx?: any,
   ) {
     return await this.prismaAnswerOptionRepository.createAnswerOptions(
       questionId,
       answerOptions,
       index,
-      tx,
     );
   }
 
@@ -31,34 +29,51 @@ export class AnswerOptionService {
     return quantity;
   }
 
-  async deleteAnserOption(id: number, questionId: number, tx?: any) {
+  async deleteAnserOption(id: number, questionId: number) {
     return await this.prismaAnswerOptionRepository.deleteAnserOption(
       id,
       questionId,
-      tx,
     );
   }
 
-  async updateAnswerOptions(
-    answerOptionId: number,
-    data: AddAnswerOptionDto,
-    tx?: any,
-  ) {
+  async updateAnswerOptions(answerOptionId: number, data: AddAnswerOptionDto) {
     return await this.prismaAnswerOptionRepository.updateAnswerOptions(
       answerOptionId,
       data,
-      tx,
     );
   }
-  async findanswerOptionsByQuestionId(questionId: number, tx?: any) {
+  async findanswerOptionsByQuestionId(questionId: number) {
     return await this.prismaAnswerOptionRepository.getAllAnserOptionbyQuestionId(
       questionId,
-      tx,
     );
   }
   async getAllAnserOptionbyQuestionId(questionId: number) {
-    return await this.prismaAnswerOptionRepository.getAllAnserOptionbyQuestionId(
+    const answerOptions =
+      await this.prismaAnswerOptionRepository.getAllAnserOptionbyQuestionId(
+        questionId,
+      );
+    return answerOptions;
+  }
+
+  async bulkUpdateAnswerOptions(
+    updates: { id: number; data: AddAnswerOptionDto }[],
+  ) {
+    return await this.prismaAnswerOptionRepository.bulkUpdateAnswerOptions(
+      updates,
+    );
+  }
+
+  async bulkDeleteAnswerOptions(ids: number[]) {
+    await this.prismaAnswerOptionRepository.bulkDeleteAnswerOptions(ids);
+  }
+
+  async bulkCreateAnswerOptions(
+    questionId: number,
+    answerOptions: AddAnswerOptionDto[],
+  ) {
+    return await this.prismaAnswerOptionRepository.bulkCreateAnswerOptions(
       questionId,
+      answerOptions,
     );
   }
 }

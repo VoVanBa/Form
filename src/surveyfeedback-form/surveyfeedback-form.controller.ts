@@ -4,12 +4,8 @@ import {
   Post,
   Body,
   Param,
-  Query,
   Put,
   Delete,
-  HttpCode,
-  HttpStatus,
-  UseInterceptors,
   Req,
   Headers,
 } from '@nestjs/common';
@@ -48,7 +44,7 @@ export class SurveyFeedbackFormController {
     @Param('id') id: number,
     @Param('businessId') businessId: number,
   ) {
-    return this.surveyFeedbackFormService.getFormByIdForBusiness(id);
+    return this.surveyFeedbackFormService.getBusinessFormById(id);
   }
 
   @Get(':id/business/:businessId/client/feedback')
@@ -56,7 +52,7 @@ export class SurveyFeedbackFormController {
     @Param('id') id: number,
     @Param('businessId') businessId: number,
   ) {
-    return this.surveyFeedbackFormService.getFormByIdForClientFeedBack(id);
+    return this.surveyFeedbackFormService.getClientFeedbackFormById(id);
   }
 
   @Post(':id/back')
@@ -66,16 +62,19 @@ export class SurveyFeedbackFormController {
     @Req() request?,
     @Headers('authorization') jwt?: string,
   ) {
-    const user = await this.userService.getUserByJwt(jwt);
+    let user = null;
+    if (jwt) {
+      user = await this.userService.getUserByJwt(jwt);
+    }
     if (user) {
-      return this.surveyFeedbackFormService.goBackToPreviousQuestion(
+      return this.surveyFeedbackFormService.goBackToPreviousSurveyQuestion(
         id,
         backDto.currentQuestionId,
         request,
         user.id,
       );
     }
-    return this.surveyFeedbackFormService.goBackToPreviousQuestion(
+    return this.surveyFeedbackFormService.goBackToPreviousSurveyQuestion(
       id,
       backDto.currentQuestionId,
       request,
@@ -88,17 +87,14 @@ export class SurveyFeedbackFormController {
     @Req() request?: Request,
     @Headers('authorization') jwt?: string,
   ): Promise<any> {
-    const user = await this.userService.getUserByJwt(jwt);
-    if (user) {
-      return this.surveyFeedbackFormService.getFormByIdForClient(
-        id,
-        null,
-        user.id,
-      );
+    let user = null;
+    if (jwt) {
+      user = await this.userService.getUserByJwt(jwt);
     }
-    return this.surveyFeedbackFormService.getFormByIdForClient(id, {
-      user: user.id,
-      sessionId: request.headers['x-session-id'] as string,
+
+    return this.surveyFeedbackFormService.getSurveyForm(id, {
+      user: user ? user.id : null,
+      sessionId: (request.headers['x-session-id'] as string) || null,
     });
   }
 
@@ -115,16 +111,19 @@ export class SurveyFeedbackFormController {
     @Req() request?: any,
     @Headers('authorization') jwt?: string,
   ) {
-    const user = await this.userService.getUserByJwt(jwt);
+    let user = null;
+    if (jwt) {
+      user = await this.userService.getUserByJwt(jwt);
+    }
     if (user) {
-      return this.surveyFeedbackFormService.submitResponseForClient(
+      return this.surveyFeedbackFormService.submitSurvey(
         id,
         responseDto,
         request,
         user.id,
       );
     }
-    return this.surveyFeedbackFormService.submitResponseForClient(
+    return this.surveyFeedbackFormService.submitSurvey(
       id,
       responseDto,
       request,

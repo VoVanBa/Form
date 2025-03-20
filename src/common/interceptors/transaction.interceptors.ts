@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { TRANSACTION_KEY } from '../decorater/transaction.decorator';
-import { PrismaService } from 'src/config/providers/prisma.service';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PrismaTransactionManager } from '../prisma-transaction.manager';
 @Injectable()

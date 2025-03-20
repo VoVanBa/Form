@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 
 export class AddAnswerOptionDto {
-  businessId: number;
+  businessId?: number;
 
   answerOptionId?: number;
 
@@ -15,16 +15,8 @@ export class AddAnswerOptionDto {
   label: string;
 
   @IsOptional()
-  @IsInt()
-  value?: number;
-
-  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isCorrect?: boolean;
 
   @IsOptional()
   @IsString()

@@ -26,13 +26,11 @@ export class SurveyFeedbackDataController {
   ) {}
 
   @Post('form/:formId/business/:businessId/save')
-  @UseTransaction()
   async saveGuestInfoAndResponses(
     @Body() response: CreateResponseOnQuestionDto,
     @Headers('authorization') jwt: string | undefined,
     @Param('businessId') businessId: number,
     @Param('formId') formId: number,
-    @Req() req,
   ): Promise<any> {
     let userId: number | null = null;
     const allowAnonymous =
@@ -47,7 +45,7 @@ export class SurveyFeedbackDataController {
       userId = user.id;
     }
 
-    const result = await this.responseService.saveGuestInfoAndResponses(
+    const result = await this.responseService.saveFeedBackResponse(
       businessId,
       formId,
       response,
@@ -109,20 +107,11 @@ export class SurveyFeedbackDataController {
     return this.responseService.getDetailResponsesByUsername(username, formId);
   }
 
-  @Get(':formId/filter')
+  @Get(':formId/detail/:responseId')
   async filterResponses(
     @Param('formId') formId: number,
-    @Query('range') range: string,
-    @Query('page') page: string = '1',
-    @Query('pageSize') pageSize: string = '10',
+    @Param('responseId') responseId: number,
   ) {
-    const pageNum = parseInt(page, 10) || 1;
-    const pageSizeNum = parseInt(pageSize, 10) || 10;
-    return this.responseService.filterResponsesByOption(
-      formId,
-      range,
-      pageNum,
-      pageSizeNum,
-    );
+    return this.responseService.getUserResponseDetailById(formId, responseId);
   }
 }

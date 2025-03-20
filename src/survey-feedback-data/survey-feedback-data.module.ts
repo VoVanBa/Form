@@ -2,15 +2,15 @@ import { forwardRef, Module } from '@nestjs/common';
 import { SurveyFeedbackDataController } from './survey-feedback-data.controller';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
-import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
+import { PrismaQuestionRepository } from 'src/question/repositories/prisma-question.repository';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
+import { PrismaFormSettingRepository } from 'src/settings/repositories/prisma-setting.repository';
 import { SurveyFeedbackDataService } from './survey-feedback-data.service';
-import { PrismaService } from 'src/config/providers/prisma.service';
-import ConfigManager from 'src/config/configJsonManager';
-import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 import { QuestionModule } from 'src/question/question.module';
+import { PrismaSurveyFeedbackRepository } from 'src/surveyfeedback-form/repositories/prisma-survey-feeback.repository';
+import { SurveyFeedbackFormModule } from 'src/surveyfeedback-form/surveyfeedback-form.module';
 
 @Module({
   controllers: [SurveyFeedbackDataController],
@@ -24,9 +24,11 @@ import { QuestionModule } from 'src/question/question.module';
     JwtService,
     PrismaFormSettingRepository,
     SurveyFeedbackDataService,
-    ConfigManager,
   ],
   exports: [SurveyFeedbackDataService],
-  imports: [forwardRef(() => QuestionModule)],
+  imports: [
+    forwardRef(() => QuestionModule),
+    forwardRef(() => SurveyFeedbackFormModule),
+  ],
 })
 export class SurveyFeedbackDataModule {}

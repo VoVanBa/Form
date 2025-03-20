@@ -13,49 +13,44 @@ import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.
 import { FormSettingDto } from './dtos/form.setting.dto';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
-import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
+import { PrismaFormSettingRepository } from 'src/settings/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
-import ConfigManager from 'src/config/configJsonManager';
-import { QuestionType } from 'src/models/enums/QuestionType';
-import { FormStatus } from 'src/models/enums/FormStatus';
-import { PrismaSurveyFeedbackRepository } from 'src/repositories/prisma-survey-feeback.repository';
-import { QuestionService } from 'src/question/question.service';
+import { QuestionType } from 'src/question/entities/enums/QuestionType';
+import { FormStatus } from 'src/surveyfeedback-form/entities/enums/FormStatus';
+import { QuestionService } from 'src/question/service/question.service';
+import { JsonHelper } from 'src/helper/json-helper';
+import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback-form.service';
 
 @Injectable()
 export class SurveyFeedbackDataService {
   constructor(
-    private formRepository: PrismaSurveyFeedbackRepository,
+    @Inject(forwardRef(() => SurveyFeedackFormService))
+    private formService: SurveyFeedackFormService,
     private userResponseRepository: PrismaUserResponseRepository,
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     @Inject(forwardRef(() => QuestionService))
     private questionService: QuestionService,
     private formSetting: PrismaFormSettingRepository,
     private i18n: I18nService,
-    private configManager: ConfigManager,
   ) {}
 
   async getStatusAnonymous(formId: number) {
-    const form = await this.formRepository.getSurveyFeedbackById(formId);
-    if (!form) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const form = await this.formService.validateForm(formId);
+
     return form.allowAnonymous;
   }
 
-  async saveGuestInfoAndResponses(
+  async saveFeedBackResponse(
     businessId: number,
     formId: number,
     createResponse: CreateResponseOnQuestionDto,
     userId?: number,
   ) {
     const { guestData, responses } = createResponse;
-    const existingForm =
-      await this.formRepository.getSurveyFeedbackById(formId);
+    const existingForm = await this.formService.validateForm(formId);
     if (!existingForm) {
       throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
+        this.i18n.translate('errors.SURVEY_FEEDBACK_NOT_FOUND'),
       );
     }
     if (
@@ -63,7 +58,7 @@ export class SurveyFeedbackDataService {
       existingForm.status === FormStatus.COMPLETED
     ) {
       throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
+        this.i18n.translate('errors.SURVEY_NOT_AVAILABLE'),
       );
     }
 
@@ -71,19 +66,18 @@ export class SurveyFeedbackDataService {
       businessId,
       formId,
     );
-    const transformedSettings = this.configManager.transformSettings(settings);
+    const transformedSettings = JsonHelper.transformSettings(settings);
 
-    const validationFormErrors = await this.validateResponseOptions(
+    const validationFormErrors = await this.validateFormSubmissionRules(
       formId,
       transformedSettings,
+      userId,
     );
 
     const questionSettings =
       await this.questionService.getQuestionSettingByFormId(formId);
 
-    console.log(questionSettings, 'quest123456ionSettings');
-
-    const validationErrors = await this.validateQuestionResponses(
+    const validationErrors = await this.validateResponsesByQuestionSettings(
       responses,
       questionSettings,
     );
@@ -124,16 +118,19 @@ export class SurveyFeedbackDataService {
 
     await Promise.all(responsePromises);
 
-    const successMessage = this.i18n.translate(
-      'messages.RESPONSES_SAVED_SUCCESSFULLY',
-    );
+    const ending = await this.formService.getSurveyEndingBySurveyId(formId);
 
-    return { message: successMessage };
+    return { ending };
   }
 
-  async validateResponseOptions(
+  async updateCompleted(id: number) {
+    return await this.userResponseRepository.update(id);
+  }
+
+  async validateFormSubmissionRules(
     formId: number,
     responseOptions: FormSettingDto[],
+    userId?: number,
   ) {
     const currentDate = new Date();
     const totalResponses =
@@ -200,20 +197,20 @@ export class SurveyFeedbackDataService {
     }
   }
 
-  async validateQuestionResponses(
+  async validateResponsesByQuestionSettings(
     responses: ResponseDto | ResponseDto[], // Hỗ trợ cả object và array
     settings: QuestionSetting[] | QuestionSetting,
   ) {
     if (Array.isArray(responses)) {
       for (const response of responses) {
-        await this.validateSingleResponse(response, settings);
+        await this.validateResponseAgainstSettings(response, settings);
       }
     } else {
-      await this.validateSingleResponse(responses, settings);
+      await this.validateResponseAgainstSettings(responses, settings);
     }
   }
 
-  private async validateSingleResponse(
+  private async validateResponseAgainstSettings(
     response: ResponseDto,
     settings: QuestionSetting[] | QuestionSetting,
   ) {
@@ -235,50 +232,62 @@ export class SurveyFeedbackDataService {
 
     if (!questionSetting) {
       throw new BadRequestException(
-        this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+        this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
           args: { questionId: response.questionId },
         }),
       );
     }
 
-    const isRequired = questionSetting.settings.required === true;
+    const isRequired = questionSetting.settings.required;
 
     if (isRequired && this.isEmptyResponse(response)) {
       throw new BadRequestException(
-        this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+        this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
           args: { questionId: response.questionId },
         }),
       );
     }
 
-    // Xử lý logic theo từng loại câu hỏi
-    this.validateResponseByType(type.questionType, response, questionSetting);
+    const otherAnswer = questionSetting.settings.other;
+
+    if (!otherAnswer && response.ortherAnswer) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.QUESTION_NOT_REQUIRES_OTHER_ANSWER', {
+          args: { questionId: response.questionId },
+        }),
+      );
+    }
+
+    this.validateResponseFormatByType(
+      type.questionType,
+      response,
+      questionSetting,
+    );
   }
 
-  private validateResponseByType(
+  private validateResponseFormatByType(
     questionType: string,
     response: ResponseDto,
     questionSettings: any,
   ) {
+    const isRequired = questionSettings?.required || false; // Kiểm tra có bắt buộc không
+
     switch (questionType) {
       case 'SINGLE_CHOICE':
       case 'PICTURE_SELECTION':
-        if (
-          (questionSettings.required && !response.answerOptionId) ||
-          !response.answerOptionId
-        ) {
+        if (isRequired && !response.answerOptionId) {
           throw new BadRequestException(
-            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+            this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
               args: { questionId: response.questionId },
             }),
           );
         }
         if (
-          Array.isArray(response.answerOptionId) &&
-          response.answerOptionId.length > questionSettings.maxSelections
+          response.answerOptionId !== null &&
+          typeof response.answerOptionId !== 'number'
         ) {
           throw new BadRequestException(
-            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
               args: { questionId: response.questionId },
             }),
           );
@@ -286,28 +295,24 @@ export class SurveyFeedbackDataService {
         break;
 
       case 'MULTI_CHOICE':
-        if (response.answerOptionId) {
-          if (
-            response.answerOptionId.length <
-            (questionSettings.minSelections || 1 || !response.answerOptionId)
-          ) {
-            throw new BadRequestException(
-              this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
-                args: { questionId: response.questionId },
-              }),
-            );
-          }
-          if (
-            response.answerOptionId.length >
-            (questionSettings.maxSelections || Infinity)
-          ) {
-            throw new BadRequestException(
-              `Question ID ${response.questionId} allows a maximum of ${questionSettings.maxSelections} selections.`,
-            );
-          }
-        } else if (questionSettings.required) {
+        if (
+          isRequired &&
+          (!Array.isArray(response.answerOptionId) ||
+            response.answerOptionId.length === 0)
+        ) {
           throw new BadRequestException(
-            this.i18n.translate('errors.QUESTIONREQUIRESSELECTION', {
+            this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        if (
+          response.answerOptionId !== null &&
+          response.answerOptionId !== undefined &&
+          !Array.isArray(response.answerOptionId)
+        ) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
               args: { questionId: response.questionId },
             }),
           );
@@ -315,9 +320,23 @@ export class SurveyFeedbackDataService {
         break;
 
       case 'INPUT_TEXT':
-        if (questionSettings.required && !response.answerText) {
+        if (
+          isRequired &&
+          (!response.answerText || !response.answerText.trim())
+        ) {
           throw new BadRequestException(
-            this.i18n.translate('errors.QUESTIONREQUIRESINPUTTEXT', {
+            this.i18n.translate('errors.QUESTION_REQUIRES_INPUT_TEXT', {
+              args: { questionId: response.questionId },
+            }),
+          );
+        }
+        if (
+          response.answerText !== null &&
+          response.answerText !== undefined &&
+          typeof response.answerText !== 'string'
+        ) {
+          throw new BadRequestException(
+            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
               args: { questionId: response.questionId },
             }),
           );
@@ -325,22 +344,27 @@ export class SurveyFeedbackDataService {
         break;
 
       case 'RATING_SCALE':
-        if (questionSettings.required && response.ratingValue === undefined) {
+        const range = parseFloat(questionSettings?.settings?.range) || 5; // Mặc định 5 sao nếu không có
+        if (
+          isRequired &&
+          (response.ratingValue === null || response.ratingValue === undefined)
+        ) {
           throw new BadRequestException(
-            this.i18n.translate('errors.QUESTIONREQUIRESRATINGVALUE', {
+            this.i18n.translate('errors.QUESTION_REQUIRES_RATING_VALUE', {
               args: { questionId: response.questionId },
             }),
           );
         }
-
         if (
+          response.ratingValue !== null &&
           response.ratingValue !== undefined &&
-          (response.ratingValue > parseFloat(questionSettings.settings.range) ||
-            response.ratingValue <= 0)
+          (typeof response.ratingValue !== 'number' ||
+            response.ratingValue <= 0 ||
+            response.ratingValue > range)
         ) {
           throw new BadRequestException(
-            this.i18n.translate('errors.INVALIDRATINGVALUE', {
-              args: { questionId: response.questionId },
+            this.i18n.translate('errors.INVALID_RATING_VALUE', {
+              args: { questionId: response.questionId, max: range },
             }),
           );
         }
@@ -357,7 +381,8 @@ export class SurveyFeedbackDataService {
     return (
       response.answerText == null &&
       response.answerOptionId == null &&
-      response.ratingValue == null
+      response.ratingValue == null &&
+      response.ortherAnswer == null
     );
   }
 
@@ -382,7 +407,7 @@ export class SurveyFeedbackDataService {
       endDate = dateRange.endDate;
     }
 
-    const questions = await this.responseQuestionRepository.getAll(
+    const questions = await this.questionService.getAllQuestion(
       formId,
       startDate,
       endDate,
@@ -391,6 +416,7 @@ export class SurveyFeedbackDataService {
       const responses = [];
       let totalQuestionResponses = 0;
       let media = null;
+      let other = null;
       if (question.questionOnMedia) {
         media = question.questionOnMedia[0]?.media.url;
       }
@@ -413,7 +439,7 @@ export class SurveyFeedbackDataService {
             id: option.id,
             label: option.label,
             count,
-            percentage: percentage,
+            percentage,
           };
 
           if (
@@ -426,17 +452,39 @@ export class SurveyFeedbackDataService {
 
           responses.push(responseObj);
         });
+
+        other = question.responseOnQuestions
+          .map((data) => data.otherAnswer)
+          .filter((answer) => answer && answer.trim() !== ''); // Loại bỏ null, undefined, hoặc chuỗi rỗng
+
+        if (other.length > 0) {
+          const otherCount = other.length;
+          const otherPercentage =
+            otherCount === 0
+              ? 0
+              : ((otherCount / totalQuestion) * 100).toFixed(2);
+
+          responses.push({
+            label: 'Other',
+            count: otherCount,
+            percentage: otherPercentage,
+            otherAnswer: other,
+          });
+        } else {
+          responses.push({
+            label: 'Other',
+            count: 0,
+            percentage: 0,
+            otherAnswer: [],
+          });
+        }
         totalQuestionResponses = totalQuestion;
       } else if (
         question.questionType === QuestionType.RATING_SCALE.toString()
       ) {
         const configurations = question.businessQuestionConfiguration;
 
-        const range = this.configManager.getSettingValue(
-          configurations,
-          'range',
-          0,
-        );
+        const range = JsonHelper.getSettingValue(configurations, 'range', 0);
 
         const ratingCounts = Array(range).fill(0);
 
@@ -489,13 +537,7 @@ export class SurveyFeedbackDataService {
   }
 
   async getUserResponse(formId: number) {
-    const form = await this.formRepository.getSurveyFeedbackById(formId);
-
-    if (!form) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const form = await this.formService.validateForm(formId);
 
     const surveyResponseQuestions =
       await this.userResponseRepository.getUserResponse(formId);
@@ -510,14 +552,9 @@ export class SurveyFeedbackDataService {
     customEndDate?: string,
     page: number = 1,
     limit: number = 10,
-  ): Promise<FormResponse> {
-    const existingForm =
-      await this.formRepository.getSurveyFeedbackById(formId);
-    if (!existingForm) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+  ): Promise<any> {
+    // Chuyển kiểu trả về sang `Promise<any>` nếu không dùng class DTO
+    const existingForm = await this.formService.validateForm(formId);
 
     let startDate: Date | undefined;
     let endDate: Date | undefined;
@@ -529,11 +566,10 @@ export class SurveyFeedbackDataService {
       );
       startDate = dateRange.startDate;
       endDate = dateRange.endDate;
-      console.log(startDate, endDate, 'startDate, endDate');
     }
 
     const userResponsesPage =
-      await this.userResponseRepository.getUserResponses(
+      await this.userResponseRepository.getAllUserResponses(
         formId,
         startDate,
         endDate,
@@ -542,7 +578,9 @@ export class SurveyFeedbackDataService {
       );
 
     const formattedData = userResponsesPage.data.map((userResponse) => ({
+      id: userResponse.id,
       sentAt: userResponse.sentAt,
+      isAnonymous: !userResponse.userId ? true : false,
       person:
         userResponse.userId !== null && userResponse.user
           ? {
@@ -550,14 +588,17 @@ export class SurveyFeedbackDataService {
               email: userResponse.user.email || null,
             }
           : null,
-
       guest: userResponse.guest
-        ? this.configManager.mapGuestDataToJson(userResponse.guest)
+        ? JsonHelper.mapGuestData(userResponse.guest)
         : null,
       severityScores: this.calculateSeverity(userResponse),
-      responseOnQuestions: userResponse.responseOnQuestions.map((response) => {
+      completed: userResponse.completedAt,
+      responses: userResponse.responseOnQuestions.map((response) => {
         let answer: any = null;
 
+        if (response.answerOptionId === null && response.otherAnswer) {
+          answer = response.otherAnswer;
+        }
         if (
           response.answerOptionId &&
           response.question.answerOptions.length > 0
@@ -570,9 +611,6 @@ export class SurveyFeedbackDataService {
               (opt) => opt.id === response.answerOptionId,
             )?.label ??
             null;
-          if (response.question.answerOptions.length > 0) {
-            response.question.answerOptions.map((index) => {});
-          }
 
           answer = answerQuestion;
         } else if (response.question.questionType === 'INPUT_TEXT') {
@@ -582,7 +620,6 @@ export class SurveyFeedbackDataService {
         }
 
         return {
-          questionId: response.question.id,
           headline: response.question.headline,
           questionType: response.question.questionType,
           answer,
@@ -590,25 +627,83 @@ export class SurveyFeedbackDataService {
       }),
     }));
 
-    return plainToInstance(
-      FormResponse,
-      {
-        formId,
-        data: formattedData,
-        meta: userResponsesPage.meta,
-      },
-      { excludeExtraneousValues: true },
+    return {
+      formId,
+      data: formattedData,
+      meta: userResponsesPage.meta,
+    };
+  }
+
+  async getUserResponseDetailById(
+    formId: number,
+    responseId: number,
+  ): Promise<any> {
+    const existingForm = await this.formService.validateForm(formId);
+
+    const userResponsesPage =
+      await this.userResponseRepository.getAllUserResponses(formId);
+
+    const userResponses = userResponsesPage.data.filter(
+      (reponse) => reponse.id == responseId,
     );
+    const formattedData = userResponses.map((userResponse) => ({
+      id: userResponse.id,
+      sentAt: userResponse.sentAt,
+      isAnonymous: !userResponse.userId ? true : false,
+      person:
+        userResponse.userId !== null && userResponse.user
+          ? {
+              name: userResponse.user.username || null,
+              email: userResponse.user.email || null,
+            }
+          : null,
+      guest: userResponse.guest
+        ? JsonHelper.mapGuestData(userResponse.guest)
+        : null,
+      severityScores: this.calculateSeverity(userResponse),
+      completed: userResponse.completedAt,
+      responses: userResponse.responseOnQuestions.map((response) => {
+        let answer: any = null;
+
+        if (response.answerOptionId === null && response.otherAnswer) {
+          answer = response.otherAnswer;
+        }
+        if (
+          response.answerOptionId &&
+          response.question.answerOptions.length > 0
+        ) {
+          const answerQuestion =
+            response.question.answerOptions.find(
+              (opt) => opt.id === response.answerOptionId,
+            )?.answerOptionOnMedia?.media?.url ??
+            response.question.answerOptions.find(
+              (opt) => opt.id === response.answerOptionId,
+            )?.label ??
+            null;
+
+          answer = answerQuestion;
+        } else if (response.question.questionType === 'INPUT_TEXT') {
+          answer = response.answerText ?? null;
+        } else if (response.question.questionType === 'RATING_SCALE') {
+          answer = response.ratingValue ?? null;
+        }
+
+        return {
+          headline: response.question.headline,
+          questionType: response.question.questionType,
+          answer,
+        };
+      }),
+    }));
+
+    return {
+      formId,
+      data: formattedData,
+    };
   }
 
   async getDetailResponsesByUsername(username: string, formId: number) {
-    const existingForm =
-      await this.formRepository.getSurveyFeedbackById(formId);
-    if (!existingForm) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const existingForm = await this.formService.validateForm(formId);
 
     const userResponses =
       await this.userResponseRepository.getDetailResponsesByUsername(
@@ -627,7 +722,7 @@ export class SurveyFeedbackDataService {
           : null,
       guest:
         userResponse.guest && typeof userResponse.guest === 'object'
-          ? this.configManager.mapGuestDataToJson(userResponse.guest)
+          ? JsonHelper.mapGuestData(userResponse.guest)
           : null,
       responseOnQuestions: userResponse.responseOnQuestions.map((response) => ({
         questionId: response.question.id,
@@ -657,12 +752,8 @@ export class SurveyFeedbackDataService {
     page: number,
     pageSize: number,
   ) {
-    const form = await this.formRepository.getSurveyFeedbackById(formId);
-    if (!form) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const form = await this.formService.validateForm(formId);
+
     const { startDate, endDate } = this.getDateRange(option);
 
     console.log(startDate, endDate, 'startDate, endDate');
@@ -791,17 +882,28 @@ export class SurveyFeedbackDataService {
       answer?: string;
       answerOptionId?: number | number[];
       ratingValue?: number;
+      otherAnswer?: string;
     },
     userId?: number,
     sessionId?: string,
   ) {
     // Find or create UserOnResponse
-    let userResponse =
-      await this.userResponseRepository.getResponsesBySurveyAndUser(
+    let userResponse;
+    if (userId) {
+      userResponse = await this.userResponseRepository.getUserResponseByUserId(
+        userId,
         formId,
-        userId || null,
-        sessionId,
       );
+    }
+    if (sessionId) {
+      userResponse =
+        await this.userResponseRepository.getUserResponseBySessionId(
+          sessionId,
+          formId,
+        );
+    }
+
+    const question = await this.questionService.getQuestionById(questionId);
 
     // If not found, create a new UserOnResponse
     if (!userResponse) {
@@ -813,28 +915,31 @@ export class SurveyFeedbackDataService {
       );
     }
 
-    // Get question type information
-    const question = await this.questionService.getQuestionById(questionId);
-    if (!question) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+    const questionResponse =
+      await this.responseQuestionRepository.getResponseByUserResponseId(
+        userResponse.id,
+        questionId,
+      );
+
+    console.log(questionResponse, 'questionRespossbsdssbsbnse');
+
+    if (questionResponse) {
+      await this.userResponseRepository.deleteExistingResponses(
+        questionResponse.id,
+        questionId,
+        formId,
       );
     }
-
-    // Delete old answers (if any)
-    await this.userResponseRepository.deleteExistingResponses(
-      userResponse.id,
-      questionId,
-      formId,
-    );
 
     if (
       (!responseData.answerOptionId &&
         !responseData.answer &&
-        !responseData.ratingValue) ||
+        !responseData.ratingValue &&
+        !responseData.otherAnswer) ||
       (Array.isArray(responseData.answerOptionId) &&
         responseData.answerOptionId.length === 0)
     ) {
+      console.log(responseData, 'ádasdsadsdasdasdsad');
       return await this.userResponseRepository.createResponseSkiped(
         userResponse.id,
         questionId,
@@ -853,6 +958,13 @@ export class SurveyFeedbackDataService {
             formId,
             responseData.answerOptionId,
           );
+        } else if (responseData.otherAnswer) {
+          await this.userResponseRepository.createOtherAnwserResponse(
+            userResponse.id,
+            questionId,
+            formId,
+            responseData.otherAnswer,
+          );
         }
         break;
 
@@ -868,6 +980,13 @@ export class SurveyFeedbackDataService {
                 optionId,
               ),
             ),
+          );
+        } else if (responseData.otherAnswer) {
+          await this.userResponseRepository.createOtherAnwserResponse(
+            userResponse.id,
+            questionId,
+            formId,
+            responseData.otherAnswer,
           );
         }
         break;
@@ -979,18 +1098,26 @@ export class SurveyFeedbackDataService {
   }
 
   async getPreviosResponse(
-    surveyId: number,
+    formId: number,
     userId?: number | null,
     sessionId?: string,
   ) {
-    const result =
-      await this.userResponseRepository.getResponsesBySurveyAndUser(
-        surveyId,
+    let userResponse;
+    if (userId) {
+      userResponse = await this.userResponseRepository.getUserResponseByUserId(
         userId,
-        sessionId,
+        formId,
       );
+    }
+    if (sessionId) {
+      userResponse =
+        await this.userResponseRepository.getUserResponseBySessionId(
+          sessionId,
+          formId,
+        );
+    }
 
-    return result;
+    return userResponse;
   }
 
   async removeResponseForQuestion(

@@ -1,23 +1,28 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { QuestionController } from './question.controller';
-import { QuestionService } from './question.service';
-import { PrismaQuestionRepository } from 'src/repositories/prisma-question.repository';
-import { PrismaService } from 'src/config/providers/prisma.service';
-import { QuestionConditionService } from 'src/question-condition/question-condition.service';
+import { QuestionService } from './service/question.service';
+import { PrismaQuestionRepository } from 'src/question/repositories/prisma-question.repository';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 import { MediaModule } from 'src/media/media.module';
 import { AnswerOptionModule } from 'src/answer-option/answer-option.module';
 import { SurveyFeedbackFormModule } from 'src/surveyfeedback-form/surveyfeedback-form.module';
-import { QuestionConditionModule } from 'src/question-condition/question-condition.module';
+import { QuestionConditionService } from './service/question-condition.service';
+import { PrismaQuestionConditionRepository } from './repositories/prisma-questioncondition-repository';
 
 @Module({
   controllers: [QuestionController],
-  providers: [PrismaService, QuestionService, PrismaQuestionRepository],
-  exports: [QuestionService],
+  providers: [
+    PrismaService,
+    QuestionService,
+    PrismaQuestionRepository,
+    QuestionConditionService,
+    PrismaQuestionConditionRepository,
+  ],
+  exports: [QuestionService, QuestionConditionService],
   imports: [
-    MediaModule,
+    forwardRef(() => MediaModule),
     AnswerOptionModule,
     forwardRef(() => SurveyFeedbackFormModule),
-    QuestionConditionModule,
   ],
 })
 export class QuestionModule {}

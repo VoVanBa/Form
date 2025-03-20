@@ -1,42 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
-import { PrismaService } from 'src/config/providers/prisma.service';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 import { UserOnResponse } from 'src/models/UserOnResponse';
+import { ResponseDto } from 'src/survey-feedback-data/dtos/response.dto';
 
 @Injectable()
 export class PrismaUserResponseRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  public getPrisma(): PrismaClient {
-    return this.prisma;
-  }
-
-  async create(
-    formId: number,
-    guest: any,
-    userId: number,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const prisma = tx || this.prisma;
-    return prisma.userOnResponse.create({
+  async create(formId: number, guest: any, userId: number) {
+    return this.prisma.userOnResponse.create({
       data: {
         formId,
         guest,
         userId,
+        completedAt: new Date(),
       },
     });
   }
 
-  // async create(formId: number, guest: any, userId: number) {
-  //   return this.prisma.userOnResponse.create({
-  //     data: {
-  //       formId,
-  //       guest,
-  //       userId,
-  //     },
-  //   });
-  // }
-
+  async update(id: number) {
+    return this.prisma.userOnResponse.update({
+      where: {
+        id: id,
+      },
+      data: {
+        completedAt: new Date(),
+      },
+    });
+  }
   async findAllByFormId(formId: number) {
     return this.prisma.userOnResponse.findMany({
       where: {
@@ -84,7 +75,7 @@ export class PrismaUserResponseRepository {
       },
     });
   }
-  async getUserResponses(
+  async getAllUserResponses(
     formId: number,
     startDate?: Date, // Receive preprocessed date filters from the service
     endDate?: Date,
@@ -108,7 +99,6 @@ export class PrismaUserResponseRepository {
       where: filter,
     });
 
-    // Fetch paginated data
     const data = await this.prisma.userOnResponse.findMany({
       where: filter,
       orderBy: { sentAt: 'desc' },
@@ -203,58 +193,32 @@ export class PrismaUserResponseRepository {
     };
   }
 
-  async getResponsesBySurveyAndUser(
-    surveyId: number,
-    userId?: number | null,
-    sessionId?: string,
-    tx?: any,
-  ) {
-    const prisma = tx || this.prisma;
+  async getUserResponseByUserId(userId, formId): Promise<UserOnResponse> {
+    const user = await this.prisma.userOnResponse.findFirst({
+      where: {
+        formId: formId,
+        userId: userId,
+      },
+      include: { responseOnQuestions: true },
+    });
+    return user ? new UserOnResponse(user) : null;
+  }
 
-    if (userId) {
-      return await prisma.userOnResponse.findFirst({
-        where: {
-          formId: surveyId,
-          userId: userId,
+  async getUserResponseBySessionId(
+    sessionId: string,
+    formId: number,
+  ): Promise<UserOnResponse> {
+    const user = await this.prisma.userOnResponse.findFirst({
+      where: {
+        formId,
+        guest: {
+          equals: { sessionId },
         },
-        include: { responseOnQuestions: true },
-      });
-    }
+      },
+      include: { responseOnQuestions: true },
+    });
 
-    if (sessionId) {
-      const allResponses = await prisma.userOnResponse.findMany({
-        where: {
-          formId: surveyId,
-          guest: { not: null },
-        },
-        include: { responseOnQuestions: true },
-      });
-
-      for (const response of allResponses) {
-        try {
-          const guestData = response.guest;
-
-          if (guestData && typeof guestData === 'object') {
-            if (guestData.sessionId === sessionId) {
-              return response;
-            }
-          }
-
-          if (typeof guestData === 'string') {
-            try {
-              const parsedGuest = JSON.parse(guestData);
-              if (parsedGuest.sessionId === sessionId) {
-                return response;
-              }
-            } catch (parseError) {}
-          }
-        } catch (e) {
-          console.error('❌ Lỗi không mong muốn khi xử lý guestData:', e);
-        }
-      }
-    }
-
-    return null;
+    return user ? new UserOnResponse(user) : null;
   }
 
   async createSingleChoiceResponse(
@@ -262,10 +226,8 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerOptionId: number,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.create({
+    return this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId,
@@ -280,10 +242,8 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerOptionId: number,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.create({
+    return this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId,
@@ -298,10 +258,8 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerText: string,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.create({
+    return this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId,
@@ -316,10 +274,8 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     ratingValue: number,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.create({
+    return this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId,
@@ -329,21 +285,35 @@ export class PrismaUserResponseRepository {
     });
   }
 
+  async createOtherAnwserResponse(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    otherAnswer: string,
+  ) {
+    return this.prisma.responseOnQuestion.create({
+      data: {
+        useronResponseId: userResponseId,
+        questionId,
+        formId,
+        otherAnswer,
+      },
+    });
+  }
+
   async createUserOnResponse(
     formId: number,
     userId: number | null,
     guest: any,
-    tx?: Prisma.TransactionClient,
   ): Promise<UserOnResponse> {
-    const prisma = tx || this.prisma;
-    const data = await prisma.userOnResponse.create({
+    const data = await this.prisma.userOnResponse.create({
       data: {
         formId,
         userId,
         guest,
       },
     });
-    return UserOnResponse.fromPrisma(data);
+    return new UserOnResponse(data);
   }
 
   async createResponseSkiped(
@@ -351,10 +321,8 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     skip: boolean,
-    tx?: any,
   ) {
-    const prisma = tx || this.prisma;
-    const data = await prisma.responseOnQuestion.create({
+    const data = await this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId,
@@ -368,14 +336,31 @@ export class PrismaUserResponseRepository {
     userResponseId: number,
     questionId: number,
     formId: number,
-    tx?: Prisma.TransactionClient,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.deleteMany({
+    return this.prisma.responseOnQuestion.delete({
       where: {
-        useronResponseId: userResponseId,
+        id: userResponseId,
+      },
+    });
+  }
+
+  async updateExistingResponses(
+    userResponseId: number,
+    questionId: number,
+    dto: ResponseDto,
+  ) {
+    return this.prisma.responseOnQuestion.update({
+      where: {
+        id: userResponseId,
         questionId,
-        formId,
+      },
+      data: {
+        answerOptionId: Array.isArray(dto.answerOptionId)
+          ? undefined
+          : dto.answerOptionId,
+        answerText: dto.answerText,
+        ratingValue: dto.ratingValue,
+        otherAnswer: dto.ortherAnswer,
       },
     });
   }
@@ -385,10 +370,8 @@ export class PrismaUserResponseRepository {
     formId: number,
     questionId: number,
     userResponseId: number,
-    tx?: any,
   ) {
-    const prisma = tx || this.prisma;
-    return prisma.responseOnQuestion.deleteMany({
+    return this.prisma.responseOnQuestion.deleteMany({
       where: {
         formId,
         questionId,

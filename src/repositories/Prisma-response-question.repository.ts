@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
-import { PrismaService } from 'src/config/providers/prisma.service';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 
 @Injectable()
 export class PrismaResponseQuestionRepository {
@@ -20,10 +19,8 @@ export class PrismaResponseQuestionRepository {
     answerText: string,
     ratingValue: number,
     formId: number,
-    tx?: any,
   ) {
-    const prisma = tx || this.prisma;
-    return await prisma.responseOnQuestion.create({
+    return await this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
         questionId: questionId,
@@ -62,42 +59,6 @@ export class PrismaResponseQuestionRepository {
     });
   }
 
-  async getAll(formId: number, startDate?: Date, endDate?: Date) {
-    let filter: any = { formId };
-
-    if (startDate && endDate) {
-      filter.createdAt = {
-        gte: startDate,
-        lte: endDate,
-      };
-    }
-    return await this.prisma.question.findMany({
-      where: { ...filter, deletedAt: null },
-      include: {
-        questionOnMedia: {
-          include: {
-            media: true,
-          },
-        },
-        answerOptions: {
-          include: {
-            answerOptionOnMedia: {
-              include: {
-                media: true,
-              },
-            },
-          },
-        },
-        responseOnQuestions: true,
-        businessQuestionConfiguration: {
-          select: {
-            settings: true,
-          },
-        },
-      },
-    });
-  }
-
   async deleteResponsesForQuestions(
     surveyId: number,
     questionIds: number[],
@@ -112,6 +73,23 @@ export class PrismaResponseQuestionRepository {
         userResponse: {
           userId: userId,
         },
+      },
+    });
+  }
+
+  async getResponseByUserResponseId(userResponseId, questionId: number) {
+    return await this.prisma.responseOnQuestion.findFirst({
+      where: {
+        useronResponseId: userResponseId,
+        questionId: questionId,
+      },
+    });
+  }
+
+  async getAllResponseByUserResponseId(useronResponseId: number) {
+    return await this.prisma.responseOnQuestion.findMany({
+      where: {
+        useronResponseId: useronResponseId,
       },
     });
   }

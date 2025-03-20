@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { PrismaFormSettingRepository } from 'src/repositories/prisma-setting.repository';
-import { PrismaService } from 'src/config/providers/prisma.service';
+import { PrismaFormSettingRepository } from 'src/settings/repositories/prisma-setting.repository';
+import { PrismaService } from 'src/helper/providers/prisma.service';
 
 @Module({
   controllers: [AdminController],

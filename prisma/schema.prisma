@@ -39,6 +39,7 @@ model SurveyFeedback {
   createdAt            DateTime                         @default(now())
   updatedAt            DateTime                         @updatedAt
   type                 SurveyFeedbackType
+  deletedAt            DateTime?
   allowAnonymous       Boolean                          @default(true)
   status               FormStatus                       @default(DRAFT)
   businessId           Int
@@ -48,7 +49,7 @@ model SurveyFeedback {
   userFormResponses    UserOnResponse[]
   configurations       BusinessQuestionConfiguration[]
   responses            ResponseOnQuestion[]
-  SurveyFeedbackEnding SurveyFeedbackEnding?
+  surveyFeedbackEnding SurveyFeedbackEnding?
 }
 
 model SurveyFeedbackEnding {
@@ -67,6 +68,7 @@ model UserOnResponse {
   userId              Int?
   guest               Json?
   sentAt              DateTime             @default(now())
+  completedAt         DateTime?
   responseOnQuestions ResponseOnQuestion[]
   form                SurveyFeedback       @relation(fields: [formId], references: [id], onDelete: Cascade)
   user                User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -83,6 +85,7 @@ model ResponseOnQuestion {
   answerOptionId   Int?
   answerText       String?         @db.Text
   ratingValue      Int?
+  otherAnswer      String?         @db.Text
   skipped          Boolean         @default(false)
   answeredAt       DateTime        @default(now())
   answerOption     AnswerOption?   @relation(fields: [answerOptionId], references: [id], onDelete: Cascade)
@@ -140,6 +143,7 @@ model Question {
   questionConditions            QuestionCondition[]
 
   @@index([formId])
+  @@index([id])
 }
 
 model QuestionLogic {
@@ -153,8 +157,8 @@ model QuestionLogic {
 model QuestionCondition {
   id              Int          @id @default(autoincrement())
   questionId      Int
-  questionLogicId Int? 
-  role            QuestionRole 
+  questionLogicId Int?
+  role            QuestionRole
 
   question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionLogic QuestionLogic? @relation(fields: [questionLogicId], references: [id], onDelete: Cascade)

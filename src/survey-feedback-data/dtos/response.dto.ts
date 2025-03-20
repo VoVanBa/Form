@@ -20,4 +20,8 @@ export class ResponseDto {
   @IsOptional()
   @IsInt()
   ratingValue?: number;
+
+  @IsOptional()
+  @IsString()
+  ortherAnswer?: string;
 }
