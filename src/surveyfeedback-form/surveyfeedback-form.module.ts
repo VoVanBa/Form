@@ -1,7 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { SurveyFeedbackFormController } from './surveyfeedback-form.controller';
 import { SurveyFeedackFormService } from './surveyfeedback-form.service';
-import { PrismaFormSettingRepository } from 'src/settings/repositories/prisma-setting.repository';
 import { PrismaService } from 'src/helper/providers/prisma.service';
 import { PrismaAnswerOptionRepository } from 'src/answer-option/repositories/prisma-anwser-option.repository';
 import { PrismaSurveyEndingRepository } from 'src/surveyfeedback-form/repositories/prisma-survey-feedback-ending-repository';
@@ -29,9 +28,8 @@ import { PrismaSurveyFeedbackRepository } from './repositories/prisma-survey-fee
   providers: [
     SurveyFeedackFormService,
     PrismaService,
-    PrismaFormSettingRepository,
     PrismaSurveyEndingRepository,
-    PrismaSurveyFeedbackRepository
+    PrismaSurveyFeedbackRepository,
   ],
   exports: [SurveyFeedackFormService],
 })

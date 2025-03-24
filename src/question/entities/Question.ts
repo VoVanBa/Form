@@ -1,12 +1,11 @@
 import { QuestionOnMedia } from '../../media/entities/QuestionOnMedia';
-
 import { ResponseOnQuestion } from '../../models/ResponseOnQuestion';
 import { SurveyFeedback } from '../../surveyfeedback-form/entities/SurveyFeedback';
 import { QuestionType } from './enums/QuestionType';
 import { isArray } from 'class-validator';
 import { AnswerOption } from 'src/answer-option/entities/AnswerOption';
-import { QuestionCondition } from './QuestionCondition';
-import { BusinessQuestionConfiguration } from 'src/settings/entities/BusinessQuestionConfiguration';
+import { QuestionLogic } from './QuestionLogic';
+import { QuestionConfiguration } from 'src/settings/entities/QuestionConfiguration';
 
 export class Question {
   id: number;
@@ -19,8 +18,8 @@ export class Question {
   responseOnQuestions?: ResponseOnQuestion[];
   form?: SurveyFeedback;
   questionOnMedia?: QuestionOnMedia;
-  businessQuestionConfiguration?: BusinessQuestionConfiguration;
-  questionConditions?: QuestionCondition[];
+  questionConfiguration?: QuestionConfiguration;
+  questionLogic?: QuestionLogic[];
 
   constructor(data: any) {
     this.id = data.id;
@@ -39,11 +38,11 @@ export class Question {
     this.questionOnMedia = data.questionOnMedia
       ? new QuestionOnMedia(data.questionOnMedia)
       : null;
-    this.businessQuestionConfiguration = data.businessQuestionConfiguration
-      ? new BusinessQuestionConfiguration(data.businessQuestionConfiguration)
+    this.questionConfiguration = data.questionConfiguration
+      ? new QuestionConfiguration(data.questionConfiguration)
       : null;
-    this.questionConditions = isArray(data.questionConditions)
-      ? data.questionConditions.map((item) => new QuestionCondition(item))
+    this.questionLogic = isArray(data.questionConditions)
+      ? data.questionConditions.map((item) => new QuestionLogic(item))
       : [];
   }
 }

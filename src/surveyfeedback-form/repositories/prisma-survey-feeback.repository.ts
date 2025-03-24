@@ -5,6 +5,7 @@ import { PrismaService } from 'src/helper/providers/prisma.service';
 import { FormStatus } from 'src/surveyfeedback-form/entities/enums/FormStatus';
 import { SurveyFeedback } from 'src/surveyfeedback-form/entities/SurveyFeedback';
 import { ISurveyFeedbackRepository } from './interface/survey-feedback.repository';
+import { SurveySettingKey } from 'src/settings/entities/enums/SurveySettingKey';
 
 @Injectable()
 export class PrismaSurveyFeedbackRepository
@@ -15,12 +16,25 @@ export class PrismaSurveyFeedbackRepository
   async createSurveyFeedback(
     data: CreatesurveyFeedbackDto,
     businessId: number,
+    defaultSetting?: any,
   ): Promise<SurveyFeedback> {
     const surveyFeedback = await this.prisma.surveyFeedback.create({
       data: {
         ...data,
         businessId,
-        
+        businessSettings: defaultSetting?.length
+          ? {
+              createMany: {
+                data: defaultSetting.map((setting) => ({
+                  key: setting.key,
+                  value: setting.value,
+                })),
+              },
+            }
+          : undefined,
+      },
+      include: {
+        businessSettings: true, // Lấy cả settings khi tạo xong
       },
     });
     return new SurveyFeedback(surveyFeedback);
@@ -39,27 +53,11 @@ export class PrismaSurveyFeedbackRepository
               orderBy: { index: 'asc' },
               include: { answerOptionOnMedia: { include: { media: true } } },
             },
-            businessQuestionConfiguration: true,
-            questionConditions: {
-              include: {
-                questionLogic: true,
-              },
-            },
+            questionConfiguration: true,
           },
         },
         business: true,
-        businessSettings: {
-          include: {
-            formSetting: {
-              include: {
-                businessSurveyFeedbackSettings: true,
-                formSettingTypes: true,
-              },
-            },
-            business: true,
-            form: true,
-          },
-        },
+        businessSettings: true,
         surveyFeedbackEnding: { include: { media: true } },
       },
     });
@@ -95,6 +93,14 @@ export class PrismaSurveyFeedbackRepository
                 redirectUrl: data.ending.endingRedirectUrl,
                 message: data.ending.endingMessage,
               },
+            }
+          : undefined,
+        businessSettings: data.settings
+          ? {
+              updateMany: data.settings.map((setting) => ({
+                where: { key: setting.key, formId: id },
+                data: { value: setting.value },
+              })),
             }
           : undefined,
       },

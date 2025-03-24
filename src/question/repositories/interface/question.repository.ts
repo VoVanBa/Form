@@ -4,7 +4,6 @@ import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { SurveyFeedbackSettings } from 'src/settings/entities/SurveyFeedbackSettings';
 import { QuestionConfiguration } from 'src/settings/entities/QuestionConfiguration';
 import { QuestionType } from 'src/question/entities/enums/QuestionType';
-import { BusinessQuestionConfiguration } from 'src/settings/entities/BusinessQuestionConfiguration';
 
 export interface QuestionRepository {
   findAllQuestion(formId: number, tx?: any): Promise<Partial<Question>[]>;
@@ -37,18 +36,12 @@ export interface QuestionRepository {
     key: string,
     formId: number,
     tx?: any,
-  ): Promise<BusinessQuestionConfiguration>;
+  ): Promise<QuestionConfiguration>;
 
   getSettingByQuestionType(
     questionType: QuestionType,
     tx?: any,
   ): Promise<QuestionConfiguration | null>;
-
-  createDefaultQuestionConfigByAdmin(
-    key: string,
-    settings: any,
-    tx?: any,
-  ): Promise<SurveyFeedbackSettings>;
 
   createQuestion(
     formId: number,
@@ -57,11 +50,11 @@ export interface QuestionRepository {
     tx?: any,
   ): Promise<Question>;
 
-  getBusinessQuestionConfigurationByQuestionId(
+  getQuestionConfigurationByQuestionId(
     questionId: number,
     formId: number,
     tx?: any,
-  ): Promise<BusinessQuestionConfiguration | null>;
+  ): Promise<QuestionConfiguration | null>;
 
   updateQuestionSetting(
     questionId: number,
@@ -79,7 +72,7 @@ export interface QuestionRepository {
   getSettingByFormId(
     formId: number,
     tx?: any,
-  ): Promise<BusinessQuestionConfiguration[]>;
+  ): Promise<QuestionConfiguration[]>;
 
   shiftIndexes(
     formId: number,

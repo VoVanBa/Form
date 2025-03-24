@@ -13,13 +13,15 @@ import { CreateResponseOnQuestionDto } from './dtos/create.response.on.question.
 import { FormSettingDto } from './dtos/form.setting.dto';
 import { PrismaUserResponseRepository } from 'src/repositories/prisma-user-response.repository';
 import { PrismaResponseQuestionRepository } from 'src/repositories/prisma-response-question.repository';
-import { PrismaFormSettingRepository } from 'src/settings/repositories/prisma-setting.repository';
 import { I18nService } from 'nestjs-i18n';
 import { QuestionType } from 'src/question/entities/enums/QuestionType';
 import { FormStatus } from 'src/surveyfeedback-form/entities/enums/FormStatus';
 import { QuestionService } from 'src/question/service/question.service';
 import { JsonHelper } from 'src/helper/json-helper';
 import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback-form.service';
+import { SurveyFeedbackSettingService } from 'src/settings/service/survey-feedback-setting.service';
+import { QuestionConfigurationService } from 'src/settings/service/question-configuaration.service';
+import { QuestionSettingInterface } from 'src/settings/dtos/questionSettingInterface';
 
 @Injectable()
 export class SurveyFeedbackDataService {
@@ -30,7 +32,8 @@ export class SurveyFeedbackDataService {
     private responseQuestionRepository: PrismaResponseQuestionRepository,
     @Inject(forwardRef(() => QuestionService))
     private questionService: QuestionService,
-    private formSetting: PrismaFormSettingRepository,
+    private formSetting: SurveyFeedbackSettingService,
+    private questionSetting: QuestionConfigurationService,
     private i18n: I18nService,
   ) {}
 
@@ -53,6 +56,7 @@ export class SurveyFeedbackDataService {
         this.i18n.translate('errors.SURVEY_FEEDBACK_NOT_FOUND'),
       );
     }
+
     if (
       existingForm.status === FormStatus.DRAFT ||
       existingForm.status === FormStatus.COMPLETED
@@ -62,25 +66,40 @@ export class SurveyFeedbackDataService {
       );
     }
 
-    const settings = await this.formSetting.getAllFormSettingBusiness(
-      businessId,
+    const settings = await this.formSetting.getAllSetting(formId);
+
+    const validationFormErrors = await this.formSetting.validateFormSetting(
       formId,
-    );
-    const transformedSettings = JsonHelper.transformSettings(settings);
-
-    const validationFormErrors = await this.validateFormSubmissionRules(
-      formId,
-      transformedSettings,
-      userId,
+      settings,
     );
 
-    const questionSettings =
-      await this.questionService.getQuestionSettingByFormId(formId);
+    const rawQuestionSettings =
+      await this.questionSetting.getAllQuestionSettings(formId);
 
-    const validationErrors = await this.validateResponsesByQuestionSettings(
-      responses,
-      questionSettings,
-    );
+    const questionSettings = rawQuestionSettings.map((setting) => {
+      let parsedSettings: QuestionSettingInterface;
+
+      if (typeof setting.settings === 'string') {
+        parsedSettings =
+          JsonHelper.parse<QuestionSettingInterface>(setting.settings) || {};
+      } else {
+        parsedSettings = setting.settings as QuestionSettingInterface;
+      }
+
+      return {
+        id: setting.id,
+        questionId: setting.questionId,
+        formId: setting.formId,
+        key: setting.key,
+        settings: parsedSettings,
+      } as QuestionSetting;
+    });
+
+    const validationErrors =
+      await this.questionSetting.validateResponsesByQuestionSettings(
+        responses,
+        questionSettings,
+      );
 
     const userSurveyResponse = await this.userResponseRepository.create(
       formId,
@@ -127,263 +146,8 @@ export class SurveyFeedbackDataService {
     return await this.userResponseRepository.update(id);
   }
 
-  async validateFormSubmissionRules(
-    formId: number,
-    responseOptions: FormSettingDto[],
-    userId?: number,
-  ) {
-    const currentDate = new Date();
-    const totalResponses =
-      await this.responseQuestionRepository.totalResponses(formId);
-
-    for (const formSetting of responseOptions) {
-      const { enabled, limit, date } = formSetting.settings;
-
-      if (!enabled) continue;
-
-      if (
-        formSetting.key === 'closeOnResponseLimit' &&
-        totalResponses >= limit
-      ) {
-        throw new BadRequestException({
-          message: this.i18n.translate('errors.RESPONSELIMITEXCEEDED', {
-            args: { key: formSetting.key },
-          }),
-          key: formSetting.key,
-        });
-      }
-
-      if (formSetting.key === 'releaseOnDate') {
-        if (!date) {
-          throw new BadRequestException({
-            message: this.i18n.translate('errors.RELEASEONDATEWITHOUTDATE', {
-              args: { key: formSetting.key },
-            }),
-            key: formSetting.key,
-          });
-        }
-
-        const releaseDate = new Date(date);
-        if (releaseDate > currentDate) {
-          throw new BadRequestException({
-            message: this.i18n.translate('errors.SURVEYNOTYETRELEASED', {
-              args: { date, key: formSetting.key },
-            }),
-            key: formSetting.key,
-          });
-        }
-      }
-
-      if (formSetting.key === 'closeOnDate') {
-        if (!date) {
-          throw new BadRequestException({
-            message: this.i18n.translate('errors.CLOSEONDATEWITHOUTDATE', {
-              args: { key: formSetting.key },
-            }),
-            key: formSetting.key,
-          });
-        }
-
-        const closeDate = new Date(date);
-        if (closeDate <= currentDate) {
-          throw new BadRequestException({
-            message: this.i18n.translate('errors.SURVEYCLOSED', {
-              args: { date, key: formSetting.key },
-            }),
-            key: formSetting.key,
-          });
-        }
-      }
-    }
-  }
-
-  async validateResponsesByQuestionSettings(
-    responses: ResponseDto | ResponseDto[], // Hỗ trợ cả object và array
-    settings: QuestionSetting[] | QuestionSetting,
-  ) {
-    if (Array.isArray(responses)) {
-      for (const response of responses) {
-        await this.validateResponseAgainstSettings(response, settings);
-      }
-    } else {
-      await this.validateResponseAgainstSettings(responses, settings);
-    }
-  }
-
-  private async validateResponseAgainstSettings(
-    response: ResponseDto,
-    settings: QuestionSetting[] | QuestionSetting,
-  ) {
-    const type = await this.questionService.getQuestionById(
-      response.questionId,
-    );
-
-    let questionSetting: QuestionSetting | undefined;
-
-    if (Array.isArray(settings)) {
-      // Nếu settings là mảng, tìm theo key
-      questionSetting = settings.find(
-        (setting) => setting.key === type.questionType,
-      );
-    } else {
-      // Nếu settings không phải mảng, lấy luôn giá trị
-      questionSetting = settings;
-    }
-
-    if (!questionSetting) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
-          args: { questionId: response.questionId },
-        }),
-      );
-    }
-
-    const isRequired = questionSetting.settings.required;
-
-    if (isRequired && this.isEmptyResponse(response)) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
-          args: { questionId: response.questionId },
-        }),
-      );
-    }
-
-    const otherAnswer = questionSetting.settings.other;
-
-    if (!otherAnswer && response.ortherAnswer) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.QUESTION_NOT_REQUIRES_OTHER_ANSWER', {
-          args: { questionId: response.questionId },
-        }),
-      );
-    }
-
-    this.validateResponseFormatByType(
-      type.questionType,
-      response,
-      questionSetting,
-    );
-  }
-
-  private validateResponseFormatByType(
-    questionType: string,
-    response: ResponseDto,
-    questionSettings: any,
-  ) {
-    const isRequired = questionSettings?.required || false; // Kiểm tra có bắt buộc không
-
-    switch (questionType) {
-      case 'SINGLE_CHOICE':
-      case 'PICTURE_SELECTION':
-        if (isRequired && !response.answerOptionId) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        if (
-          response.answerOptionId !== null &&
-          typeof response.answerOptionId !== 'number'
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        break;
-
-      case 'MULTI_CHOICE':
-        if (
-          isRequired &&
-          (!Array.isArray(response.answerOptionId) ||
-            response.answerOptionId.length === 0)
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        if (
-          response.answerOptionId !== null &&
-          response.answerOptionId !== undefined &&
-          !Array.isArray(response.answerOptionId)
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        break;
-
-      case 'INPUT_TEXT':
-        if (
-          isRequired &&
-          (!response.answerText || !response.answerText.trim())
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.QUESTION_REQUIRES_INPUT_TEXT', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        if (
-          response.answerText !== null &&
-          response.answerText !== undefined &&
-          typeof response.answerText !== 'string'
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        break;
-
-      case 'RATING_SCALE':
-        const range = parseFloat(questionSettings?.settings?.range) || 5; // Mặc định 5 sao nếu không có
-        if (
-          isRequired &&
-          (response.ratingValue === null || response.ratingValue === undefined)
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.QUESTION_REQUIRES_RATING_VALUE', {
-              args: { questionId: response.questionId },
-            }),
-          );
-        }
-        if (
-          response.ratingValue !== null &&
-          response.ratingValue !== undefined &&
-          (typeof response.ratingValue !== 'number' ||
-            response.ratingValue <= 0 ||
-            response.ratingValue > range)
-        ) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.INVALID_RATING_VALUE', {
-              args: { questionId: response.questionId, max: range },
-            }),
-          );
-        }
-        break;
-
-      default:
-        throw new BadRequestException(
-          `Unknown question type for question ID ${response.questionId}.`,
-        );
-    }
-  }
-
-  private isEmptyResponse(response: ResponseDto): boolean {
-    return (
-      response.answerText == null &&
-      response.answerOptionId == null &&
-      response.ratingValue == null &&
-      response.ortherAnswer == null
-    );
+  async totalResponses(formId: number): Promise<number> {
+    return await this.responseQuestionRepository.totalResponses(formId);
   }
 
   async getFormRate(
@@ -482,7 +246,7 @@ export class SurveyFeedbackDataService {
       } else if (
         question.questionType === QuestionType.RATING_SCALE.toString()
       ) {
-        const configurations = question.businessQuestionConfiguration;
+        const configurations = question.questionConfiguration;
 
         const range = JsonHelper.getSettingValue(configurations, 'range', 0);
 

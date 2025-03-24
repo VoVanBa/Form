@@ -1,7 +1,8 @@
 import { IsOptional, IsString, IsBoolean, IsEnum } from 'class-validator';
 import { FormStatus } from 'src/surveyfeedback-form/entities/enums/FormStatus';
-import { UpdateFormEndingDto } from './update.form.ending';
+import { UpdateFormEndingDto } from './update.form.ending.dto';
 import { Type } from 'class-transformer';
+import { UpdateFormSettingDto } from './update.form.setting.dto';
 
 export class UpdatesurveyFeedbackDto {
   @IsOptional()
@@ -22,4 +23,7 @@ export class UpdatesurveyFeedbackDto {
 
   @Type(() => UpdateFormEndingDto)
   ending?: UpdateFormEndingDto;
+
+  @Type(() => UpdateFormSettingDto)
+  settings?: UpdateFormSettingDto[];
 }

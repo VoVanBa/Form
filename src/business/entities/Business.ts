@@ -1,4 +1,3 @@
-import { BusinessSurveyFeedbackSettings } from 'src/settings/entities/BusinessSurveyFeedbackSettings';
 import { SurveyFeedback } from 'src/surveyfeedback-form/entities/SurveyFeedback';
 import { User } from 'src/users/entities/User';
 
@@ -10,7 +9,6 @@ export class Business {
   updatedAt: Date;
   userId: number;
   user: User;
-  businessSurveySettings: BusinessSurveyFeedbackSettings[];
   forms: SurveyFeedback[];
 
   constructor(data: any) {
@@ -21,11 +19,6 @@ export class Business {
     this.updatedAt = data.updatedAt ?? new Date();
     this.userId = data.userId ?? 0;
     this.user = data.user ? new User(data.user) : undefined;
-    this.businessSurveySettings = Array.isArray(data.businessSurveySettings)
-      ? data.businessSurveySettings.map(
-          (setting) => new BusinessSurveyFeedbackSettings(setting),
-        )
-      : [];
     this.forms = Array.isArray(data.forms)
       ? data.forms.map((form) => new SurveyFeedback(form))
       : [];

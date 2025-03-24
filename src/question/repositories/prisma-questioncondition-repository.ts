@@ -1,160 +1,96 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/helper/providers/prisma.service';
-import { IQuestionConditionRepository } from './interface/question-consition.repository';
-import { QuestionRole } from 'src/question/entities/enums/QuestionRole';
-import { QuestionCondition } from '../entities/QuestionCondition';
-import { CreateQuestionConditionDto } from '../dtos/create-question-condition-dto';
+import { CreateQuestionLogicDto } from '../dtos/create-question-condition-dto';
+import { ConditionType } from '../entities/enums/ConditionType';
 import { QuestionLogic } from '../entities/QuestionLogic';
-import { UpdateQuestionConditionDto } from '../dtos/update-question-condition-dto';
 
 @Injectable()
-export class PrismaQuestionConditionRepository
-  implements IQuestionConditionRepository
-{
+export class PrismaQuestionLogicRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Tìm theo ID của QuestionCondition
-  async findById(id: number): Promise<QuestionCondition> {
-    const condition = await this.prisma.questionCondition.findUnique({
-      where: { id },
-      include: { question: true, questionLogic: true },
-    });
-    return new QuestionCondition(condition);
-  }
-
-  // Tìm tất cả điều kiện mà một câu hỏi là TARGET
-  async findByTargetQuestionId(
-    targetQuestionId: number,
-  ): Promise<QuestionCondition[]> {
-    const conditions = await this.prisma.questionCondition.findMany({
-      where: {
-        questionId: targetQuestionId,
-        role: 'TARGET',
-      },
-      include: {
-        question: true,
-        questionLogic: true,
-      },
-      orderBy: { questionLogicId: 'asc' }, // Sắp xếp theo logic nếu cần
-    });
-    return conditions.map((condition) => new QuestionCondition(condition));
-  }
-
-  // Tìm tất cả điều kiện mà một câu hỏi là SOURCE
-  async findBySourceQuestionId(
-    sourceQuestionId: number,
-  ): Promise<QuestionCondition[]> {
-    const conditions = await this.prisma.questionCondition.findMany({
-      where: {
-        questionId: sourceQuestionId,
-        role: 'SOURCE',
-      },
-      include: {
-        question: true,
-        questionLogic: true,
-      },
-      orderBy: { questionLogicId: 'asc' },
-    });
-    return conditions.map((condition) => new QuestionCondition(condition));
-  }
-
-  async create(
-    data: CreateQuestionConditionDto,
-    questionLogicId: number,
-  ): Promise<QuestionCondition> {
-    const condition = await this.prisma.questionCondition.create({
-      data: {
-        questionId: data.questionId,
-        role: data.role,
-        questionLogicId: questionLogicId,
-      },
-      include: {
-        question: true,
-        questionLogic: true,
-      },
-    });
-
-    return new QuestionCondition(condition);
-  }
-
   async createQuestionLogic(
-    data: CreateQuestionConditionDto,
+    createQuestionLogicDto: CreateQuestionLogicDto,
   ): Promise<QuestionLogic> {
-    const condition = await this.prisma.questionLogic.create({
+    const {
+      questionId,
+      conditionType,
+      conditionValue,
+      logicalOperator,
+      jumpToQuestionId,
+    } = createQuestionLogicDto;
+
+    const questionLogic = await this.prisma.questionLogic.create({
       data: {
-        conditionType: data.conditionType,
-        conditionValue: data.conditionValue,
-        logicalOperator: data.logicalOperator,
+        questionId,
+        conditionType,
+        conditionValue,
+        logicalOperator: logicalOperator || 'AND',
+        jumpToQuestionId,
       },
     });
-    console.log('Prisma created condition:', condition);
-    return new QuestionLogic(condition);
+    return new QuestionLogic(questionLogic);
   }
 
-  async update(
-    id: number,
-    data: UpdateQuestionConditionDto,
-  ): Promise<QuestionCondition> {
-    const condition = await this.prisma.questionCondition.update({
+  async createManyQuestionLogic(
+    createQuestionLogicDtos: CreateQuestionLogicDto[],
+  ): Promise<{ count: number }> {
+    return this.prisma.questionLogic.createMany({
+      data: createQuestionLogicDtos.map((dto) => ({
+        questionId: dto.questionId,
+        conditionType: dto.conditionType,
+        conditionValue: dto.conditionValue,
+        logicalOperator: dto.logicalOperator || 'AND',
+        jumpToQuestionId: dto.jumpToQuestionId,
+      })),
+    });
+  }
+
+  async getQuestionLogicById(id: number): Promise<QuestionLogic | null> {
+    const questionLogic = await this.prisma.questionLogic.findUnique({
       where: { id },
-      data: {
-        questionLogic: {
-          update: {
-            conditionType: data.conditionType,
-            conditionValue: data.conditionValue,
-            logicalOperator: data.logicalOperator,
-          },
-        },
-        role: data.role,
-      },
-      include: { question: true, questionLogic: true },
     });
-    return new QuestionCondition(condition);
+    return new QuestionLogic(questionLogic);
   }
 
-  // Xóa QuestionCondition
-  async delete(id: number): Promise<void> {
-    await this.prisma.questionCondition.delete({ where: { id } });
-  }
-
-  async findAllByQuestionId(questionId: number): Promise<QuestionCondition[]> {
-    const conditions = await this.prisma.questionCondition.findMany({
+  async getQuestionLogicsByQuestionId(
+    questionId: number,
+  ): Promise<QuestionLogic[]> {
+    const questionLogics = await this.prisma.questionLogic.findMany({
       where: { questionId },
-      include: {
-        question: true,
-        questionLogic: true,
-      },
     });
-    return conditions.map((data) => new QuestionCondition(data));
+    return questionLogics.map(
+      (questionLogic) => new QuestionLogic(questionLogic),
+    );
   }
 
-  async getQuestionSourceById(questionId: number): Promise<QuestionLogic> {
-    const data = await this.prisma.questionCondition.findFirst({
-      where: { questionId: questionId },
-    });
-    return new QuestionLogic(data);
-  }
-
-  async updateConditionLogicId(
+  async updateQuestionLogic(
     id: number,
-    questionLogicId: number,
-  ): Promise<void> {
-    await this.prisma.questionCondition.update({
+    updateQuestionLogicDto: CreateQuestionLogicDto,
+  ): Promise<QuestionLogic> {
+    const questionLogic = await this.prisma.questionLogic.update({
       where: { id },
-      data: { questionLogicId: questionLogicId },
+      data: {
+        questionId: updateQuestionLogicDto.questionId,
+        conditionType: updateQuestionLogicDto.conditionType as ConditionType,
+        conditionValue: updateQuestionLogicDto.conditionValue,
+        logicalOperator: updateQuestionLogicDto.logicalOperator || 'AND',
+        jumpToQuestionId: updateQuestionLogicDto.jumpToQuestionId,
+      },
+    });
+    return new QuestionLogic(questionLogic);
+  }
+
+  async deleteQuestionLogic(id: number) {
+    return this.prisma.questionLogic.delete({
+      where: { id },
     });
   }
 
-  async getTargetByLogicId(
-    logicId: number,
-    role: QuestionRole,
-  ): Promise<QuestionCondition> {
-    const data = await this.prisma.questionCondition.findFirst({
-      where: {
-        questionLogicId: logicId,
-        role: role,
-      },
+  async deleteQuestionLogicsByQuestionId(
+    questionId: number,
+  ): Promise<{ count: number }> {
+    return this.prisma.questionLogic.deleteMany({
+      where: { questionId },
     });
-    return new QuestionCondition(data);
   }
 }

@@ -15,31 +15,31 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private service: AdminService) {}
 
-  @Get()
-  findAll() {
-    return this.service.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.service.findAll();
+  // }
 
-  @Get(':id')
-  findOne(@Param('id') id: number) {
-    return this.service.findById(id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: number) {
+  //   return this.service.findById(id);
+  // }
 
-  @Put(':id')
-  update(
-    @Param('id') id: number,
-    @Body() updateSettingTypeDto: UpdateSettingTypeDto,
-  ) {
-    return this.service.update(id, updateSettingTypeDto);
-  }
+  // @Put(':id')
+  // update(
+  //   @Param('id') id: number,
+  //   @Body() updateSettingTypeDto: UpdateSettingTypeDto,
+  // ) {
+  //   return this.service.update(id, updateSettingTypeDto);
+  // }
 
-  @Delete(':id')
-  delete(@Param('id') id: number) {
-    return this.service.delete(id);
-  }
+  // @Delete(':id')
+  // delete(@Param('id') id: number) {
+  //   return this.service.delete(id);
+  // }
 
-  @Post('save-default/setting')
-  async saveSettings() {
-    return await this.service.saveFormSetting();
-  }
+  // @Post('save-default/setting')
+  // async saveSettings() {
+  //   return await this.service.saveFormSetting();
+  // }
 }

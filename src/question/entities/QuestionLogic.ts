@@ -1,22 +1,23 @@
-
 import { ConditionType } from './enums/ConditionType';
 import { LogicalOperator } from './enums/LogicalOperator';
-import { QuestionCondition } from './QuestionCondition';
+import { Question } from './Question';
 
 export class QuestionLogic {
   id: number;
+  questionId: number; // ID của câu hỏi áp dụng logic
   conditionType: ConditionType;
-  conditionValue: any;
+  conditionValue: any; // Chứa dependentQuestionId + giá trị điều kiện
   logicalOperator: LogicalOperator;
-  conditions: QuestionCondition[];
+  jumpToQuestionId?: number | null; // Câu hỏi đích (có thể null)
+  question?: Question | null; // Liên kết với câu hỏi
 
   constructor(data: any) {
-    this.id = data.id;
-    this.conditionType = data.conditionType;
-    this.conditionValue = data.conditionValue;
-    this.logicalOperator = data.logicalOperator || LogicalOperator.AND;
-    this.conditions = data.conditions
-      ? data.conditions.map((c) => new QuestionCondition(c))
-      : [];
+    this.id = data.id ?? 0;
+    this.questionId = data.questionId ?? 0;
+    this.conditionType = data.conditionType ?? ConditionType.EQUALS;
+    this.conditionValue = data.conditionValue ?? null;
+    this.logicalOperator = data.logicalOperator ?? LogicalOperator.AND;
+    this.jumpToQuestionId = data.jumpToQuestionId ?? null;
+    this.question = data.question ?? null;
   }
 }

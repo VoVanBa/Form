@@ -15,6 +15,7 @@ import { UpdatesurveyFeedbackDto } from './dtos/update.form.dto';
 import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { Request } from 'express';
 import { UsersService } from 'src/users/users.service';
+import { UpdateSettingDto } from 'src/settings/dtos/survey-feedback-settings.dto';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -150,18 +151,12 @@ export class SurveyFeedbackFormController {
   async updateFormSettings(
     @Param('formId') formId: number,
     @Param('businessId') businessId: number,
-    @Body()
-    body: {
-      settings: {
-        key: string;
-        value: any;
-      }[];
-    },
+    @Body('setting') setting: UpdateSettingDto,
   ) {
     await this.surveyFeedbackFormService.updateFormSettings(
       formId,
       businessId,
-      body.settings,
+      setting,
     );
     return { message: 'Survey settings updated successfully' };
   }

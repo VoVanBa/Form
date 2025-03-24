@@ -18,14 +18,16 @@ import { MediaService } from 'src/media/services/media.service';
 import { QuestionService } from 'src/question/service/question.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
 import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
-import { QuestionConditionService } from 'src/question/service/question-condition.service';
 import { QuestionRole } from 'src/question/entities/enums/QuestionRole';
 import { QuestionMediaService } from 'src/media/services/question-media.service';
 import { AnswerOptionMediaService } from 'src/media/services/answer-option-media.service';
 import { PrismaSurveyFeedbackRepository } from './repositories/prisma-survey-feeback.repository';
-import { SettingsService } from 'src/settings/settings.service';
 import { SurveyFeedbackType } from './entities/enums/SurveyFeedbackType';
-import { UpdateFormEndingDto } from './dtos/update.form.ending';
+import { UpdateFormEndingDto } from './dtos/update.form.ending.dto';
+import { SurveyFeedbackSettingService } from 'src/settings/service/survey-feedback-setting.service';
+import { UpdateSettingDto } from 'src/settings/dtos/survey-feedback-settings.dto';
+import { SurveySettingKey } from 'src/settings/entities/enums/SurveySettingKey';
+import { QuestionConfigurationService } from 'src/settings/service/question-configuaration.service';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -33,16 +35,16 @@ export class SurveyFeedackFormService {
     private formRepository: PrismaSurveyFeedbackRepository,
     private businessService: BusinessService,
     private answerOptionService: AnswerOptionService,
-    private settingsService: SettingsService,
+    private surveyFeedbackSettingService: SurveyFeedbackSettingService,
     private surveyEndingRepository: PrismaSurveyEndingRepository,
     @Inject(forwardRef(() => QuestionService))
     private questionSerivce: QuestionService,
     private readonly i18n: I18nService,
     private responseService: SurveyFeedbackDataService,
-    private questionCondition: QuestionConditionService,
     private mediaService: MediaService,
     private questionMediaService: QuestionMediaService,
     private answerOptionMediaService: AnswerOptionMediaService,
+    private questionSettingService: QuestionConfigurationService,
   ) {}
 
   async validateForm(formId: number) {
@@ -56,9 +58,15 @@ export class SurveyFeedackFormService {
   }
 
   async createForm(createFormDto: CreatesurveyFeedbackDto, businessId: number) {
+    const defaultSettings = Object.values(SurveySettingKey).map((key) => ({
+      key,
+      value: null,
+    }));
+    console.log(defaultSettings, 'dèautlasdjas');
     const save = await this.formRepository.createSurveyFeedback(
       createFormDto,
       businessId,
+      defaultSettings,
     );
 
     await this.surveyEndingRepository.createSurveyEnding({
@@ -66,18 +74,6 @@ export class SurveyFeedackFormService {
       message: 'Cảm ơn quý khách đã trả lời khảo sát',
     });
 
-    const formSetting = await this.settingsService.getAllFormSetting();
-    const saveSettingsPromises = formSetting.map((form) =>
-      this.settingsService.saveSetting(
-        save.id,
-        businessId,
-        form.key,
-        form.value,
-        form.id,
-      ),
-    );
-
-    await Promise.all(saveSettingsPromises);
     return this.i18n.translate('success.SURVEYFEEDBACKCREATED');
   }
 
@@ -106,26 +102,25 @@ export class SurveyFeedackFormService {
     const logicMap = new Map();
 
     surveyFeedback.questions.forEach((question) => {
-      question.questionConditions.forEach((condition) => {
-        if (condition.questionLogicId) {
-          const key = condition.questionLogicId;
-          if (!logicMap.has(key)) {
-            logicMap.set(key, { sources: [], targets: [] });
-          }
-
-          if (condition.role === 'SOURCE') {
-            logicMap.get(key).sources.push({
-              id: condition.questionId,
-              headline: question.headline,
-            });
-          } else if (condition.role === 'TARGET') {
-            logicMap.get(key).targets.push({
-              id: condition.questionId,
-              headline: question.headline,
-            });
-          }
-        }
-      });
+      // question.questionConditions.forEach((condition) => {
+      //   if (condition.questionLogicId) {
+      //     const key = condition.questionLogicId;
+      //     if (!logicMap.has(key)) {
+      //       logicMap.set(key, { sources: [], targets: [] });
+      //     }
+      //     if (condition.role === 'SOURCE') {
+      //       logicMap.get(key).sources.push({
+      //         id: condition.questionId,
+      //         headline: question.headline,
+      //       });
+      //     } else if (condition.role === 'TARGET') {
+      //       logicMap.get(key).targets.push({
+      //         id: condition.questionId,
+      //         headline: question.headline,
+      //       });
+      //     }
+      //   }
+      // });
     });
 
     // 2️⃣ **Hàm ánh xạ điều kiện logic**
@@ -175,10 +170,10 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: question.businessQuestionConfiguration?.settings || {},
-        questionCondition: question.questionConditions
-          .filter((condition) => condition.role !== 'TARGET') // Chỉ giữ lại điều kiện không phải TARGET
-          .map(mapCondition), // Ánh xạ điều kiện logic
+        setting: question.questionConfiguration?.settings || {},
+        // questionCondition: question.questionConditions
+        //   .filter((condition) => condition.role !== 'TARGET') // Chỉ giữ lại điều kiện không phải TARGET
+        //   .map(mapCondition), // Ánh xạ điều kiện logic
       })),
       ending: surveyEnding
         ? {
@@ -241,7 +236,7 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: question.businessQuestionConfiguration?.settings || {},
+        setting: question.questionConfiguration?.settings || {},
       })),
       // ending: surveyEnding
       //   ? {
@@ -330,7 +325,10 @@ export class SurveyFeedackFormService {
     const sessionId = request?.sessionId;
     // Lấy thông tin khảo sát
     const surveyFeedback = await this.validateForm(id);
-    if (surveyFeedback.status !== 'PUBLISHED') {
+    if (
+      surveyFeedback.status !== 'PUBLISHED' &&
+      surveyFeedback.type !== 'SURVEY'
+    ) {
       throw new BadRequestException(
         this.i18n.translate('errors.SURVEYNOTAVAILABLE'),
       );
@@ -406,8 +404,7 @@ export class SurveyFeedackFormService {
                   }
                 : null,
             })),
-            setting:
-              currentQuestion.businessQuestionConfiguration?.settings || {},
+            setting: currentQuestion.questionConfiguration?.settings || {},
           }
         : null,
       isLastQuestion: !currentQuestion,
@@ -466,9 +463,9 @@ export class SurveyFeedackFormService {
           : [],
     };
 
-    await this.responseService.validateResponsesByQuestionSettings(
+    await this.questionSettingService.validateResponsesByQuestionSettings(
       validatedResponseDto,
-      currentQuestion.businessQuestionConfiguration,
+      currentQuestion.questionConfiguration,
     );
 
     const userResponse = await this.responseService.createResponse(
@@ -479,39 +476,39 @@ export class SurveyFeedackFormService {
       sessionId,
     );
 
-    const conditions = currentQuestion.questionConditions.filter(
-      (c) => c.role === 'SOURCE',
-    );
+    // const conditions = currentQuestion.questionConditions.filter(
+    //   (c) => c.role === 'SOURCE',
+    // );
     let nextQuestion = null;
 
-    if (conditions.length > 0) {
-      // Use the refactored matchCondition method instead of inline logic
-      const matchedCondition = conditions.find((c) =>
-        this.matchCondition(
-          currentQuestion.questionType,
-          c.questionLogic,
-          responseDto,
-        ),
-      );
+    // if (conditions.length > 0) {
+    //   // Use the refactored matchCondition method instead of inline logic
+    //   const matchedCondition = conditions.find((c) =>
+    //     this.matchCondition(
+    //       currentQuestion.questionType,
+    //       c.questionLogic,
+    //       responseDto,
+    //     ),
+    //   );
 
-      if (matchedCondition) {
-        const getTargetQuestionId =
-          await this.questionCondition.getTargeByLogiId(
-            matchedCondition.questionLogic.id,
-            QuestionRole.TARGET,
-          );
+    //   if (matchedCondition) {
+    //     const getTargetQuestionId =
+    //       await this.questionCondition.getTargeByLogiId(
+    //         matchedCondition.questionLogic.id,
+    //         QuestionRole.TARGET,
+    //       );
 
-        if (getTargetQuestionId) {
-          const question = surveyFeedback.questions.find(
-            (q) => q.id === getTargetQuestionId.questionId,
-          );
+    //     if (getTargetQuestionId) {
+    //       const question = surveyFeedback.questions.find(
+    //         (q) => q.id === getTargetQuestionId.questionId,
+    //       );
 
-          nextQuestion = await this.questionSerivce.getQuestionById(
-            question.id,
-          );
-        }
-      }
-    }
+    //       nextQuestion = await this.questionSerivce.getQuestionById(
+    //         question.id,
+    //       );
+    //     }
+    //   }
+    // }
 
     if (!nextQuestion) {
       const allQuestions = await this.questionSerivce.getAllQuestion(id);
@@ -564,7 +561,7 @@ export class SurveyFeedackFormService {
                 : null,
             })),
 
-            setting: nextQuestion.businessQuestionConfiguration?.settings || {},
+            setting: nextQuestion.questionConfiguration?.settings || {},
           }
         : null,
       isLastQuestion: !nextQuestion,
@@ -700,7 +697,7 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: prevQuestion.businessQuestionConfiguration?.settings || {},
+        setting: prevQuestion.questionConfiguration?.settings || {},
         previousAnswer: previousAnswer,
       },
       isLastQuestion: false,
@@ -773,110 +770,90 @@ export class SurveyFeedackFormService {
   async updateFormSettings(
     formId: number,
     businessId: number | null,
-    settings: { key: string; value: any }[],
+    settings: UpdateSettingDto,
   ) {
-    const allFormSettings = await this.settingsService.getAllFormSetting();
-    const currentSettings = await this.settingsService.getDefaultSetting(
-      businessId,
-      formId,
-    );
+    const form = await this.formRepository.getSurveyFeedbackById(formId);
+    const allFormSettings =
+      await this.surveyFeedbackSettingService.getAllSetting(formId);
 
-    const promises = settings.map((newSetting) => {
-      const existingSetting = currentSettings.find(
-        (current) => current.key === newSetting.key,
-      );
-      if (
-        existingSetting &&
-        JSON.stringify(existingSetting.value) ===
-          JSON.stringify(newSetting.value)
-      ) {
-        return null;
-      }
-      const formSetting = allFormSettings.find(
-        (setting) => setting.key === newSetting.key,
-      );
-      if (!formSetting) {
-        throw new Error(`FormSetting not found for key: ${newSetting.key}`);
-      }
-      return this.settingsService.upsertSetting(
-        formId,
-        businessId,
-        formSetting.id,
-        newSetting.key,
-        newSetting.value,
-      );
+    // const promises = settings.map((newSetting) => {
+    //   const existingSetting = allFormSettings.find(
+    //     (current) => current.key === newSetting.key,
+    //   );
+    //   if (
+    //     existingSetting &&
+    //     JSON.stringify(existingSetting.value) ===
+    //       JSON.stringify(newSetting.value)
+    //   ) {
+    //     return null;
+    //   }
+    //   const formSetting = allFormSettings.find(
+    //     (setting) => setting.key === newSetting.key,
+    //   );
+    //   if (!formSetting) {
+    //     throw new Error(`FormSetting not found for key: ${newSetting.key}`);
+    //   }
+    // });
+    const ids = allFormSettings.map((data) => {
+      this.surveyFeedbackSettingService.updateSetting(data.id, settings);
     });
-
-    const filteredPromises = promises.filter((promise) => promise !== null);
-    await Promise.all(filteredPromises);
+    return Promise.all(ids);
   }
 
-  async getAllBusinessSettings(
-    businessId: number,
-    formId: number,
-  ): Promise<{ businessId: number; formId: number; settings: any[] }> {
-    const businessSettings =
-      await this.settingsService.getAllBusinessSettingTypes(businessId, formId);
-
-    if (!businessSettings.length) {
-      return {
-        businessId,
-        formId,
-        settings: [],
-      };
-    }
-
-    // Nhóm cài đặt theo loại
-    const groupedSettings = new Map<number, any>();
-
-    for (const setting of businessSettings) {
-      const { formSetting } = setting;
-      if (!formSetting?.formSettingTypes) continue;
-
-      const { formSettingTypes } = formSetting;
-      const typeId = formSettingTypes.id;
-
-      if (!groupedSettings.has(typeId)) {
-        groupedSettings.set(typeId, {
-          id: typeId,
-          name: formSettingTypes.name,
-          description: formSettingTypes.description,
-          settings: [],
-        });
-      }
-
-      const group = groupedSettings.get(typeId);
-
-      const existingSettingIndex = group.settings.findIndex(
-        (s) => s.id === formSetting.id,
-      );
-
-      if (existingSettingIndex === -1) {
-        group.settings.push({
-          id: formSetting.id,
-          key: formSetting.key,
-          label: formSetting.label || formSetting.key,
-          description: formSetting.description,
-          businessSettings: [
-            {
-              key: setting.key,
-              value: setting.value,
-            },
-          ],
-        });
-      } else {
-        group.settings[existingSettingIndex].businessSettings.push({
-          key: setting.key,
-          value: setting.value,
-        });
-      }
-    }
-
-    return {
-      businessId,
-      formId,
-      settings: Array.from(groupedSettings.values()),
-    };
+  async getAllBusinessSettings(businessId: number, formId: number) {
+    // const businessSettings =
+    //   await this.surveyFeedbackSettingService.getAllSetting(businessId, formId);
+    // // if (!businessSettings.length) {
+    // //   return {
+    // //     businessId,
+    // //     formId,
+    // //     settings: [],
+    // //   };
+    // // }
+    // // // Nhóm cài đặt theo loại
+    // // const groupedSettings = new Map<number, any>();
+    // // for (const setting of businessSettings) {
+    // //   const { formSetting } = setting;
+    // //   if (!formSetting?.formSettingTypes) continue;
+    // //   const { formSettingTypes } = formSetting;
+    // //   const typeId = formSettingTypes.id;
+    // //   if (!groupedSettings.has(typeId)) {
+    // //     groupedSettings.set(typeId, {
+    // //       id: typeId,
+    // //       name: formSettingTypes.name,
+    // //       description: formSettingTypes.description,
+    // //       settings: [],
+    // //     });
+    // //   }
+    // //   const group = groupedSettings.get(typeId);
+    // //   const existingSettingIndex = group.settings.findIndex(
+    // //     (s) => s.id === formSetting.id,
+    // //   );
+    // //   if (existingSettingIndex === -1) {
+    // //     group.settings.push({
+    // //       id: formSetting.id,
+    // //       key: formSetting.key,
+    // //       label: formSetting.label || formSetting.key,
+    // //       description: formSetting.description,
+    // //       businessSettings: [
+    // //         {
+    // //           key: setting.key,
+    // //           value: setting.value,
+    // //         },
+    // //       ],
+    // //     });
+    // //   } else {
+    // //     group.settings[existingSettingIndex].businessSettings.push({
+    // //       key: setting.key,
+    // //       value: setting.value,
+    // //     });
+    // //   }
+    // // }
+    // return {
+    //   businessId,
+    //   formId,
+    //   // settings: Array.from(groupedSettings.values()),
+    // };
   }
 
   async duplicateSurvey(id: number, businessId: number) {
@@ -962,16 +939,16 @@ export class SurveyFeedackFormService {
           );
         }
 
-        if (question.businessQuestionConfiguration) {
-          promises.push(
-            this.questionSerivce.createQuestionSettings(
-              newQuestion.id,
-              question.businessQuestionConfiguration.settings,
-              question.businessQuestionConfiguration.key,
-              newFormId,
-            ),
-          );
-        }
+        // if (question.questionConfiguration) {
+        //   promises.push(
+        //     this.questionSerivce.createQuestionSettings(
+        //       newQuestion.id,
+        //       question.questionConfiguration.settings,
+        //       question.questionConfiguration.key,
+        //       newFormId,
+        //     ),
+        //   );
+        // }
 
         await Promise.all(promises);
       }),
@@ -1032,23 +1009,23 @@ export class SurveyFeedackFormService {
     newFormId: number,
     businessId: number,
   ) {
-    const surveySettings = await this.settingsService.getAllFormSettingBusiness(
-      businessId,
-      originalFormId,
-    );
-    if (surveySettings.length > 0) {
-      await Promise.all(
-        surveySettings.map((setting) =>
-          this.settingsService.saveSetting(
-            newFormId,
-            businessId,
-            setting.key,
-            setting.value,
-            setting.formSettingId,
-          ),
-        ),
-      );
-    }
+    // const surveySettings = await this.s.getAllFormSettingBusiness(
+    //   businessId,
+    //   originalFormId,
+    // );
+    // if (surveySettings.length > 0) {
+    //   await Promise.all(
+    //     surveySettings.map((setting) =>
+    //       this.settingsService.saveSetting(
+    //         newFormId,
+    //         businessId,
+    //         setting.key,
+    //         setting.value,
+    //         setting.formSettingId,
+    //       ),
+    //     ),
+    //   );
+    // }
   }
 
   async updateSurveyEnding(surveyId: number, ending: UpdateFormEndingDto) {

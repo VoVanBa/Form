@@ -23,5 +23,5 @@ export class ResponseDto {
 
   @IsOptional()
   @IsString()
-  ortherAnswer?: string;
+  otherAnswer?: string;
 }

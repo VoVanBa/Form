@@ -7,8 +7,6 @@ import { QuestionType } from 'src/question/entities/enums/QuestionType';
 import { SurveyFeedbackSettings } from 'src/settings/entities/SurveyFeedbackSettings';
 import { QuestionRepository } from './interface/question.repository';
 import { QuestionConfiguration } from 'src/settings/entities/QuestionConfiguration';
-import { BusinessQuestionConfiguration } from 'src/settings/entities/BusinessQuestionConfiguration';
-import { connect } from 'http2';
 
 @Injectable()
 export class PrismaQuestionRepository implements QuestionRepository {
@@ -24,7 +22,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
       data: {
         headline: data.headline,
         questionType: type,
-        businessQuestionConfiguration: data.settings
+        questionConfiguration: data.settings
           ? {
               update: {
                 settings: data.settings,
@@ -53,28 +51,26 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return results.reduce((acc, result) => acc + result.count, 0);
   }
 
-  async getSettingByFormId(
-    formId: number,
-  ): Promise<BusinessQuestionConfiguration[]> {
-    const data = await this.prisma.businessQuestionConfiguration.findMany({
+  async getSettingByFormId(formId: number): Promise<QuestionConfiguration[]> {
+    const data = await this.prisma.questionConfiguration.findMany({
       where: {
         formId: formId,
       },
     });
 
-    return data.map((setting) => new BusinessQuestionConfiguration(setting));
+    return data.map((setting) => new QuestionConfiguration(setting));
   }
 
   async getSettingByQuestionId(
     questionId: number,
-  ): Promise<BusinessQuestionConfiguration> {
+  ): Promise<QuestionConfiguration> {
     const data = await this.prisma.question.findFirst({
       where: {
         id: questionId,
       },
-      include: { businessQuestionConfiguration: true },
+      include: { questionConfiguration: true },
     });
-    return new BusinessQuestionConfiguration(data);
+    return new QuestionConfiguration(data);
   }
 
   async updateQuestionSetting(
@@ -82,7 +78,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     settings: any,
     formId: number,
   ): Promise<SurveyFeedbackSettings> {
-    const setting = await this.prisma.businessQuestionConfiguration.update({
+    const setting = await this.prisma.questionConfiguration.update({
       where: { questionId, formId },
       data: { settings },
     });
@@ -95,7 +91,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
     // Chạy tất cả update song song bằng Promise.all()
     const results = await Promise.all(
       updates.map(({ questionId, settings, formId }) =>
-        this.prisma.businessQuestionConfiguration.updateMany({
+        this.prisma.questionConfiguration.updateMany({
           where: { questionId, formId },
           data: { settings },
         }),
@@ -106,14 +102,14 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return results.reduce((total, result) => total + result.count, 0);
   }
 
-  async getBusinessQuestionConfigurationByQuestionId(
+  async getQuestionConfigurationByQuestionId(
     questionId: number,
     formId: number,
-  ): Promise<BusinessQuestionConfiguration | null> {
-    const data = await this.prisma.businessQuestionConfiguration.findUnique({
+  ): Promise<QuestionConfiguration | null> {
+    const data = await this.prisma.questionConfiguration.findUnique({
       where: { questionId, formId },
     });
-    return new BusinessQuestionConfiguration(data);
+    return new QuestionConfiguration(data);
   }
 
   async createQuestionSettings(
@@ -121,12 +117,12 @@ export class PrismaQuestionRepository implements QuestionRepository {
     settings: any,
     key: string,
     formId: number,
-  ): Promise<BusinessQuestionConfiguration> {
-    const data = await this.prisma.businessQuestionConfiguration.create({
+  ): Promise<QuestionConfiguration> {
+    const data = await this.prisma.questionConfiguration.create({
       data: { questionId, key, settings, formId },
       include: { question: true },
     });
-    return new BusinessQuestionConfiguration(data);
+    return new QuestionConfiguration(data);
   }
 
   async bulkCreateQuestionSettings(
@@ -137,15 +133,14 @@ export class PrismaQuestionRepository implements QuestionRepository {
       formId: number;
     }[],
   ): Promise<number> {
-    const createdSettings =
-      await this.prisma.businessQuestionConfiguration.createMany({
-        data: settings.map((setting) => ({
-          questionId: setting.questionId,
-          key: setting.key,
-          settings: setting.settings,
-          formId: setting.formId,
-        })),
-      });
+    const createdSettings = await this.prisma.questionConfiguration.createMany({
+      data: settings.map((setting) => ({
+        questionId: setting.questionId,
+        key: setting.key,
+        settings: setting.settings,
+        formId: setting.formId,
+      })),
+    });
     return createdSettings.count;
   }
 
@@ -167,18 +162,6 @@ export class PrismaQuestionRepository implements QuestionRepository {
     return new QuestionConfiguration(data);
   }
 
-  async createDefaultQuestionConfigByAdmin(
-    key: string,
-    settings: any,
-  ): Promise<SurveyFeedbackSettings> {
-    const data = await this.prisma.questionConfiguration.upsert({
-      where: { key },
-      update: { settings },
-      create: { key, settings },
-    });
-    return new SurveyFeedbackSettings(data);
-  }
-
   async createQuestion(
     formId: number,
     data: AddQuestionDto,
@@ -192,7 +175,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
         form: {
           connect: { id: formId },
         },
-        businessQuestionConfiguration: data.settings
+        questionConfiguration: data.settings
           ? {
               create: {
                 formId,
@@ -225,6 +208,36 @@ export class PrismaQuestionRepository implements QuestionRepository {
         questionType: data.questionType,
         index: sortOrder,
         formId: formId,
+        questionConfiguration: data.settings
+          ? {
+              create: {
+                formId,
+                key: data.questionType,
+                settings: data.settings,
+              },
+            }
+          : undefined,
+        questionOnMedia: data.imageId
+          ? {
+              create: {
+                mediaId: data.imageId,
+              },
+            }
+          : undefined,
+        answerOptions: data.answerOptions
+          ? {
+              create: data.answerOptions.map((answerOption) => ({
+                headline: answerOption.label,
+                answerOptionOnMedia: answerOption.imageIds
+                  ? {
+                      create: {
+                        mediaId: answerOption.imageIds,
+                      },
+                    }
+                  : undefined,
+              })),
+            }
+          : undefined,
       })),
     });
     return createdQuestions.count;
@@ -263,7 +276,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
   //         },
   //       },
   //       questionOnMedia: true,
-  //       businessQuestionConfiguration: true,
+  //       QuestionConfiguration: true,
   //     },
   //     orderBy: { index: 'asc' },
   //   });
@@ -303,7 +316,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
           },
         },
         responseOnQuestions: true,
-        businessQuestionConfiguration: {
+        questionConfiguration: {
           select: {
             settings: true,
           },

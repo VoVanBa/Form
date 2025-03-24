@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/helper/providers/prisma.service';
-import { UpdateFormEndingDto } from '../dtos/update.form.ending';
+import { UpdateFormEndingDto } from '../dtos/update.form.ending.dto';
 
 @Injectable()
 export class PrismaSurveyEndingRepository {

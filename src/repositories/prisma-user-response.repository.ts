@@ -360,7 +360,7 @@ export class PrismaUserResponseRepository {
           : dto.answerOptionId,
         answerText: dto.answerText,
         ratingValue: dto.ratingValue,
-        otherAnswer: dto.ortherAnswer,
+        otherAnswer: dto.otherAnswer,
       },
     });
   }
