@@ -1,5 +1,7 @@
+import { IsInt } from 'class-validator';
 import { CreateQuestionLogicDto } from './create-question-condition-dto';
 
-export interface UpdateQuestionLogicDto extends CreateQuestionLogicDto {
+export class UpdateQuestionLogicDto extends CreateQuestionLogicDto {
+  @IsInt()
   id: number;
 }

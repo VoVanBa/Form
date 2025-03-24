@@ -58,7 +58,7 @@ model SurveyFeedbackEnding {
   redirectUrl String?
   mediaId     Int?
   form        SurveyFeedback @relation(fields: [formId], references: [id], onDelete: Cascade)
-  media       Media?         @relation(fields: [mediaId], references: [id])
+  media       Media?         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 }
 
 model UserOnResponse {
@@ -114,11 +114,11 @@ model ResponseOnQuestion {
 // }
 
 model SurveyFeedbackSettings {
-  id        Int              @id @default(autoincrement())
-  formId    Int
-  key       SurveySettingKey
-  value     Json
-  form      SurveyFeedback   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id     Int              @id @default(autoincrement())
+  formId Int
+  key    SurveySettingKey
+  value  Json
+  form   SurveyFeedback   @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model Question {
@@ -133,30 +133,30 @@ model Question {
   form                  SurveyFeedback         @relation(fields: [formId], references: [id])
   questionOnMedia       QuestionOnMedia?
   questionConfiguration QuestionConfiguration?
-  questionLogic         QuestionLogic[]
+
+  // Quan hệ logic
+  sourceLogics QuestionLogic[] @relation("LogicSource")
+  targetLogics QuestionLogic[] @relation("LogicTarget")
 
   @@index([formId])
   @@index([id])
+  @@index([deletedAt])
 }
 
 model QuestionLogic {
   id               Int             @id @default(autoincrement())
-  questionId       Int // Câu hỏi áp dụng logic
+  questionId       Int
   conditionType    ConditionType
-  conditionValue   Json // Lưu dependentQuestionId và giá trị điều kiện
+  conditionValue   Json
   logicalOperator  LogicalOperator @default(AND)
-  jumpToQuestionId Int? // Câu hỏi đích để nhảy đến (nếu actionType = JUMP)
+  actionType       ActionType      @default(JUMP)
+  jumpToQuestionId Int?
 
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  sourceQuestion Question  @relation("LogicSource", fields: [questionId], references: [id], onDelete: Cascade)
+  targetQuestion Question? @relation("LogicTarget", fields: [jumpToQuestionId], references: [id])
 
-  @@index([questionId])
+  @@index([actionType])
 }
-
-// model QuestionConfiguration {
-//   id       Int    @id @default(autoincrement())
-//   key      String @unique
-//   settings Json
-// }
 
 model QuestionConfiguration {
   id         Int            @id @default(autoincrement())
@@ -268,4 +268,5 @@ enum SurveySettingKey {
 enum ActionType {
   JUMP
   SHOW
+  HIDE
 }

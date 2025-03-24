@@ -13,11 +13,8 @@ import { QuestionType } from 'src/question/entities/enums/QuestionType';
 import { MediaService } from 'src/media/services/media.service';
 import { AnswerOptionService } from 'src/answer-option/answer-option.service';
 import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback-form.service';
-import { console } from 'inspector';
 import { QuestionMediaService } from 'src/media/services/question-media.service';
 import { AnswerOptionMediaService } from 'src/media/services/answer-option-media.service';
-import { defaultQuestionSettings } from 'src/helper/config/default.question.settings';
-import { CreateQuestionLogicDto } from '../dtos/create-question-condition-dto';
 import { QuestionLogicService } from './question-condition.service';
 
 @Injectable()
@@ -142,12 +139,12 @@ export class QuestionService {
       await this.updateAnswerOptions(questionId, updateQuestionDto);
     }
 
-    // if (updateQuestionDto.conditions.length > 0) {
-    //   await this.updateQuestionConditions(
-    //     questionId,
-    //     updateQuestionDto.conditions,
-    //   );
-    // }
+    if (updateQuestionDto.conditions) {
+      await this.questionLogicService.updateQuestionLogics(
+        questionId,
+        updateQuestionDto.conditions,
+      );
+    }
 
     return updatedQuestion;
   }

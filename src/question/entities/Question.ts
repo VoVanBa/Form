@@ -13,13 +13,14 @@ export class Question {
   questionType: QuestionType;
   formId: number;
   index: number;
-  deletedAt?: Date;
+  deletedAt?: Date | null;
   answerOptions?: AnswerOption[];
   responseOnQuestions?: ResponseOnQuestion[];
   form?: SurveyFeedback;
   questionOnMedia?: QuestionOnMedia;
   questionConfiguration?: QuestionConfiguration;
-  questionLogic?: QuestionLogic[];
+  sourceLogics?: QuestionLogic[]; // Logic từ câu hỏi này
+  targetLogics?: QuestionLogic[]; // Logic áp dụng lên câu hỏi này
 
   constructor(data: any) {
     this.id = data.id;
@@ -27,7 +28,7 @@ export class Question {
     this.questionType = data.questionType;
     this.formId = data.formId;
     this.index = data.index;
-    this.deletedAt = data.deletedAt || null;
+    this.deletedAt = data.deletedAt ?? null;
     this.answerOptions = isArray(data.answerOptions)
       ? data.answerOptions.map((item) => new AnswerOption(item))
       : [];
@@ -41,8 +42,11 @@ export class Question {
     this.questionConfiguration = data.questionConfiguration
       ? new QuestionConfiguration(data.questionConfiguration)
       : null;
-    this.questionLogic = isArray(data.questionConditions)
-      ? data.questionConditions.map((item) => new QuestionLogic(item))
+    this.sourceLogics = isArray(data.sourceLogics)
+      ? data.sourceLogics.map((item) => new QuestionLogic(item))
+      : [];
+    this.targetLogics = isArray(data.targetLogics)
+      ? data.targetLogics.map((item) => new QuestionLogic(item))
       : [];
   }
 }

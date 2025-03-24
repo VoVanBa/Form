@@ -21,9 +21,4 @@ export class BaseQuestionDto {
   @ValidateNested({ each: true })
   @Type(() => AddAnswerOptionDto)
   answerOptions?: AddAnswerOptionDto[];
-
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => CreateQuestionLogicDto)
-  conditions?: CreateQuestionLogicDto[];
 }

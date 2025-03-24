@@ -6,7 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaSurveyFeedbackSettingRepository } from '../repositories/prisma-survey-feedback-setting.repository';
-import { UpdateSettingDto } from '../dtos/survey-feedback-settings.dto';
+import {
+  SurveyFeedbackSettingsDto,
+  UpdateSettingDto,
+} from '../dtos/survey-feedback-settings.dto';
 import { I18nService } from 'nestjs-i18n';
 import { SurveyFeedbackDataService } from 'src/survey-feedback-data/survey-feedback-data.service';
 
@@ -28,7 +31,17 @@ export class SurveyFeedbackSettingService {
   }
 
   async getAllSetting(formId: number) {
-    return await this.repository.findAll(formId);
+    const settings = await this.repository.findAll(formId);
+    return settings.map((setting) => ({
+      id: setting.id,
+      key: setting.key,
+      value: setting.value,
+    }));
+  }
+
+  async createSetting(formId: number, data: SurveyFeedbackSettingsDto) {
+    await this.validateFormSetting(formId, data);
+    return await this.repository.create({ ...data });
   }
 
   async updateSetting(id: number, data: UpdateSettingDto) {

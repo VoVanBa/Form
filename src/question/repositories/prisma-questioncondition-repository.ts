@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/helper/providers/prisma.service';
 import { CreateQuestionLogicDto } from '../dtos/create-question-condition-dto';
 import { ConditionType } from '../entities/enums/ConditionType';
+import { LogicalOperator } from '../entities/enums/LogicalOperator';
 import { QuestionLogic } from '../entities/QuestionLogic';
 
 @Injectable()
@@ -15,7 +16,8 @@ export class PrismaQuestionLogicRepository {
       questionId,
       conditionType,
       conditionValue,
-      logicalOperator,
+      logicalOperator = LogicalOperator.AND,
+      actionType,
       jumpToQuestionId,
     } = createQuestionLogicDto;
 
@@ -24,10 +26,12 @@ export class PrismaQuestionLogicRepository {
         questionId,
         conditionType,
         conditionValue,
-        logicalOperator: logicalOperator || 'AND',
+        logicalOperator,
+        actionType,
         jumpToQuestionId,
       },
     });
+
     return new QuestionLogic(questionLogic);
   }
 
@@ -39,7 +43,8 @@ export class PrismaQuestionLogicRepository {
         questionId: dto.questionId,
         conditionType: dto.conditionType,
         conditionValue: dto.conditionValue,
-        logicalOperator: dto.logicalOperator || 'AND',
+        logicalOperator: dto.logicalOperator || LogicalOperator.AND,
+        actionType: dto.actionType,
         jumpToQuestionId: dto.jumpToQuestionId,
       })),
     });
@@ -49,7 +54,7 @@ export class PrismaQuestionLogicRepository {
     const questionLogic = await this.prisma.questionLogic.findUnique({
       where: { id },
     });
-    return new QuestionLogic(questionLogic);
+    return questionLogic ? new QuestionLogic(questionLogic) : null;
   }
 
   async getQuestionLogicsByQuestionId(
@@ -58,6 +63,7 @@ export class PrismaQuestionLogicRepository {
     const questionLogics = await this.prisma.questionLogic.findMany({
       where: { questionId },
     });
+
     return questionLogics.map(
       (questionLogic) => new QuestionLogic(questionLogic),
     );
@@ -67,23 +73,36 @@ export class PrismaQuestionLogicRepository {
     id: number,
     updateQuestionLogicDto: CreateQuestionLogicDto,
   ): Promise<QuestionLogic> {
+    const {
+      questionId,
+      conditionType,
+      conditionValue,
+      logicalOperator = LogicalOperator.AND,
+      actionType,
+      jumpToQuestionId,
+    } = updateQuestionLogicDto;
+
     const questionLogic = await this.prisma.questionLogic.update({
       where: { id },
       data: {
-        questionId: updateQuestionLogicDto.questionId,
-        conditionType: updateQuestionLogicDto.conditionType as ConditionType,
-        conditionValue: updateQuestionLogicDto.conditionValue,
-        logicalOperator: updateQuestionLogicDto.logicalOperator || 'AND',
-        jumpToQuestionId: updateQuestionLogicDto.jumpToQuestionId,
+        questionId,
+        conditionType: conditionType as ConditionType,
+        conditionValue,
+        logicalOperator,
+        actionType,
+        jumpToQuestionId,
       },
     });
+
     return new QuestionLogic(questionLogic);
   }
 
-  async deleteQuestionLogic(id: number) {
-    return this.prisma.questionLogic.delete({
+  async deleteQuestionLogic(id: number): Promise<QuestionLogic> {
+    const questionLogic = await this.prisma.questionLogic.delete({
       where: { id },
     });
+
+    return new QuestionLogic(questionLogic);
   }
 
   async deleteQuestionLogicsByQuestionId(

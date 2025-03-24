@@ -19,6 +19,7 @@ export class QuestionLogicService {
       conditionValue: createDto.conditionValue,
       logicalOperator: createDto.logicalOperator,
       jumpToQuestionId: createDto.jumpToQuestionId,
+      actionType: createDto.actionType,
     };
 
     return this.questionLogicRepository.createQuestionLogic(
@@ -29,15 +30,7 @@ export class QuestionLogicService {
   async createMany(
     conditions: CreateQuestionLogicDto[],
   ): Promise<{ count: number }> {
-    const createDtos = conditions.map((condition) => ({
-      questionId: condition.questionId,
-      conditionType: condition.conditionType,
-      conditionValue: condition.conditionValue,
-      logicalOperator: condition.logicalOperator,
-      jumpToQuestionId: condition.jumpToQuestionId,
-    }));
-
-    return this.questionLogicRepository.createManyQuestionLogic(createDtos);
+    return this.questionLogicRepository.createManyQuestionLogic(conditions);
   }
 
   async findById(id: number): Promise<QuestionLogic> {

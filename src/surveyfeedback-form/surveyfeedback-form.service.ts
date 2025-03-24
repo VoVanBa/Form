@@ -1009,14 +1009,13 @@ export class SurveyFeedackFormService {
     newFormId: number,
     businessId: number,
   ) {
-    // const surveySettings = await this.s.getAllFormSettingBusiness(
-    //   businessId,
-    //   originalFormId,
-    // );
+    const surveySettings = await this.surveyFeedbackSettingService.getAllSetting(
+      originalFormId,
+    );
     // if (surveySettings.length > 0) {
     //   await Promise.all(
     //     surveySettings.map((setting) =>
-    //       this.settingsService.saveSetting(
+    //       this.surveyFeedbackSettingService.(
     //         newFormId,
     //         businessId,
     //         setting.key,
