@@ -44,7 +44,7 @@ export class QuestionLogicService {
     return questionLogic;
   }
 
-  async findByQuestionId(questionId: number): Promise<QuestionLogic[]> {
+  async findAllByQuestionId(questionId: number): Promise<QuestionLogic[]> {
     return this.questionLogicRepository.getQuestionLogicsByQuestionId(
       questionId,
     );
@@ -61,7 +61,7 @@ export class QuestionLogicService {
     return this.questionLogicRepository.deleteQuestionLogic(id);
   }
 
-  async deleteByQuestionId(questionId: number): Promise<{ count: number }> {
+  async deleteAllByQuestionId(questionId: number): Promise<{ count: number }> {
     return this.questionLogicRepository.deleteQuestionLogicsByQuestionId(
       questionId,
     );
@@ -71,15 +71,49 @@ export class QuestionLogicService {
     questionId: number,
     conditions: UpdateQuestionLogicDto[],
   ): Promise<void> {
-    // First, get existing logic rules
-    const existingLogics = await this.findByQuestionId(questionId);
+    // Fetch existing conditions
+    const existingConditions =
+      await this.questionLogicRepository.getQuestionLogicsByQuestionId(
+        questionId,
+      );
 
-    // Delete all existing logic rules for this question
-    await this.deleteByQuestionId(questionId);
+    // Delete conditions that are no longer needed
+    const existingConditionIds = existingConditions.map((cond) => cond.id);
+    const newConditionIds = conditions.map((cond) => cond.id).filter(Boolean);
+    const conditionIdsToDelete = existingConditionIds.filter(
+      (id) => !newConditionIds.includes(id),
+    );
 
-    // Create new logic rules
-    if (conditions && conditions.length > 0) {
-      await this.createMany(conditions);
+    if (conditionIdsToDelete.length > 0) {
+      await this.questionLogicRepository.deleteQuestionLogicsByIds(
+        conditionIdsToDelete,
+      );
     }
+
+    // Update existing conditions and add new conditions
+    await Promise.all(
+      conditions.map(async (condition) => {
+        if (condition.id) {
+          // Update existing condition
+          await this.questionLogicRepository.updateQuestionLogic(
+            condition.id,
+            condition,
+          );
+        } else {
+          // Add new condition
+          const createConditionDto: CreateQuestionLogicDto = {
+            questionId,
+            conditionType: condition.conditionType,
+            conditionValue: condition.conditionValue,
+            logicalOperator: condition.logicalOperator,
+            actionType: condition.actionType,
+            jumpToQuestionId: condition.jumpToQuestionId,
+          };
+          await this.questionLogicRepository.createQuestionLogic(
+            createConditionDto,
+          );
+        }
+      }),
+    );
   }
 }

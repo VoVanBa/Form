@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { QuestionService } from './service/question.service';
 import { RolesGuard } from 'src/common/guards/role-auth.guard';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { QuestionType } from './entities/enums/QuestionType';
 
 @Controller('form')
 export class QuestionController {
@@ -87,6 +89,14 @@ export class QuestionController {
     @Body('newIndex') newIndex: number,
   ) {
     return this.questionService.reorderQuestion(formId, questionId, newIndex);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('/question-condition/types')
+  async getAvailableConditionTypes(
+    @Query('questionType') questionType: QuestionType,
+  ) {
+    return this.questionService.getAvailableConditionTypes(questionType);
   }
 
   // @Roles('ADMIN')

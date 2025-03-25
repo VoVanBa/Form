@@ -97,6 +97,18 @@ export class PrismaQuestionLogicRepository {
     return new QuestionLogic(questionLogic);
   }
 
+  async deleteQuestionLogicsByIds(
+    ids: number[],
+  ): Promise<{ count: number }> {
+    return this.prisma.questionLogic.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+
   async deleteQuestionLogic(id: number): Promise<QuestionLogic> {
     const questionLogic = await this.prisma.questionLogic.delete({
       where: { id },

@@ -16,6 +16,7 @@ import { SurveyFeedackFormService } from 'src/surveyfeedback-form/surveyfeedback
 import { QuestionMediaService } from 'src/media/services/question-media.service';
 import { AnswerOptionMediaService } from 'src/media/services/answer-option-media.service';
 import { QuestionLogicService } from './question-condition.service';
+import { ConditionType } from '../entities/enums/ConditionType';
 
 @Injectable()
 export class QuestionService {
@@ -466,6 +467,7 @@ export class QuestionService {
     return question.map((data) => {
       return {
         id: data.id,
+        type: data.questionType,
         headline: data.headline,
       };
     });
@@ -584,6 +586,39 @@ export class QuestionService {
       errors.push(
         this.i18n.translate('errors.INVALID_RATING_RANGE', { args: { index } }),
       );
+    }
+  }
+
+  async getAvailableConditionTypes(questionType: QuestionType) {
+    const commonConditions = [ConditionType.EQUALS, ConditionType.NOT_EQUALS,ConditionType.CONTAINS];
+
+    switch (questionType) {
+      case QuestionType.SINGLE_CHOICE:
+      case QuestionType.MULTI_CHOICE:
+        return [...commonConditions];
+
+      case QuestionType.INPUT_TEXT:
+        return [
+          ConditionType.EQUALS,
+          ConditionType.NOT_EQUALS,
+          ConditionType.CONTAINS,
+          ConditionType.NOT_CONTAINS,
+        ];
+
+      case QuestionType.RATING_SCALE:
+        return [
+          ConditionType.EQUALS,
+          ConditionType.NOT_EQUALS,
+          ConditionType.GREATER_THAN,
+          ConditionType.LESS_THAN,
+          ConditionType.BETWEEN,
+        ];
+
+      case QuestionType.PICTURE_SELECTION:
+        return [ConditionType.EQUALS, ConditionType.NOT_EQUALS];
+
+      default:
+        return Object.values(ConditionType);
     }
   }
 

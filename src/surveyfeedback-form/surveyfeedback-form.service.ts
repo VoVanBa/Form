@@ -95,53 +95,20 @@ export class SurveyFeedackFormService {
 
   async getBusinessFormById(id: number) {
     const surveyFeedback = await this.validateForm(id);
-
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
-    const logicMap = new Map();
-
+    // Tạo map từ questionId đến headline
+    const questionHeadlineMap = {};
     surveyFeedback.questions.forEach((question) => {
-      // question.questionConditions.forEach((condition) => {
-      //   if (condition.questionLogicId) {
-      //     const key = condition.questionLogicId;
-      //     if (!logicMap.has(key)) {
-      //       logicMap.set(key, { sources: [], targets: [] });
-      //     }
-      //     if (condition.role === 'SOURCE') {
-      //       logicMap.get(key).sources.push({
-      //         id: condition.questionId,
-      //         headline: question.headline,
-      //       });
-      //     } else if (condition.role === 'TARGET') {
-      //       logicMap.get(key).targets.push({
-      //         id: condition.questionId,
-      //         headline: question.headline,
-      //       });
-      //     }
-      //   }
-      // });
+      questionHeadlineMap[question.id] = question.headline;
     });
-
-    // 2️⃣ **Hàm ánh xạ điều kiện logic**
-    const mapCondition = (condition) => {
-      const logic = logicMap.get(condition.questionLogicId);
-      return {
-        source: {
-          questionId: logic?.sources?.[0]?.id || null, // Lấy questionId của source
-          questionHeadline: logic?.sources?.[0]?.headline || null, // Lấy headline của source
-        },
-        logic: {
-          questionLogicId: condition.questionLogic.id,
-          value: condition.questionLogic?.conditionValue || null,
-          operator: condition.questionLogic?.conditionType || 'equals',
-        },
-        target: {
-          questionId: logic?.targets?.[0]?.id || null, // Lấy questionId của target
-          questionHeadline: logic?.targets?.[0]?.headline || null, // Lấy headline của target
-        },
-      };
-    };
+    const answerOptionLabelMap = {};
+    surveyFeedback.questions.forEach((question) => {
+      question.answerOptions.forEach((answerOption) => {
+        answerOptionLabelMap[answerOption.id] = answerOption.label;
+      });
+    });
 
     return {
       id: surveyFeedback.id,
@@ -171,9 +138,25 @@ export class SurveyFeedackFormService {
             : null,
         })),
         setting: question.questionConfiguration?.settings || {},
-        // questionCondition: question.questionConditions
-        //   .filter((condition) => condition.role !== 'TARGET') // Chỉ giữ lại điều kiện không phải TARGET
-        //   .map(mapCondition), // Ánh xạ điều kiện logic
+        questionCondition: question.sourceLogics.map((condition) => ({
+          headlineSource:
+          questionHeadlineMap[condition.conditionValue.sourceQuestionId],
+          operator: condition.conditionType,
+          action: {
+            value: condition.actionType,
+            valueLabel:
+              answerOptionLabelMap[condition.conditionValue.answerOptionId] ||
+              null,
+            jumpToQuestionId:
+              condition.actionType === 'JUMP'
+                ? condition.jumpToQuestionId
+                : null,
+            headlineTarget:
+              condition.actionType === 'JUMP'
+                ? questionHeadlineMap[condition.jumpToQuestionId]
+                : null, // Headline của câu hỏi mục tiêu
+          },
+        })),
       })),
       ending: surveyEnding
         ? {
@@ -1009,9 +992,8 @@ export class SurveyFeedackFormService {
     newFormId: number,
     businessId: number,
   ) {
-    const surveySettings = await this.surveyFeedbackSettingService.getAllSetting(
-      originalFormId,
-    );
+    const surveySettings =
+      await this.surveyFeedbackSettingService.getAllSetting(originalFormId);
     // if (surveySettings.length > 0) {
     //   await Promise.all(
     //     surveySettings.map((setting) =>

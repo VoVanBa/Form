@@ -433,7 +433,7 @@ export class PrismaQuestionRepository implements QuestionRepository {
       where: {
         formId,
         index: {
-          gte: startIndex,
+           lte: startIndex,
         },
       },
       orderBy: { index: 'asc' },

@@ -40,10 +40,9 @@ export class SurveyFeedbackFormController {
     return this.surveyFeedbackFormService.getForms(businessId);
   }
 
-  @Get(':id/business/:businessId')
+  @Get(':id/business')
   getFormByIdForFeedback(
     @Param('id') id: number,
-    @Param('businessId') businessId: number,
   ) {
     return this.surveyFeedbackFormService.getBusinessFormById(id);
   }
