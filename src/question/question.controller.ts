@@ -14,10 +14,15 @@ import { RolesGuard } from 'src/common/guards/role-auth.guard';
 import { UpdateQuestionDto } from './dtos/update.question.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { QuestionType } from './entities/enums/QuestionType';
+import { Roles } from 'src/common/decorater/role.customize';
+import { QuestionLogicService } from './service/question-condition.service';
 
 @Controller('form')
 export class QuestionController {
-  constructor(private questionService: QuestionService) {}
+  constructor(
+    private questionService: QuestionService,
+    private questionLogicService: QuestionLogicService,
+  ) {}
 
   @Get(':formId')
   async getAllQuestions(@Param('formId') formId: number) {
@@ -99,12 +104,12 @@ export class QuestionController {
     return this.questionService.getAvailableConditionTypes(questionType);
   }
 
-  // @Roles('ADMIN')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Delete(':conditionId')
-  // async deleteCondition(
-  //   @Param('conditionId') conditionId: number,
-  // ): Promise<void> {
-  //   return this.questionConditionService.delete(conditionId);
-  // }
+  @Roles('ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('question-condition/:conditionId')
+  async deleteCondition(
+    @Param('conditionId') conditionId: number,
+  ) {
+    return this.questionLogicService.delete(conditionId);
+  }
 }

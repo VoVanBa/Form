@@ -63,10 +63,6 @@ export class QuestionConfigurationService {
 
     const isRequired = questionSetting.settings.required;
 
-    console.log(isRequired, 'isssssssssssss');
-    console.log(response, 'response');
-    console.log(this.isEmptyResponse(response), 'isssssssssssss');
-
     if (isRequired && this.isEmptyResponse(response)) {
       throw new BadRequestException(
         this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
@@ -98,18 +94,21 @@ export class QuestionConfigurationService {
     questionSettings: any,
   ) {
     const isRequired = questionSettings?.required || false; // Kiểm tra có bắt buộc không
-
     const other = questionSettings?.settings?.other || false;
 
-    // 🔥 Kiểm tra xem có key nào không hợp lệ hay không
+    console.log('response', response);
+
     const invalidKeys: string[] = [];
 
     switch (questionType) {
       case 'SINGLE_CHOICE':
-      case 'PICTURE_SELECTION':
+      case 'PICTURE_SELECTION': {
+        console.log('🔍 Debug response:', response);
+        console.log('👉 answerOptionId type:', typeof response.answerOptionId);
+        console.log('👉 answerOptionId value:', response.answerOptionId);
+
         if (
-          response.answerOptionId === null ||
-          typeof response.answerOptionId !== 'number'
+          response.answerOptionId === null 
         ) {
           throw new BadRequestException(
             this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
@@ -117,23 +116,29 @@ export class QuestionConfigurationService {
             }),
           );
         }
-        // 🔥 Chỉ được phép có answerOptionId
+
+        console.log('✅ Passed answerOptionId check!');
+
+        // 🔥 Kiểm tra key không hợp lệ
         if (
-          !other &&
-          (response.answerText !== undefined ||
-            response.ratingValue !== undefined ||
-            response.otherAnswer !== undefined)
+          (!other &&
+            response.answerText !== null &&
+            response.answerText !== undefined) ||
+          response.ratingValue !== null ||
+          response.otherAnswer !== null
         ) {
           invalidKeys.push('answerText', 'ratingValue', 'otherAnswer');
-        } else {
-          invalidKeys.push('answerText', 'ratingValue');
         }
-        break;
 
-      case 'MULTI_CHOICE':
+        console.log('🚨 Invalid keys:', invalidKeys);
+        break;
+      }
+
+      case 'MULTI_CHOICE': {
         if (
           !Array.isArray(response.answerOptionId) ||
-          response.answerOptionId.length === 0
+          response.answerOptionId.length === 0 ||
+          response.answerOptionId.includes(null)
         ) {
           throw new BadRequestException(
             this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
@@ -141,35 +146,46 @@ export class QuestionConfigurationService {
             }),
           );
         }
+
         // 🔥 Chỉ được phép có answerOptionId
         if (
           !other &&
-          (response.answerText !== undefined ||
-            response.ratingValue !== undefined ||
-            response.otherAnswer !== undefined)
+          (response.answerText != null ||
+            response.ratingValue != null ||
+            response.otherAnswer != null)
         ) {
           invalidKeys.push('answerText', 'ratingValue', 'otherAnswer');
-        } 
+        }
         break;
+      }
 
-      case 'INPUT_TEXT':
-        if (!response.answerText || typeof response.answerText !== 'string') {
+      case 'INPUT_TEXT': {
+        if (!response.answerText) {
           throw new BadRequestException(
             this.i18n.translate('errors.QUESTION_REQUIRES_INPUT_TEXT', {
               args: { questionId: response.questionId },
             }),
           );
         }
+
+        console.log('🔍 Debug response:', response);
+
         // 🔥 Chỉ được phép có answerText
         if (
-          response.answerOptionId !== undefined ||
-          response.ratingValue !== undefined
+          (Array.isArray(response.answerOptionId) &&
+            response.answerOptionId.some((v) => v !== null)) ||
+          (!Array.isArray(response.answerOptionId) &&
+            response.answerOptionId !== null) ||
+          response.ratingValue !== null
         ) {
           invalidKeys.push('answerOptionId', 'ratingValue');
         }
-        break;
 
-      case 'RATING_SCALE':
+        console.log('🔍 Invalid keys:', invalidKeys);
+        break;
+      }
+
+      case 'RATING_SCALE': {
         const range = parseFloat(questionSettings?.settings?.range) || 5; // Mặc định 5 sao nếu không có
         if (
           typeof response.ratingValue !== 'number' ||
@@ -182,15 +198,17 @@ export class QuestionConfigurationService {
             }),
           );
         }
+
         // 🔥 Chỉ được phép có ratingValue
         if (
-          response.answerOptionId !== undefined ||
-          response.answerText !== undefined ||
-          response.otherAnswer !== undefined
+          response.answerOptionId != null ||
+          response.answerText != null ||
+          response.otherAnswer != null
         ) {
           invalidKeys.push('answerOptionId', 'answerText', 'otherAnswer');
         }
         break;
+      }
 
       default:
         throw new BadRequestException(

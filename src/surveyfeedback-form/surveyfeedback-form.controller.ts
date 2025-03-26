@@ -16,6 +16,7 @@ import { UpdateQuestionDto } from 'src/question/dtos/update.question.dto';
 import { Request } from 'express';
 import { UsersService } from 'src/users/users.service';
 import { UpdateSettingDto } from 'src/settings/dtos/survey-feedback-settings.dto';
+import { ResponseDto } from 'src/survey-feedback-data/dtos/response.dto';
 
 @Controller('form')
 export class SurveyFeedbackFormController {
@@ -102,12 +103,7 @@ export class SurveyFeedbackFormController {
   async submitResponseForClient(
     @Param('id') id: number,
     @Body()
-    responseDto: {
-      questionId: number;
-      answer?: string;
-      answerOptionId?: number | number[];
-      ratingValue?: number;
-    },
+    responseDto: ResponseDto,
     @Req() request?: any,
     @Headers('authorization') jwt?: string,
   ) {

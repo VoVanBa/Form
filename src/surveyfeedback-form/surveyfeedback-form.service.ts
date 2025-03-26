@@ -28,6 +28,8 @@ import { SurveyFeedbackSettingService } from 'src/settings/service/survey-feedba
 import { UpdateSettingDto } from 'src/settings/dtos/survey-feedback-settings.dto';
 import { SurveySettingKey } from 'src/settings/entities/enums/SurveySettingKey';
 import { QuestionConfigurationService } from 'src/settings/service/question-configuaration.service';
+import { QuestionLogicService } from 'src/question/service/question-condition.service';
+import { ResponseDto } from 'src/survey-feedback-data/dtos/response.dto';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -45,6 +47,7 @@ export class SurveyFeedackFormService {
     private questionMediaService: QuestionMediaService,
     private answerOptionMediaService: AnswerOptionMediaService,
     private questionSettingService: QuestionConfigurationService,
+    private questionLogicService: QuestionLogicService,
   ) {}
 
   async validateForm(formId: number) {
@@ -139,11 +142,14 @@ export class SurveyFeedackFormService {
         })),
         setting: question.questionConfiguration?.settings || {},
         questionCondition: question.sourceLogics.map((condition) => ({
+          id: condition.id,
+          questionSourceId: condition.conditionValue.sourceQuestionId,
           headlineSource:
-          questionHeadlineMap[condition.conditionValue.sourceQuestionId],
+            questionHeadlineMap[condition.conditionValue.sourceQuestionId],
           operator: condition.conditionType,
           action: {
             value: condition.actionType,
+            answerOptionId: condition.conditionValue.answerOptionId,
             valueLabel:
               answerOptionLabelMap[condition.conditionValue.answerOptionId] ||
               null,
@@ -412,6 +418,156 @@ export class SurveyFeedackFormService {
     return response;
   }
 
+  // async submitSurvey(
+  //   id: number,
+  //   responseDto: ResponseDto,
+  //   request?: any,
+  //   user?: number,
+  // ) {
+  //   const userId = user;
+  //   const sessionId = request?.headers?.['x-session-id'];
+
+  //   const surveyFeedback = await this.validateForm(id);
+
+  //   const currentQuestion = surveyFeedback.questions.find(
+  //     (q) => q.id === responseDto.questionId,
+  //   );
+  //   if (!currentQuestion) {
+  //     throw new NotFoundException(
+  //       this.i18n.translate('errors.QUESTIONNOTFOUND'),
+  //     );
+  //   }
+  //   const validatedResponseDto = {
+  //     ...responseDto,
+  //     answerOptionId: Array.isArray(responseDto.answerOptionId)
+  //       ? responseDto.answerOptionId // Nếu đã là mảng, giữ nguyên
+  //       : responseDto.answerOptionId !== undefined
+  //         ? [responseDto.answerOptionId] // Nếu là số, chuyển thành mảng chứa nó
+  //         : [],
+  //   };
+
+  //   await this.questionSettingService.validateResponsesByQuestionSettings(
+  //     validatedResponseDto,
+  //     currentQuestion.questionConfiguration,
+  //   );
+
+  //   console.log('responseDto', responseDto);
+  //   const userResponse = await this.responseService.createResponse(
+  //     id,
+  //     currentQuestion.id,
+  //     responseDto,
+  //     userId,
+  //     sessionId,
+  //   );
+
+  //   // const conditions = currentQuestion.questionConditions.filter(
+  //   //   (c) => c.role === 'SOURCE',
+  //   // );
+  //   let nextQuestion = null;
+
+  //   // if (conditions.length > 0) {
+  //   //   // Use the refactored matchCondition method instead of inline logic
+  //   //   const matchedCondition = conditions.find((c) =>
+  //   //     this.matchCondition(
+  //   //       currentQuestion.questionType,
+  //   //       c.questionLogic,
+  //   //       responseDto,
+  //   //     ),
+  //   //   );
+
+  //   //   if (matchedCondition) {
+  //   //     const getTargetQuestionId =
+  //   //       await this.questionCondition.getTargeByLogiId(
+  //   //         matchedCondition.questionLogic.id,
+  //   //         QuestionRole.TARGET,
+  //   //       );
+
+  //   //     if (getTargetQuestionId) {
+  //   //       const question = surveyFeedback.questions.find(
+  //   //         (q) => q.id === getTargetQuestionId.questionId,
+  //   //       );
+
+  //   //       nextQuestion = await this.questionSerivce.getQuestionById(
+  //   //         question.id,
+  //   //       );
+  //   //     }
+  //   //   }
+  //   // }
+
+  //   if (!nextQuestion) {
+  //     const allQuestions = await this.questionSerivce.getAllQuestion(id);
+
+  //     // Lấy index theo mảng (bắt đầu từ 0)
+  //     const currentIndex = allQuestions.findIndex(
+  //       (q) => q.id === currentQuestion.id,
+  //     );
+
+  //     // Đảm bảo index hợp lệ trước khi lấy câu tiếp theo
+  //     if (currentIndex !== -1 && currentIndex + 1 < allQuestions.length) {
+  //       nextQuestion = allQuestions[currentIndex + 1]; // Lấy trực tiếp từ mảng
+  //     }
+  //   }
+  //   if (!nextQuestion) {
+  //     const completed = await this.responseService.updateCompleted(
+  //       userResponse.id,
+  //     );
+  //   }
+
+  //   const surveyEnding =
+  //     await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
+
+  //   // Tạo response
+  //   const response = {
+  //     surveyId: surveyFeedback.id,
+  //     surveyName: surveyFeedback.name,
+  //     sessionId,
+  //     currentQuestion: nextQuestion
+  //       ? {
+  //           id: nextQuestion.id,
+  //           text: nextQuestion.headline,
+  //           type: nextQuestion.questionType,
+  //           index: nextQuestion.index,
+  //           media: nextQuestion.questionOnMedia?.media
+  //             ? {
+  //                 id: nextQuestion.questionOnMedia.media.id,
+  //                 url: nextQuestion.questionOnMedia.media.url,
+  //               }
+  //             : null,
+  //           answerOptions: nextQuestion.answerOptions.map((ao) => ({
+  //             id: ao.id,
+  //             label: ao.label,
+  //             index: ao.index,
+  //             media: ao.answerOptionOnMedia?.media
+  //               ? {
+  //                   id: ao.answerOptionOnMedia.media.id,
+  //                   url: ao.answerOptionOnMedia.media.url,
+  //                 }
+  //               : null,
+  //           })),
+
+  //           setting: nextQuestion.questionConfiguration?.settings || {},
+  //         }
+  //       : null,
+  //     isLastQuestion: !nextQuestion,
+  //     ending:
+  //       !nextQuestion && surveyEnding
+  //         ? {
+  //             message: surveyEnding.message,
+  //             redirectUrl: surveyEnding.redirectUrl || null,
+  //             media: surveyEnding.media
+  //               ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
+  //               : null,
+  //           }
+  //         : null,
+  //   };
+
+  //   if (!userId && surveyFeedback.allowAnonymous) {
+  //     response.sessionId = sessionId;
+  //   }
+
+  //   return response;
+  // }
+
   async submitSurvey(
     id: number,
     responseDto: {
@@ -426,8 +582,10 @@ export class SurveyFeedackFormService {
     const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
+    // Validate survey
     const surveyFeedback = await this.validateForm(id);
 
+    // Find current question
     const currentQuestion = surveyFeedback.questions.find(
       (q) => q.id === responseDto.questionId,
     );
@@ -437,6 +595,7 @@ export class SurveyFeedackFormService {
       );
     }
 
+    // Normalize response data
     const validatedResponseDto = {
       ...responseDto,
       answerOptionId: Array.isArray(responseDto.answerOptionId)
@@ -446,11 +605,13 @@ export class SurveyFeedackFormService {
           : [],
     };
 
+    // Validate response based on question configuration
     await this.questionSettingService.validateResponsesByQuestionSettings(
       validatedResponseDto,
       currentQuestion.questionConfiguration,
     );
 
+    // Save user response
     const userResponse = await this.responseService.createResponse(
       id,
       currentQuestion.id,
@@ -459,63 +620,83 @@ export class SurveyFeedackFormService {
       sessionId,
     );
 
-    // const conditions = currentQuestion.questionConditions.filter(
-    //   (c) => c.role === 'SOURCE',
-    // );
+    // Step 1: Get logic conditions for current question
+    const conditions = await this.questionLogicService.findAllByQuestionId(
+      currentQuestion.id,
+    );
+
     let nextQuestion = null;
+    let questionsToModify = [];
 
-    // if (conditions.length > 0) {
-    //   // Use the refactored matchCondition method instead of inline logic
-    //   const matchedCondition = conditions.find((c) =>
-    //     this.matchCondition(
-    //       currentQuestion.questionType,
-    //       c.questionLogic,
-    //       responseDto,
-    //     ),
-    //   );
+    // Step 2: Process logic conditions
+    if (conditions.length > 0) {
+      for (const condition of conditions) {
+        const isMatched = this.matchCondition(
+          currentQuestion.questionType,
+          condition,
+          validatedResponseDto,
+        );
 
-    //   if (matchedCondition) {
-    //     const getTargetQuestionId =
-    //       await this.questionCondition.getTargeByLogiId(
-    //         matchedCondition.questionLogic.id,
-    //         QuestionRole.TARGET,
-    //       );
+        // Process different action types
+        if (isMatched) {
+          switch (condition.actionType) {
+            case 'JUMP':
+              nextQuestion = await this.questionSerivce.getQuestionById(
+                condition.jumpToQuestionId,
+              );
+              break;
 
-    //     if (getTargetQuestionId) {
-    //       const question = surveyFeedback.questions.find(
-    //         (q) => q.id === getTargetQuestionId.questionId,
-    //       );
+            case 'SHOW':
+              // Add questions to be shown to the modification list
+              if (condition.jumpToQuestionId) {
+                questionsToModify.push({
+                  questionId: condition.jumpToQuestionId,
+                  action: 'SHOW',
+                });
+              }
+              break;
 
-    //       nextQuestion = await this.questionSerivce.getQuestionById(
-    //         question.id,
-    //       );
-    //     }
-    //   }
-    // }
+            case 'HIDE':
+              // Add questions to be hidden to the modification list
+              if (condition.jumpToQuestionId) {
+                questionsToModify.push({
+                  questionId: condition.jumpToQuestionId,
+                  action: 'HIDE',
+                });
+              }
+              break;
+          }
 
+          // Stop after finding first matching condition if it's a JUMP
+          if (condition.actionType === 'JUMP') {
+            break;
+          }
+        }
+      }
+    }
+
+    // Step 3: If no JUMP condition is met, get next question by order
     if (!nextQuestion) {
       const allQuestions = await this.questionSerivce.getAllQuestion(id);
-
-      // Lấy index theo mảng (bắt đầu từ 0)
       const currentIndex = allQuestions.findIndex(
         (q) => q.id === currentQuestion.id,
       );
 
-      // Đảm bảo index hợp lệ trước khi lấy câu tiếp theo
       if (currentIndex !== -1 && currentIndex + 1 < allQuestions.length) {
-        nextQuestion = allQuestions[currentIndex + 1]; // Lấy trực tiếp từ mảng
+        nextQuestion = allQuestions[currentIndex + 1];
       }
     }
+
+    // Step 4: Update completion status if no next question
     if (!nextQuestion) {
-      const completed = await this.responseService.updateCompleted(
-        userResponse.id,
-      );
+      await this.responseService.updateCompleted(userResponse.id);
     }
 
+    // Get survey ending information
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
-    // Tạo response
+    // Prepare response
     const response = {
       surveyId: surveyFeedback.id,
       surveyName: surveyFeedback.name,
@@ -543,11 +724,11 @@ export class SurveyFeedackFormService {
                   }
                 : null,
             })),
-
             setting: nextQuestion.questionConfiguration?.settings || {},
           }
         : null,
       isLastQuestion: !nextQuestion,
+      questionsToModify, // Add the list of questions to modify
       ending:
         !nextQuestion && surveyEnding
           ? {
@@ -560,6 +741,7 @@ export class SurveyFeedackFormService {
           : null,
     };
 
+    // Handle anonymous user case
     if (!userId && surveyFeedback.allowAnonymous) {
       response.sessionId = sessionId;
     }

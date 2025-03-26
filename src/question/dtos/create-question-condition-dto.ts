@@ -34,25 +34,14 @@ export class CreateQuestionLogicDto {
   @IsString()
   targetQuestionHeadline?: string;
 
-  // @IsInt()
-  // @IsNotEmpty()
-  // questionId: number;
+  @IsInt()
+  @IsNotEmpty()
+  questionId: number;
 
-  // @IsEnum(ConditionType)
-  // conditionType: ConditionType;
+  @IsNotEmpty()
+  conditionValue: any; // JSON chứa điều kiện (cần validate kỹ hơn trong service)
 
-  // @IsNotEmpty()
-  // conditionValue: any; // JSON chứa điều kiện (cần validate kỹ hơn trong service)
-
-  // @IsEnum(LogicalOperator)
-  // @IsOptional()
-  // logicalOperator?: LogicalOperator;
-
-  // @IsEnum(ActionType)
-  // @IsNotEmpty()
-  // actionType: ActionType;
-
-  // @IsInt()
-  // @IsOptional()
-  // jumpToQuestionId?: number;
+  @IsInt()
+  @IsOptional()
+  jumpToQuestionId?: number;
 }

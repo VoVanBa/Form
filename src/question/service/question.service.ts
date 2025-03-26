@@ -247,14 +247,55 @@ export class QuestionService {
       await this.createAnswerOptions(question.id, answerOptions);
     }
 
-    if (dto.conditions && dto.conditions.length > 0) {
-      // Mapping và gán questionId mới cho các điều kiện
-      const mappedConditions = dto.conditions.map((condition) => ({
-        ...condition,
-        questionId: question.id,
-      }));
+    const answerOptionsWithIds =
+      await this.answerOptionService.getAllAnserOptionbyQuestionId(question.id);
 
-      // Gọi hàm createMany để tạo nhiều điều kiện cho câu hỏi
+    if (dto.conditions?.length) {
+      const answerOptionMap = Object.fromEntries(
+        answerOptionsWithIds.map((option) => [option.label, option.id]),
+      );
+
+      const questionHeadlineMap = Object.fromEntries(
+        (await this.getAllQuestion(formId)).map((q) => [q.headline, q.id]),
+      );
+
+      // Thêm câu hỏi mới vào map
+      questionHeadlineMap[question.headline] = question.id;
+
+      const mappedConditions = dto.conditions.map((condition) => {
+        let cv = { ...condition.conditionValue };
+
+        // Ánh xạ `answerOptionId` nếu có `sourceAnswerLabel`
+        if (cv.sourceAnswerLabel) {
+          cv.answerOptionId = answerOptionMap[cv.sourceAnswerLabel];
+          delete cv.sourceAnswerLabel; // Xóa label sau khi ánh xạ
+        }
+
+        cv.sourceQuestionId =
+          questionHeadlineMap[condition.sourceQuestionHeadline];
+
+        // Ánh xạ `jumpToQuestionId`
+        let jumpToQuestionId = null;
+        if (condition.targetQuestionHeadline) {
+          jumpToQuestionId =
+            questionHeadlineMap[condition.targetQuestionHeadline];
+        }
+        console.log(jumpToQuestionId, 'jumpToQuestionId');
+
+        console.log('Processed condition:', {
+          ...condition,
+          questionId: question.id,
+        });
+
+        return {
+          ...condition,
+          questionId: question.id,
+          conditionValue: cv,
+          jumpToQuestionId,
+        };
+      });
+
+      console.log('Mapped conditions:', mappedConditions);
       await this.questionLogicService.createMany(mappedConditions);
     }
 
@@ -590,7 +631,11 @@ export class QuestionService {
   }
 
   async getAvailableConditionTypes(questionType: QuestionType) {
-    const commonConditions = [ConditionType.EQUALS, ConditionType.NOT_EQUALS,ConditionType.CONTAINS];
+    const commonConditions = [
+      ConditionType.EQUALS,
+      ConditionType.NOT_EQUALS,
+      ConditionType.CONTAINS,
+    ];
 
     switch (questionType) {
       case QuestionType.SINGLE_CHOICE:

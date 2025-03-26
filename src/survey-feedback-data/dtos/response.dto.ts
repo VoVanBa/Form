@@ -11,7 +11,7 @@ export class ResponseDto {
 
   @IsOptional()
   @IsInt()
-  answerOptionId?: number[];
+  answerOptionId?: number | number[];
 
   @IsOptional()
   @IsString()

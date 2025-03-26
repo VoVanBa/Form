@@ -642,12 +642,7 @@ export class SurveyFeedbackDataService {
   async createResponse(
     formId: number,
     questionId: number,
-    responseData: {
-      answer?: string;
-      answerOptionId?: number | number[];
-      ratingValue?: number;
-      otherAnswer?: string;
-    },
+    responseData: ResponseDto,
     userId?: number,
     sessionId?: string,
   ) {
@@ -697,7 +692,7 @@ export class SurveyFeedbackDataService {
 
     if (
       (!responseData.answerOptionId &&
-        !responseData.answer &&
+        !responseData.answerText &&
         !responseData.ratingValue &&
         !responseData.otherAnswer) ||
       (Array.isArray(responseData.answerOptionId) &&
@@ -756,12 +751,12 @@ export class SurveyFeedbackDataService {
         break;
 
       case 'INPUT_TEXT':
-        if (responseData.answer) {
+        if (responseData.answerText) {
           await this.userResponseRepository.createTextResponse(
             userResponse.id,
             questionId,
             formId,
-            responseData.answer,
+            responseData.answerText,
           );
         }
         break;
