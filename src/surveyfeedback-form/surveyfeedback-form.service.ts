@@ -146,7 +146,7 @@ export class SurveyFeedackFormService {
           questionSourceId: condition.conditionValue.sourceQuestionId,
           headlineSource:
             questionHeadlineMap[condition.conditionValue.sourceQuestionId],
-          operator: condition.conditionType,
+          actionType: condition.conditionType,
           action: {
             value: condition.actionType,
             answerOptionId: condition.conditionValue.answerOptionId,
@@ -238,77 +238,19 @@ export class SurveyFeedackFormService {
       //   : null,
     };
   }
-  private matchCondition(
-    questionType: string,
-    conditionLogic: any,
-    responseDto: any,
-  ): boolean {
-    if (!conditionLogic || !responseDto) return false;
 
-    const { conditionValue, conditionType } = conditionLogic;
-
-    // Use a strategy pattern with handler functions for each question type
-    const handlers = {
-      SINGLE_CHOICE: () => {
-        return conditionValue.answerOptionId === responseDto.answerOptionId;
+  // Hàm hỗ trợ để ánh xạ điều kiện từ dữ liệu khảo sát sang định dạng mới
+  private mapConditionToNewFormat(condition: any) {
+    return {
+      questionId: condition.questionId,
+      questionSourceId: condition.questionSourceId,
+      actionType: condition.action?.value || condition.actionType,
+      conditionValue: {
+        answerOptionId: condition.action?.answerOptionId,
+        value: condition.action?.valueLabel,
       },
-
-      MULTI_CHOICE: () => {
-        if (!Array.isArray(responseDto.answerOptionId)) return false;
-
-        const conditionHandlers = {
-          CONTAINS: () =>
-            responseDto.answerOptionId.includes(conditionValue.answerOptionId),
-          EQUALS: () =>
-            responseDto.answerOptionId.length === 1 &&
-            responseDto.answerOptionId[0] === conditionValue.answerOptionId,
-          NOT_CONTAINS: () =>
-            !responseDto.answerOptionId.includes(conditionValue.answerOptionId),
-          DEFAULT: () => false,
-        };
-
-        return (
-          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
-        )();
-      },
-
-      RATING_SCALE: () => {
-        const rating = responseDto.ratingValue;
-
-        const conditionHandlers = {
-          EQUALS: () => rating === conditionValue.value,
-          GREATER_THAN: () => rating > conditionValue.value,
-          LESS_THAN: () => rating < conditionValue.value,
-          BETWEEN: () =>
-            rating >= conditionValue.min && rating <= conditionValue.max,
-          DEFAULT: () => false,
-        };
-
-        return (
-          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
-        )();
-      },
-
-      INPUT_TEXT: () => {
-        const text = responseDto.answer;
-
-        const conditionHandlers = {
-          EQUALS: () => text === conditionValue.value,
-          CONTAINS: () => text.includes(conditionValue.value),
-          DEFAULT: () => false,
-        };
-
-        return (
-          conditionHandlers[conditionType] || conditionHandlers.DEFAULT
-        )();
-      },
-
-      DEFAULT: () => false,
     };
-
-    return (handlers[questionType] || handlers.DEFAULT)();
   }
-
   async getSurveyForm(id: number, request?: any, user?: number) {
     const userId = user; // userId từ token nếu đăng nhập
     const sessionId = request?.sessionId;
@@ -418,175 +360,21 @@ export class SurveyFeedackFormService {
     return response;
   }
 
-  // async submitSurvey(
-  //   id: number,
-  //   responseDto: ResponseDto,
-  //   request?: any,
-  //   user?: number,
-  // ) {
-  //   const userId = user;
-  //   const sessionId = request?.headers?.['x-session-id'];
-
-  //   const surveyFeedback = await this.validateForm(id);
-
-  //   const currentQuestion = surveyFeedback.questions.find(
-  //     (q) => q.id === responseDto.questionId,
-  //   );
-  //   if (!currentQuestion) {
-  //     throw new NotFoundException(
-  //       this.i18n.translate('errors.QUESTIONNOTFOUND'),
-  //     );
-  //   }
-  //   const validatedResponseDto = {
-  //     ...responseDto,
-  //     answerOptionId: Array.isArray(responseDto.answerOptionId)
-  //       ? responseDto.answerOptionId // Nếu đã là mảng, giữ nguyên
-  //       : responseDto.answerOptionId !== undefined
-  //         ? [responseDto.answerOptionId] // Nếu là số, chuyển thành mảng chứa nó
-  //         : [],
-  //   };
-
-  //   await this.questionSettingService.validateResponsesByQuestionSettings(
-  //     validatedResponseDto,
-  //     currentQuestion.questionConfiguration,
-  //   );
-
-  //   console.log('responseDto', responseDto);
-  //   const userResponse = await this.responseService.createResponse(
-  //     id,
-  //     currentQuestion.id,
-  //     responseDto,
-  //     userId,
-  //     sessionId,
-  //   );
-
-  //   // const conditions = currentQuestion.questionConditions.filter(
-  //   //   (c) => c.role === 'SOURCE',
-  //   // );
-  //   let nextQuestion = null;
-
-  //   // if (conditions.length > 0) {
-  //   //   // Use the refactored matchCondition method instead of inline logic
-  //   //   const matchedCondition = conditions.find((c) =>
-  //   //     this.matchCondition(
-  //   //       currentQuestion.questionType,
-  //   //       c.questionLogic,
-  //   //       responseDto,
-  //   //     ),
-  //   //   );
-
-  //   //   if (matchedCondition) {
-  //   //     const getTargetQuestionId =
-  //   //       await this.questionCondition.getTargeByLogiId(
-  //   //         matchedCondition.questionLogic.id,
-  //   //         QuestionRole.TARGET,
-  //   //       );
-
-  //   //     if (getTargetQuestionId) {
-  //   //       const question = surveyFeedback.questions.find(
-  //   //         (q) => q.id === getTargetQuestionId.questionId,
-  //   //       );
-
-  //   //       nextQuestion = await this.questionSerivce.getQuestionById(
-  //   //         question.id,
-  //   //       );
-  //   //     }
-  //   //   }
-  //   // }
-
-  //   if (!nextQuestion) {
-  //     const allQuestions = await this.questionSerivce.getAllQuestion(id);
-
-  //     // Lấy index theo mảng (bắt đầu từ 0)
-  //     const currentIndex = allQuestions.findIndex(
-  //       (q) => q.id === currentQuestion.id,
-  //     );
-
-  //     // Đảm bảo index hợp lệ trước khi lấy câu tiếp theo
-  //     if (currentIndex !== -1 && currentIndex + 1 < allQuestions.length) {
-  //       nextQuestion = allQuestions[currentIndex + 1]; // Lấy trực tiếp từ mảng
-  //     }
-  //   }
-  //   if (!nextQuestion) {
-  //     const completed = await this.responseService.updateCompleted(
-  //       userResponse.id,
-  //     );
-  //   }
-
-  //   const surveyEnding =
-  //     await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
-
-  //   // Tạo response
-  //   const response = {
-  //     surveyId: surveyFeedback.id,
-  //     surveyName: surveyFeedback.name,
-  //     sessionId,
-  //     currentQuestion: nextQuestion
-  //       ? {
-  //           id: nextQuestion.id,
-  //           text: nextQuestion.headline,
-  //           type: nextQuestion.questionType,
-  //           index: nextQuestion.index,
-  //           media: nextQuestion.questionOnMedia?.media
-  //             ? {
-  //                 id: nextQuestion.questionOnMedia.media.id,
-  //                 url: nextQuestion.questionOnMedia.media.url,
-  //               }
-  //             : null,
-  //           answerOptions: nextQuestion.answerOptions.map((ao) => ({
-  //             id: ao.id,
-  //             label: ao.label,
-  //             index: ao.index,
-  //             media: ao.answerOptionOnMedia?.media
-  //               ? {
-  //                   id: ao.answerOptionOnMedia.media.id,
-  //                   url: ao.answerOptionOnMedia.media.url,
-  //                 }
-  //               : null,
-  //           })),
-
-  //           setting: nextQuestion.questionConfiguration?.settings || {},
-  //         }
-  //       : null,
-  //     isLastQuestion: !nextQuestion,
-  //     ending:
-  //       !nextQuestion && surveyEnding
-  //         ? {
-  //             message: surveyEnding.message,
-  //             redirectUrl: surveyEnding.redirectUrl || null,
-  //             media: surveyEnding.media
-  //               ? { id: surveyEnding.media.id, url: surveyEnding.media.url }
-  //               : null,
-  //           }
-  //         : null,
-  //   };
-
-  //   if (!userId && surveyFeedback.allowAnonymous) {
-  //     response.sessionId = sessionId;
-  //   }
-
-  //   return response;
-  // }
-
   async submitSurvey(
     id: number,
-    responseDto: {
-      questionId: number;
-      answer?: string;
-      answerOptionId?: number | number[];
-      ratingValue?: number;
-    },
+    responseDto: ResponseDto,
     request?: any,
     user?: number,
   ) {
     const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
-    // Validate survey
-    const surveyFeedback = await this.validateForm(id);
+    const surveyData = await this.getSurveyData(id);
+    if (!surveyData) throw new NotFoundException('Khảo sát không tồn tại');
 
-    // Find current question
-    const currentQuestion = surveyFeedback.questions.find(
+    const { surveyFeedback, allQuestions, allConditions } = surveyData;
+
+    const currentQuestion = allQuestions.find(
       (q) => q.id === responseDto.questionId,
     );
     if (!currentQuestion) {
@@ -595,7 +383,6 @@ export class SurveyFeedackFormService {
       );
     }
 
-    // Normalize response data
     const validatedResponseDto = {
       ...responseDto,
       answerOptionId: Array.isArray(responseDto.answerOptionId)
@@ -605,13 +392,11 @@ export class SurveyFeedackFormService {
           : [],
     };
 
-    // Validate response based on question configuration
     await this.questionSettingService.validateResponsesByQuestionSettings(
       validatedResponseDto,
       currentQuestion.questionConfiguration,
     );
 
-    // Save user response
     const userResponse = await this.responseService.createResponse(
       id,
       currentQuestion.id,
@@ -620,84 +405,57 @@ export class SurveyFeedackFormService {
       sessionId,
     );
 
-    // Step 1: Get logic conditions for current question
-    const conditions = await this.questionLogicService.findAllByQuestionId(
-      currentQuestion.id,
-    );
-
-    let nextQuestion = null;
-    let questionsToModify = [];
-
-    // Step 2: Process logic conditions
-    if (conditions.length > 0) {
-      for (const condition of conditions) {
-        const isMatched = this.matchCondition(
-          currentQuestion.questionType,
-          condition,
-          validatedResponseDto,
-        );
-
-        // Process different action types
-        if (isMatched) {
-          switch (condition.actionType) {
-            case 'JUMP':
-              nextQuestion = await this.questionSerivce.getQuestionById(
-                condition.jumpToQuestionId,
-              );
-              break;
-
-            case 'SHOW':
-              // Add questions to be shown to the modification list
-              if (condition.jumpToQuestionId) {
-                questionsToModify.push({
-                  questionId: condition.jumpToQuestionId,
-                  action: 'SHOW',
-                });
-              }
-              break;
-
-            case 'HIDE':
-              // Add questions to be hidden to the modification list
-              if (condition.jumpToQuestionId) {
-                questionsToModify.push({
-                  questionId: condition.jumpToQuestionId,
-                  action: 'HIDE',
-                });
-              }
-              break;
-          }
-
-          // Stop after finding first matching condition if it's a JUMP
-          if (condition.actionType === 'JUMP') {
-            break;
-          }
-        }
-      }
-    }
-
-    // Step 3: If no JUMP condition is met, get next question by order
-    if (!nextQuestion) {
-      const allQuestions = await this.questionSerivce.getAllQuestion(id);
-      const currentIndex = allQuestions.findIndex(
-        (q) => q.id === currentQuestion.id,
+    const allResponses =
+      await this.responseService.getAllResponsesByUserResponseId(
+        userResponse.id,
       );
 
-      if (currentIndex !== -1 && currentIndex + 1 < allQuestions.length) {
-        nextQuestion = allQuestions[currentIndex + 1];
-      }
-    }
+    const questionVisibility = this.calculateQuestionVisibility(
+      allQuestions,
+      allConditions,
+      allResponses,
+    );
 
-    // Step 4: Update completion status if no next question
+    const jumpCondition = allConditions.find(
+      (c) =>
+        c.conditionValue.sourceQuestionId === currentQuestion.id &&
+        c.actionType === 'JUMP',
+    );
+
+    const jumpToQuestion =
+      jumpCondition &&
+      this.matchCondition(
+        currentQuestion.questionType,
+        jumpCondition,
+        responseDto,
+      )
+        ? allQuestions.find(
+            (q) =>
+              q.id === jumpCondition.jumpToQuestionId &&
+              questionVisibility[q.id] &&
+              !allResponses.some((r) => r.questionId === q.id),
+          )
+        : null;
+
+    console.log('Jump Condition Found:', jumpCondition);
+
+    const nextQuestion = await this.findNextQuestion({
+      allQuestions,
+      currentQuestion: jumpToQuestion ?? currentQuestion,
+      visibility: questionVisibility,
+      allResponses,
+    });
+
+    console.log('Final next question:', nextQuestion);
+
     if (!nextQuestion) {
       await this.responseService.updateCompleted(userResponse.id);
     }
 
-    // Get survey ending information
     const surveyEnding =
       await this.surveyEndingRepository.getSurveyEndingBySurveyId(id);
 
-    // Prepare response
-    const response = {
+    return {
       surveyId: surveyFeedback.id,
       surveyName: surveyFeedback.name,
       sessionId,
@@ -728,7 +486,6 @@ export class SurveyFeedackFormService {
           }
         : null,
       isLastQuestion: !nextQuestion,
-      questionsToModify, // Add the list of questions to modify
       ending:
         !nextQuestion && surveyEnding
           ? {
@@ -740,15 +497,155 @@ export class SurveyFeedackFormService {
             }
           : null,
     };
-
-    // Handle anonymous user case
-    if (!userId && surveyFeedback.allowAnonymous) {
-      response.sessionId = sessionId;
-    }
-
-    return response;
   }
 
+  async findNextQuestion({
+    allQuestions,
+    currentQuestion,
+    visibility,
+    allResponses,
+  }) {
+    // Tạo danh sách các câu hỏi chưa được trả lời
+    const unansweredQuestions = allQuestions.filter(
+      (q) => !allResponses.some((r) => r.questionId === q.id),
+    );
+
+    // Nếu currentQuestion là câu hỏi nhảy đến, kiểm tra tính hợp lệ
+    if (
+      currentQuestion &&
+      visibility[currentQuestion.id] &&
+      unansweredQuestions.some((q) => q.id === currentQuestion.id)
+    ) {
+      return currentQuestion;
+    }
+
+    // Tìm câu hỏi tiếp theo trong danh sách chưa trả lời và có thể hiển thị
+    const nextQuestion = unansweredQuestions.find(
+      (q) => q.id > currentQuestion.id && visibility[q.id],
+    );
+
+    return nextQuestion || null;
+  }
+  private calculateQuestionVisibility(
+    allQuestions: any[],
+    allConditions: any[],
+    allResponses: any[],
+  ): Record<number, boolean> {
+    const visibility: Record<number, boolean> = Object.fromEntries(
+      allQuestions.map((q) => [q.id, true]),
+    );
+
+    allConditions.forEach((condition) => {
+      const sourceResponse = allResponses.find(
+        (r) => r.questionId === condition.conditionValue.sourceQuestionId,
+      );
+
+      if (
+        sourceResponse &&
+        this.matchCondition(
+          allQuestions.find((q) => q.id === condition.questionId).questionType,
+          condition,
+          sourceResponse,
+        )
+      ) {
+        if (condition.actionType === 'HIDE')
+          visibility[condition.questionId] = false;
+        if (condition.actionType === 'SHOW')
+          visibility[condition.questionId] = true;
+      }
+    });
+
+    return visibility;
+  }
+
+  private matchCondition(
+    questionType: string,
+    conditionLogic: any,
+    responseDto: any,
+  ): boolean {
+    if (!conditionLogic || !responseDto) return false;
+
+    const { actionType, conditionValue } = conditionLogic;
+
+    // Hàm xử lý điều kiện ẩn từ câu hỏi nguồn
+    const matchSourceQuestion = (sourceAnswerOptionId: any) =>
+      sourceAnswerOptionId
+        ? responseDto.answerOptionId === sourceAnswerOptionId
+        : false;
+
+    // Danh sách xử lý theo loại câu hỏi
+    const handlers: Record<string, () => boolean> = {
+      SINGLE_CHOICE: () => {
+        const responseAnswerOptions = Array.isArray(responseDto.answerOptionId)
+          ? responseDto.answerOptionId
+          : [responseDto.answerOptionId];
+
+        if (matchSourceQuestion(conditionValue.answerOptionId)) return true;
+
+        return actionType === 'EQUALS'
+          ? responseAnswerOptions.includes(conditionValue.answerOptionId)
+          : false;
+      },
+
+      MULTI_CHOICE: () => {
+        if (!Array.isArray(responseDto.answerOptionId)) return false;
+        if (matchSourceQuestion(conditionValue.answerOptionId)) return true;
+
+        const conditionHandlers: Record<string, () => boolean> = {
+          CONTAINS: () =>
+            responseDto.answerOptionId.includes(conditionValue.answerOptionId),
+          EQUALS: () =>
+            responseDto.answerOptionId.length === 1 &&
+            responseDto.answerOptionId[0] === conditionValue.answerOptionId,
+          NOT_CONTAINS: () =>
+            !responseDto.answerOptionId.includes(conditionValue.answerOptionId),
+        };
+
+        return (conditionHandlers[actionType] || (() => false))();
+      },
+
+      RATING_SCALE: () => {
+        const rating = responseDto.ratingValue;
+        if (matchSourceQuestion(conditionValue.answerOptionId)) return true;
+
+        const conditionHandlers: Record<string, () => boolean> = {
+          EQUALS: () => rating === conditionValue.value,
+          GREATER_THAN: () => rating > conditionValue.value,
+          LESS_THAN: () => rating < conditionValue.value,
+          BETWEEN: () =>
+            rating >= conditionValue.min && rating <= conditionValue.max,
+        };
+
+        return (conditionHandlers[actionType] || (() => false))();
+      },
+
+      INPUT_TEXT: () => {
+        const text = responseDto.answer;
+        if (matchSourceQuestion(conditionValue.answerOptionId)) return true;
+
+        const conditionHandlers: Record<string, () => boolean> = {
+          EQUALS: () => text === conditionValue.value,
+          CONTAINS: () => text.includes(conditionValue.value),
+        };
+
+        return (conditionHandlers[actionType] || (() => false))();
+      },
+    };
+
+    return (handlers[questionType] || (() => false))();
+  }
+  // Phương thức hỗ trợ để lấy toàn bộ dữ liệu khảo sát một lần
+  async getSurveyData(id) {
+    const surveyFeedback = await this.validateForm(id);
+    if (!surveyFeedback) return null;
+
+    const allQuestions = await this.questionSerivce.getAllQuestion(id);
+    const ids = allQuestions.map((q) => q.id);
+    const allConditions =
+      await this.questionLogicService.findAllConditionsByQuestionIds(ids);
+
+    return { surveyFeedback, allQuestions, allConditions };
+  }
   async goBackToPreviousSurveyQuestion(
     id: number,
     currentQuestionId: number,

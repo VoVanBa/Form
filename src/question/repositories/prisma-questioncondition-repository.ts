@@ -97,9 +97,7 @@ export class PrismaQuestionLogicRepository {
     return new QuestionLogic(questionLogic);
   }
 
-  async deleteQuestionLogicsByIds(
-    ids: number[],
-  ): Promise<{ count: number }> {
+  async deleteQuestionLogicsByIds(ids: number[]): Promise<{ count: number }> {
     return this.prisma.questionLogic.deleteMany({
       where: {
         id: {
@@ -123,5 +121,18 @@ export class PrismaQuestionLogicRepository {
     return this.prisma.questionLogic.deleteMany({
       where: { questionId },
     });
+  }
+  async findAllConditionsByQuestionIds(ids: number[]): Promise<QuestionLogic[]> {
+    const questionLogics = await this.prisma.questionLogic.findMany({
+      where: {
+        questionId: {
+          in: ids,
+        },
+      },
+    });
+
+    return questionLogics.map(
+      (questionLogic) => new QuestionLogic(questionLogic),
+    );
   }
 }

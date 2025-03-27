@@ -680,8 +680,6 @@ export class SurveyFeedbackDataService {
         questionId,
       );
 
-    console.log(questionResponse, 'questionRespossbsdssbsbnse');
-
     if (questionResponse) {
       await this.userResponseRepository.deleteExistingResponses(
         questionResponse.id,
@@ -698,7 +696,6 @@ export class SurveyFeedbackDataService {
       (Array.isArray(responseData.answerOptionId) &&
         responseData.answerOptionId.length === 0)
     ) {
-      console.log(responseData, 'ádasdsadsdasdasdsad');
       return await this.userResponseRepository.createResponseSkiped(
         userResponse.id,
         questionId,
@@ -889,5 +886,18 @@ export class SurveyFeedbackDataService {
       questionId,
       userResponseId,
     );
+  }
+
+  async getResponseByUserResponseIdAndQuestionId(
+    userResponseId: number,
+    questionId: number,
+  ) {
+    return this.responseQuestionRepository.getResponseByUserResponseIdAndQuestionId(
+      userResponseId,
+      questionId,
+    );
+  }
+  async getAllResponsesByUserResponseId(userResponseId:number){
+    return this.responseQuestionRepository.getAllResponseByUserResponseId(userResponseId);
   }
 }

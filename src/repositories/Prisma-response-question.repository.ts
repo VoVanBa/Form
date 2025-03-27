@@ -93,4 +93,15 @@ export class PrismaResponseQuestionRepository {
       },
     });
   }
+  async getResponseByUserResponseIdAndQuestionId(
+    userResponseId: number,
+    questionId: number,
+  ) {
+    return await this.prisma.responseOnQuestion.findFirst({
+      where: {
+        useronResponseId: userResponseId,
+        questionId: questionId,
+      },
+    });
+  }
 }

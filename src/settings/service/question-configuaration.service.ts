@@ -96,16 +96,13 @@ export class QuestionConfigurationService {
     const isRequired = questionSettings?.required || false; // Kiểm tra có bắt buộc không
     const other = questionSettings?.settings?.other || false;
 
-    console.log('response', response);
 
     const invalidKeys: string[] = [];
 
     switch (questionType) {
       case 'SINGLE_CHOICE':
       case 'PICTURE_SELECTION': {
-        console.log('🔍 Debug response:', response);
-        console.log('👉 answerOptionId type:', typeof response.answerOptionId);
-        console.log('👉 answerOptionId value:', response.answerOptionId);
+        
 
         if (response.answerOptionId === null) {
           throw new BadRequestException(
@@ -115,9 +112,7 @@ export class QuestionConfigurationService {
           );
         }
 
-        console.log('✅ Passed answerOptionId check!');
 
-        // 🔥 Kiểm tra key không hợp lệ
         if (
           (!other &&
             response.answerText !== null &&
@@ -128,7 +123,6 @@ export class QuestionConfigurationService {
           invalidKeys.push('answerText', 'ratingValue', 'otherAnswer');
         }
 
-        console.log('🚨 Invalid keys:', invalidKeys);
         break;
       }
 
@@ -145,7 +139,6 @@ export class QuestionConfigurationService {
           );
         }
 
-        // 🔥 Chỉ được phép có answerOptionId
         if (
           !other &&
           (response.answerText != null ||
@@ -166,9 +159,7 @@ export class QuestionConfigurationService {
           );
         }
 
-        console.log('🔍 Debug response:', response);
 
-        // 🔥 Chỉ được phép có answerText
         if (
           (Array.isArray(response.answerOptionId) &&
             response.answerOptionId.some((v) => v !== null)) ||
@@ -179,7 +170,6 @@ export class QuestionConfigurationService {
           invalidKeys.push('answerOptionId', 'ratingValue');
         }
 
-        console.log('🔍 Invalid keys:', invalidKeys);
         break;
       }
 
@@ -216,7 +206,6 @@ export class QuestionConfigurationService {
         );
     }
 
-    // ❌ Nếu có key không hợp lệ, báo lỗi
     if (invalidKeys.length > 0) {
       throw new BadRequestException(
         `Invalid keys for question type '${questionType}': ${invalidKeys.join(', ')}`,

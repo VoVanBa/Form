@@ -116,4 +116,8 @@ export class QuestionLogicService {
       }),
     );
   }
+
+  async findAllConditionsByQuestionIds(ids: number[]): Promise<QuestionLogic[]> {
+    return this.questionLogicRepository.findAllConditionsByQuestionIds(ids);
+  }
 }

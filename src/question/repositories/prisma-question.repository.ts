@@ -321,6 +321,8 @@ export class PrismaQuestionRepository implements QuestionRepository {
             settings: true,
           },
         },
+        sourceLogics: true,
+        targetLogics: true,
       },
       orderBy: { index: 'asc' },
     });
