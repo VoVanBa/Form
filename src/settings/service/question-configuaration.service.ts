@@ -107,9 +107,7 @@ export class QuestionConfigurationService {
         console.log('👉 answerOptionId type:', typeof response.answerOptionId);
         console.log('👉 answerOptionId value:', response.answerOptionId);
 
-        if (
-          response.answerOptionId === null 
-        ) {
+        if (response.answerOptionId === null) {
           throw new BadRequestException(
             this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
               args: { questionId: response.questionId },
@@ -199,14 +197,16 @@ export class QuestionConfigurationService {
           );
         }
 
-        // 🔥 Chỉ được phép có ratingValue
         if (
-          response.answerOptionId != null ||
-          response.answerText != null ||
-          response.otherAnswer != null
+          (Array.isArray(response.answerOptionId) &&
+            response.answerOptionId.some((v) => v !== null)) ||
+          (!Array.isArray(response.answerOptionId) &&
+            response.answerOptionId !== null) ||
+          response.answerText !== null
         ) {
-          invalidKeys.push('answerOptionId', 'answerText', 'otherAnswer');
+          invalidKeys.push('answerOptionId', 'ratingValue');
         }
+
         break;
       }
 
