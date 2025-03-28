@@ -404,17 +404,21 @@ export class SurveyFeedackFormService {
       userId,
       sessionId,
     );
+    console.log('User Response:', userResponse);
 
     const allResponses =
       await this.responseService.getAllResponsesByUserResponseId(
         userResponse.id,
       );
 
-    const questionVisibility = this.calculateQuestionVisibility(
+    console.log('All Responses:', allResponses);
+    const questionVisibility = await this.calculateQuestionVisibility(
       allQuestions,
       allConditions,
       allResponses,
     );
+
+    // console.log('Question Visibility:', questionVisibility);
 
     const jumpCondition = allConditions.find(
       (c) =>
@@ -505,35 +509,36 @@ export class SurveyFeedackFormService {
     visibility,
     allResponses,
   }) {
-    console.log(allQuestions, 'allQuestions');
+    console.log(currentQuestion, 'currentQuestion1231321');
     // Lọc danh sách câu hỏi có thể hiển thị và chưa được trả lời
-    const unansweredQuestions = allQuestions.filter(
-      (q) =>
-        visibility[q.id] && !allResponses.some((r) => r.questionId === q.id),
-    );
+    const unansweredQuestions = allQuestions.filter((q) => visibility[q.id]);
+    // console.log('All Responses:', visibility);
 
     console.log('Unanswered Questions:', unansweredQuestions);
 
     // Nếu currentQuestion là câu nhảy tới và hợp lệ, sử dụng nó
-    if (
-      currentQuestion &&
-      unansweredQuestions.some((q) => q.id === currentQuestion.id)
-    ) {
-      return currentQuestion;
-    }
+    // if (
+    //   currentQuestion &&
+    //   unansweredQuestions.some((q) => q.id === currentQuestion.id)
+    // ) {
+    //   return currentQuestion;
+    // }
 
     // Tìm index của câu hỏi hiện tại trong danh sách câu hỏi chung
     const currentIndex = allQuestions.findIndex(
       (q) => q.id === currentQuestion.id,
     );
+
+    console.log(currentIndex, 'currentIndex');
     if (currentIndex === -1) return null; // Nếu không tìm thấy, không có câu tiếp theo
 
     // Duyệt tìm câu hỏi kế tiếp hợp lệ theo thứ tự
     for (let i = currentIndex + 1; i < allQuestions.length; i++) {
       const nextQ = allQuestions[i];
       if (
-        visibility[nextQ.id] &&
-        !allResponses.some((r) => r.questionId === nextQ.id)
+        visibility[nextQ.id]
+        //  &&
+        // !allResponses.some((r) => r.questionId === nextQ.id)
       ) {
         return nextQ; // Trả về câu hỏi tiếp theo hợp lệ
       }
@@ -542,11 +547,11 @@ export class SurveyFeedackFormService {
     return null; // Không tìm thấy câu tiếp theo
   }
 
-  async calculateQuestionVisibility(
+  private async calculateQuestionVisibility(
     allQuestions: any[],
     allConditions: any[],
     allResponses: any[],
-  ) {
+  ): Promise<Record<number, boolean>> {
     const visibility: Record<number, boolean> = Object.fromEntries(
       allQuestions.map((q) => [q.id, true]),
     );
@@ -690,6 +695,7 @@ export class SurveyFeedackFormService {
       userId,
       sessionId,
     );
+
     const responseHistory = userResponses.responseOnQuestions.sort(
       (a, b) => a.createdAt - b.createdAt,
     );
@@ -715,8 +721,13 @@ export class SurveyFeedackFormService {
       }
     }
 
+    const allResponses =
+      await this.responseService.getAllResponsesByUserResponseId(
+        userResponses.id,
+      );
+
     if (!prevQuestion) {
-      // Kiểm tra xem câu hiện tại có được nhảy từ câu khác không
+      // Kiểm tra điều kiện nhảy
       const sourceCondition = allConditions.find(
         (cond) => cond.jumpToQuestionId === currentQuestionId,
       );
@@ -729,31 +740,15 @@ export class SurveyFeedackFormService {
     }
 
     if (!prevQuestion) {
-      prevQuestion = await this.responseService.getPreviousQuestion(
-        id,
+      prevQuestion = await this.getPreviousQuestion(
         currentQuestionId,
-        userResponses.id,
-        sessionId,
+        allQuestions,
+        allConditions,
+        allResponses,
       );
     }
 
     if (!prevQuestion) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
-      );
-    }
-
-    const allResponses =
-      await this.responseService.getAllResponsesByUserResponseId(
-        userResponses.id,
-      );
-    const questionVisibility = await this.calculateQuestionVisibility(
-      allQuestions,
-      allConditions,
-      allResponses,
-    );
-
-    if (!questionVisibility[prevQuestion.id]) {
       throw new BadRequestException(
         this.i18n.translate('errors.NOPREVIOUSQUESTION'),
       );
@@ -778,7 +773,7 @@ export class SurveyFeedackFormService {
               url: prevQuestion.questionOnMedia.media.url,
             }
           : null,
-        answerOptions: prevQuestion.answerOptions.map((ao) => ({
+        answerOptions: prevQuestion.answerOptions?.map((ao) => ({
           id: ao.id,
           label: ao.label,
           index: ao.index,
@@ -795,6 +790,45 @@ export class SurveyFeedackFormService {
       isLastQuestion: false,
       ending: null,
     };
+  }
+
+  async getPreviousQuestion(
+    currentQuestionId: number,
+    allQuestions: any[],
+    allConditions: any[],
+    allResponses: any[],
+  ) {
+    const currentQuestion =
+      await this.questionSerivce.getQuestionById(currentQuestionId);
+    if (!currentQuestion) {
+      return null;
+    }
+
+    // Fix lỗi vòng lặp for
+    for (let i = 0; i < allQuestions.length; i++) {
+      console.log(allQuestions[i], `allQuestions[${i}]`);
+    }
+
+    const questionVisibility = await this.calculateQuestionVisibility(
+      allQuestions,
+      allConditions,
+      allResponses,
+    );
+    console.log(questionVisibility, 'questionVisibility');
+
+    const currentQuestionIndex = allQuestions.findIndex(
+      (q) => q.id === currentQuestion.id,
+    );
+
+    let previousQuestion = null;
+    for (let i = currentQuestionIndex - 1; i >= 0; i--) {
+      if (questionVisibility[allQuestions[i].id]) {
+        previousQuestion = allQuestions[i]; // Fix lỗi `await`
+        break;
+      }
+    }
+
+    return previousQuestion;
   }
 
   // Hàm phụ trợ để định dạng câu trả lời trước đó theo loại câu hỏi

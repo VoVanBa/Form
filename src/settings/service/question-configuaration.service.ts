@@ -147,7 +147,7 @@ export class QuestionConfigurationService {
       }
 
       case 'INPUT_TEXT': {
-        if (!response.answerText) {
+        if (isRequired && !response.answerText) {
           throw new BadRequestException(
             this.i18n.translate('errors.QUESTION_REQUIRES_INPUT_TEXT', {
               args: { questionId: response.questionId },

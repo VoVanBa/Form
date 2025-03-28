@@ -321,7 +321,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     skip: boolean,
-  ) {
+  ) :Promise<UserOnResponse>{
     const data = await this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
@@ -330,6 +330,7 @@ export class PrismaUserResponseRepository {
         skipped: skip,
       },
     });
+    return new UserOnResponse(data);
   }
 
   async deleteExistingResponses(

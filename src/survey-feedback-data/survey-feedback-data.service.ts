@@ -696,12 +696,13 @@ export class SurveyFeedbackDataService {
       (Array.isArray(responseData.answerOptionId) &&
         responseData.answerOptionId.length === 0)
     ) {
-      return await this.userResponseRepository.createResponseSkiped(
+      await this.userResponseRepository.createResponseSkiped(
         userResponse.id,
         questionId,
         formId,
         true,
       );
+      return userResponse;
     }
 
     // Create answer data based on question type
@@ -822,35 +823,6 @@ export class SurveyFeedbackDataService {
   //   });
   // }
 
-  async getPreviousQuestion(
-    surveyId: number,
-    currentQuestionId: number,
-    userId?: number,
-    sessionId?: string,
-  ) {
-    const currentQuestion =
-      await this.questionService.getQuestionById(currentQuestionId);
-    if (!currentQuestion) {
-      return null;
-    }
-    let previousIndex = currentQuestion.index - 1;
-    let previousQuestion = null;
-
-    while (previousIndex >= 0) {
-      previousQuestion = await this.questionService.getIndexQuestionById(
-        surveyId,
-        previousIndex,
-      );
-
-      if (previousQuestion) {
-        break;
-      }
-
-      previousIndex--;
-    }
-    return previousQuestion;
-  }
-
   async getPreviosResponse(
     formId: number,
     userId?: number | null,
@@ -895,7 +867,9 @@ export class SurveyFeedbackDataService {
       questionId,
     );
   }
-  async getAllResponsesByUserResponseId(userResponseId:number){
-    return this.responseQuestionRepository.getAllResponseByUserResponseId(userResponseId);
+  async getAllResponsesByUserResponseId(userResponseId: number) {
+    return this.responseQuestionRepository.getAllResponseByUserResponseId(
+      userResponseId,
+    );
   }
 }
