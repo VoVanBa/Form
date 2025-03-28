@@ -848,9 +848,7 @@ export class SurveyFeedbackDataService {
 
       previousIndex--;
     }
-
-    const question = await this.questionService.getQuestionById(previousIndex);
-    return question;
+    return previousQuestion;
   }
 
   async getPreviosResponse(

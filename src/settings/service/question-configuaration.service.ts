@@ -96,14 +96,11 @@ export class QuestionConfigurationService {
     const isRequired = questionSettings?.required || false; // Kiểm tra có bắt buộc không
     const other = questionSettings?.settings?.other || false;
 
-
     const invalidKeys: string[] = [];
 
     switch (questionType) {
       case 'SINGLE_CHOICE':
       case 'PICTURE_SELECTION': {
-        
-
         if (response.answerOptionId === null) {
           throw new BadRequestException(
             this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
@@ -111,7 +108,6 @@ export class QuestionConfigurationService {
             }),
           );
         }
-
 
         if (
           (!other &&
@@ -158,7 +154,6 @@ export class QuestionConfigurationService {
             }),
           );
         }
-
 
         if (
           (Array.isArray(response.answerOptionId) &&

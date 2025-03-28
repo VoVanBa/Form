@@ -505,32 +505,48 @@ export class SurveyFeedackFormService {
     visibility,
     allResponses,
   }) {
-    // Tạo danh sách các câu hỏi chưa được trả lời
+    console.log(allQuestions, 'allQuestions');
+    // Lọc danh sách câu hỏi có thể hiển thị và chưa được trả lời
     const unansweredQuestions = allQuestions.filter(
-      (q) => !allResponses.some((r) => r.questionId === q.id),
+      (q) =>
+        visibility[q.id] && !allResponses.some((r) => r.questionId === q.id),
     );
 
-    // Nếu currentQuestion là câu hỏi nhảy đến, kiểm tra tính hợp lệ
+    console.log('Unanswered Questions:', unansweredQuestions);
+
+    // Nếu currentQuestion là câu nhảy tới và hợp lệ, sử dụng nó
     if (
       currentQuestion &&
-      visibility[currentQuestion.id] &&
       unansweredQuestions.some((q) => q.id === currentQuestion.id)
     ) {
       return currentQuestion;
     }
 
-    // Tìm câu hỏi tiếp theo trong danh sách chưa trả lời và có thể hiển thị
-    const nextQuestion = unansweredQuestions.find(
-      (q) => q.id > currentQuestion.id && visibility[q.id],
+    // Tìm index của câu hỏi hiện tại trong danh sách câu hỏi chung
+    const currentIndex = allQuestions.findIndex(
+      (q) => q.id === currentQuestion.id,
     );
+    if (currentIndex === -1) return null; // Nếu không tìm thấy, không có câu tiếp theo
 
-    return nextQuestion || null;
+    // Duyệt tìm câu hỏi kế tiếp hợp lệ theo thứ tự
+    for (let i = currentIndex + 1; i < allQuestions.length; i++) {
+      const nextQ = allQuestions[i];
+      if (
+        visibility[nextQ.id] &&
+        !allResponses.some((r) => r.questionId === nextQ.id)
+      ) {
+        return nextQ; // Trả về câu hỏi tiếp theo hợp lệ
+      }
+    }
+
+    return null; // Không tìm thấy câu tiếp theo
   }
-  private calculateQuestionVisibility(
+
+  async calculateQuestionVisibility(
     allQuestions: any[],
     allConditions: any[],
     allResponses: any[],
-  ): Record<number, boolean> {
+  ) {
     const visibility: Record<number, boolean> = Object.fromEntries(
       allQuestions.map((q) => [q.id, true]),
     );
@@ -655,12 +671,10 @@ export class SurveyFeedackFormService {
     const userId = user;
     const sessionId = request?.headers?.['x-session-id'];
 
-    const surveyFeedback = await this.formRepository.getSurveyFeedbackById(id);
-    if (!surveyFeedback) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.SURVEYFEEDBACKNOTFOUND'),
-      );
-    }
+    const surveyData = await this.getSurveyData(id);
+    if (!surveyData) throw new NotFoundException('Khảo sát không tồn tại');
+
+    const { surveyFeedback, allQuestions, allConditions } = surveyData;
 
     const currentQuestion = surveyFeedback.questions.find(
       (q) => q.id === currentQuestionId,
@@ -676,7 +690,6 @@ export class SurveyFeedackFormService {
       userId,
       sessionId,
     );
-
     const responseHistory = userResponses.responseOnQuestions.sort(
       (a, b) => a.createdAt - b.createdAt,
     );
@@ -685,47 +698,64 @@ export class SurveyFeedackFormService {
       (response) => response.questionId === currentQuestionId,
     );
 
-    let prevQuestion;
-    let previousResponse;
+    let prevQuestion: any = null;
+    let previousResponse: any = null;
 
-    if (currentResponseIndex === -1) {
-      // Chưa trả lời câu hiện tại
-      if (responseHistory.length > 0) {
-        // Lấy câu hỏi cuối cùng trong lịch sử trả lời
-        previousResponse = responseHistory[responseHistory.length - 1];
-        prevQuestion = surveyFeedback.questions.find(
-          (q) => q.id === previousResponse.questionId,
+    if (currentResponseIndex > 0) {
+      for (let i = currentResponseIndex - 1; i >= 0; i--) {
+        const response = responseHistory[i];
+        const question = surveyFeedback.questions.find(
+          (q) => q.id === response.questionId,
         );
-      } else {
-        // Chưa trả lời câu nào, thử tìm câu hỏi trước dựa trên điều kiện hoặc index
-        prevQuestion = await this.responseService.getPreviousQuestion(
-          id,
-          currentQuestionId,
-          userResponses.id,
-          sessionId,
-        );
-        if (!prevQuestion) {
-          throw new BadRequestException(
-            this.i18n.translate('errors.NOPREVIOUSQUESTION'),
-          );
+        if (question) {
+          prevQuestion = question;
+          previousResponse = response;
+          break;
         }
       }
-    } else if (currentResponseIndex <= 0) {
-      // Là câu đầu tiên trong lịch sử, không thể quay lại
-      throw new BadRequestException(
-        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
+    }
+
+    if (!prevQuestion) {
+      // Kiểm tra xem câu hiện tại có được nhảy từ câu khác không
+      const sourceCondition = allConditions.find(
+        (cond) => cond.jumpToQuestionId === currentQuestionId,
       );
-    } else {
-      // Đã trả lời, lấy câu hỏi trước đó trong lịch sử
-      previousResponse = responseHistory[currentResponseIndex - 1];
-      prevQuestion = surveyFeedback.questions.find(
-        (q) => q.id === previousResponse.questionId,
+
+      if (sourceCondition) {
+        prevQuestion = surveyFeedback.questions.find(
+          (q) => q.id === sourceCondition.questionId,
+        );
+      }
+    }
+
+    if (!prevQuestion) {
+      prevQuestion = await this.responseService.getPreviousQuestion(
+        id,
+        currentQuestionId,
+        userResponses.id,
+        sessionId,
       );
     }
 
     if (!prevQuestion) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
+      throw new BadRequestException(
+        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
+      );
+    }
+
+    const allResponses =
+      await this.responseService.getAllResponsesByUserResponseId(
+        userResponses.id,
+      );
+    const questionVisibility = await this.calculateQuestionVisibility(
+      allQuestions,
+      allConditions,
+      allResponses,
+    );
+
+    if (!questionVisibility[prevQuestion.id]) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
       );
     }
 
@@ -771,30 +801,23 @@ export class SurveyFeedackFormService {
   private formatPreviousAnswer(questionType: string, response: any) {
     switch (questionType) {
       case 'SINGLE_CHOICE':
-        return {
-          answerOptionId: response.answerOptionId,
-        };
+        return { answerOptionId: response.answerOptionId };
 
       case 'MULTI_CHOICE':
-        // Lưu ý: Với MULTI_CHOICE, bạn cần lấy tất cả câu trả lời của câu hỏi này
         return {
-          answerOptionId: [response.answerOptionId],
+          answerOptionId: Array.isArray(response.answerOptionId)
+            ? response.answerOptionId
+            : [response.answerOptionId],
         };
 
       case 'RATING_SCALE':
-        return {
-          ratingValue: response.ratingValue,
-        };
+        return { ratingValue: response.ratingValue };
 
       case 'INPUT_TEXT':
-        return {
-          answer: response.answerText,
-        };
+        return { answer: response.answerText };
 
       case 'PICTURE_SELECTION':
-        return {
-          answerOptionId: response.answerOptionId,
-        };
+        return { answerOptionId: response.answerOptionId };
 
       default:
         return null;
