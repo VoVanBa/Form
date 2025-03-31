@@ -19,9 +19,9 @@ export interface AnswerOptionRepository {
     tx?: any,
   ): Promise<AnswerOption[]>;
 
-  deleteAnserOption(id: number, questionId: number, tx?: any): Promise<any>;
+  deleteAnwserOption(id: number, questionId: number): Promise<any>;
 
-  findanswerOptionsByQuestionId(questionId: number, tx?: any): Promise<any[]>;
+  findanswerOptionsByQuestionId(questionId: number): Promise<any[]>;
 
   updateAnswerOptions(
     answerOptionId: number,

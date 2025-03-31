@@ -226,6 +226,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerOptionId: number,
+    answeredAt?: any,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -233,6 +234,7 @@ export class PrismaUserResponseRepository {
         questionId,
         formId,
         answerOptionId,
+        answeredAt: answeredAt,
       },
     });
   }
@@ -242,6 +244,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerOptionId: number,
+    answeredAt?: any,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -249,6 +252,7 @@ export class PrismaUserResponseRepository {
         questionId,
         formId,
         answerOptionId,
+        answeredAt: answeredAt,
       },
     });
   }
@@ -258,6 +262,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     answerText: string,
+    answeredAt?: any,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -265,6 +270,7 @@ export class PrismaUserResponseRepository {
         questionId,
         formId,
         answerText,
+        answeredAt: answeredAt,
       },
     });
   }
@@ -274,6 +280,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     ratingValue: number,
+    answeredAt?: any,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -281,6 +288,7 @@ export class PrismaUserResponseRepository {
         questionId,
         formId,
         ratingValue,
+        answeredAt: answeredAt,
       },
     });
   }
@@ -290,6 +298,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     otherAnswer: string,
+    answeredAt?: any,
   ) {
     return this.prisma.responseOnQuestion.create({
       data: {
@@ -297,6 +306,7 @@ export class PrismaUserResponseRepository {
         questionId,
         formId,
         otherAnswer,
+        answeredAt: answeredAt,
       },
     });
   }
@@ -321,7 +331,7 @@ export class PrismaUserResponseRepository {
     questionId: number,
     formId: number,
     skip: boolean,
-  ) :Promise<UserOnResponse>{
+  ): Promise<UserOnResponse> {
     const data = await this.prisma.responseOnQuestion.create({
       data: {
         useronResponseId: userResponseId,
@@ -346,23 +356,36 @@ export class PrismaUserResponseRepository {
   }
 
   async updateExistingResponses(
-    userResponseId: number,
+    id: number,
     questionId: number,
     dto: ResponseDto,
   ) {
-    return this.prisma.responseOnQuestion.update({
+    const updateData: any = {
+      answerText: dto.answerText,
+      ratingValue: dto.ratingValue,
+      otherAnswer: dto.otherAnswer,
+    };
+
+    // Xử lý answerOptionIds nếu có
+    if (dto.answerOptionId !== undefined) {
+      // Chuyển đổi thành mảng, dù là number hay number[]
+      const answerOptionIds = Array.isArray(dto.answerOptionId)
+        ? dto.answerOptionId
+        : [dto.answerOptionId];
+
+      // Chuyển thành định dạng Prisma yêu cầu
+      updateData.answerOptions = {
+        set: answerOptionIds.map((id) => ({ id })),
+      };
+    }
+
+    // Cập nhật dữ liệu trong Prisma
+    return this.prisma.responseOnQuestion.updateMany({
       where: {
-        id: userResponseId,
+        id: id,
         questionId,
       },
-      data: {
-        answerOptionId: Array.isArray(dto.answerOptionId)
-          ? undefined
-          : dto.answerOptionId,
-        answerText: dto.answerText,
-        ratingValue: dto.ratingValue,
-        otherAnswer: dto.otherAnswer,
-      },
+      data: updateData,
     });
   }
 

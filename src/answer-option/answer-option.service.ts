@@ -29,16 +29,25 @@ export class AnswerOptionService {
     return quantity;
   }
 
-  async deleteAnserOption(id: number, questionId: number) {
-    return await this.prismaAnswerOptionRepository.deleteAnserOption(
+  async deleteAnwserOption(id: number, questionId: number) {
+    return await this.prismaAnswerOptionRepository.deleteAnwserOption(
       id,
       questionId,
     );
+  }
+  async deleteManyAnserOption(ids: number[]) {
+    return await this.prismaAnswerOptionRepository.deleteManyAnwserOption(ids);
   }
 
   async updateAnswerOptions(answerOptionId: number, data: AddAnswerOptionDto) {
     return await this.prismaAnswerOptionRepository.updateAnswerOptions(
       answerOptionId,
+      data,
+    );
+  }
+
+  async updateManyAnswerOptions(data: AddAnswerOptionDto[]) {
+    return await this.prismaAnswerOptionRepository.updateManyAnswerOptions(
       data,
     );
   }
@@ -55,25 +64,15 @@ export class AnswerOptionService {
     return answerOptions;
   }
 
-  async bulkUpdateAnswerOptions(
-    updates: { id: number; data: AddAnswerOptionDto }[],
-  ) {
-    return await this.prismaAnswerOptionRepository.bulkUpdateAnswerOptions(
-      updates,
-    );
-  }
-
-  async bulkDeleteAnswerOptions(ids: number[]) {
-    await this.prismaAnswerOptionRepository.bulkDeleteAnswerOptions(ids);
-  }
-
-  async bulkCreateAnswerOptions(
+  async createManyAnswerOption(
     questionId: number,
     answerOptions: AddAnswerOptionDto[],
+    index: number,
   ) {
-    return await this.prismaAnswerOptionRepository.bulkCreateAnswerOptions(
+    return await this.prismaAnswerOptionRepository.createManyAnswerOptions(
       questionId,
       answerOptions,
+      index,
     );
   }
 }

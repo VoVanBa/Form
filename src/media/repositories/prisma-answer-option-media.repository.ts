@@ -26,7 +26,7 @@ export class PrismaAnswerOptionMediaRepository
     return new AnswerOptionOnMedia(media);
   }
 
-  async createAnswerOptionOnMedia(
+  async createManyAnswerOptionOnMedia(
     data: { mediaId: number; answerOptionId: number | null }[],
   ): Promise<AnswerOptionOnMedia[]> {
     const response = await this.prisma.answerOptionOnMedia.createMany({

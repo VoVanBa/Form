@@ -30,6 +30,7 @@ import { SurveySettingKey } from 'src/settings/entities/enums/SurveySettingKey';
 import { QuestionConfigurationService } from 'src/settings/service/question-configuaration.service';
 import { QuestionLogicService } from 'src/question/service/question-condition.service';
 import { ResponseDto } from 'src/survey-feedback-data/dtos/response.dto';
+import { console } from 'inspector';
 
 @Injectable()
 export class SurveyFeedackFormService {
@@ -265,7 +266,7 @@ export class SurveyFeedackFormService {
       );
     }
 
-    const userResponses = await this.responseService.getPreviosResponse(
+    const userResponses = await this.responseService.getResponse(
       id,
       userId,
       sessionId,
@@ -383,6 +384,7 @@ export class SurveyFeedackFormService {
       );
     }
 
+    // Normalize answerOptionId to always be an array
     const validatedResponseDto = {
       ...responseDto,
       answerOptionId: Array.isArray(responseDto.answerOptionId)
@@ -397,60 +399,90 @@ export class SurveyFeedackFormService {
       currentQuestion.questionConfiguration,
     );
 
-    const userResponse = await this.responseService.createResponse(
+    const userResponse = await this.responseService.createOrUpdateResponse(
       id,
       currentQuestion.id,
       responseDto,
       userId,
       sessionId,
     );
-    console.log('User Response:', userResponse);
 
     const allResponses =
       await this.responseService.getAllResponsesByUserResponseId(
         userResponse.id,
       );
 
-    console.log('All Responses:', allResponses);
     const questionVisibility = await this.calculateQuestionVisibility(
       allQuestions,
       allConditions,
       allResponses,
     );
 
-    // console.log('Question Visibility:', questionVisibility);
-
-    const jumpCondition = allConditions.find(
+    const jumpConditions = allConditions.filter(
       (c) =>
         c.conditionValue.sourceQuestionId === currentQuestion.id &&
         c.actionType === 'JUMP',
     );
 
-    const jumpToQuestion =
-      jumpCondition &&
-      this.matchCondition(
+    const displayConditions = allConditions.filter(
+      (c) =>
+        (c.conditionValue.sourceQuestionId === currentQuestion.id &&
+          c.actionType === 'HIDE') ||
+        c.actionType === 'SHOW',
+    );
+    for (const condition of displayConditions) {
+      const shouldVisibility = this.matchCondition(
+        currentQuestion.questionType,
+        condition,
+        responseDto,
+      );
+      console.log(shouldVisibility, 'isVisibilisdsdsdsty');
+
+      if (shouldVisibility) {
+        const isVisibility = allQuestions.find(
+          (q) => q.id === condition.questionId,
+        );
+        if (isVisibility) {
+          if (condition.actionType === 'HIDE') {
+            questionVisibility[isVisibility.id] = false;
+          } else {
+            questionVisibility[isVisibility.id] = true;
+          }
+        }
+      }
+    }
+
+    let nextQuestion = null;
+
+    // Check each jump condition until a valid one is found
+    for (const jumpCondition of jumpConditions) {
+      const shouldJump = this.matchCondition(
         currentQuestion.questionType,
         jumpCondition,
         responseDto,
-      )
-        ? allQuestions.find(
-            (q) =>
-              q.id === jumpCondition.jumpToQuestionId &&
-              questionVisibility[q.id] &&
-              !allResponses.some((r) => r.questionId === q.id),
-          )
-        : null;
+      );
 
-    console.log('Jump Condition Found:', jumpCondition);
+      if (shouldJump) {
+        const jumpToQuestion = allQuestions.find(
+          (q) =>
+            q.id === jumpCondition.jumpToQuestionId && questionVisibility[q.id],
+        );
 
-    const nextQuestion = await this.findNextQuestion({
-      allQuestions,
-      currentQuestion: jumpToQuestion ?? currentQuestion,
-      visibility: questionVisibility,
-      allResponses,
-    });
+        if (jumpToQuestion) {
+          nextQuestion = jumpToQuestion;
+          break; // Exit the loop once a valid jump target is found
+        }
+      }
+    }
 
-    console.log('Final next question:', nextQuestion);
+    // If no valid jump was found, find the next question in sequence
+    if (!nextQuestion) {
+      nextQuestion = await this.findNextQuestion({
+        allQuestions,
+        currentQuestion,
+        visibility: questionVisibility,
+      });
+    }
 
     if (!nextQuestion) {
       await this.responseService.updateCompleted(userResponse.id);
@@ -503,48 +535,14 @@ export class SurveyFeedackFormService {
     };
   }
 
-  async findNextQuestion({
-    allQuestions,
-    currentQuestion,
-    visibility,
-    allResponses,
-  }) {
-    console.log(currentQuestion, 'currentQuestion1231321');
-    // Lọc danh sách câu hỏi có thể hiển thị và chưa được trả lời
-    const unansweredQuestions = allQuestions.filter((q) => visibility[q.id]);
-    // console.log('All Responses:', visibility);
+  async findNextQuestion({ allQuestions, currentQuestion, visibility }) {
+    if (!currentQuestion) return null;
 
-    console.log('Unanswered Questions:', unansweredQuestions);
-
-    // Nếu currentQuestion là câu nhảy tới và hợp lệ, sử dụng nó
-    // if (
-    //   currentQuestion &&
-    //   unansweredQuestions.some((q) => q.id === currentQuestion.id)
-    // ) {
-    //   return currentQuestion;
-    // }
-
-    // Tìm index của câu hỏi hiện tại trong danh sách câu hỏi chung
-    const currentIndex = allQuestions.findIndex(
-      (q) => q.id === currentQuestion.id,
+    return (
+      allQuestions
+        .slice(allQuestions.findIndex((q) => q.id === currentQuestion.id) + 1)
+        .find((q) => visibility[q.id]) || null
     );
-
-    console.log(currentIndex, 'currentIndex');
-    if (currentIndex === -1) return null; // Nếu không tìm thấy, không có câu tiếp theo
-
-    // Duyệt tìm câu hỏi kế tiếp hợp lệ theo thứ tự
-    for (let i = currentIndex + 1; i < allQuestions.length; i++) {
-      const nextQ = allQuestions[i];
-      if (
-        visibility[nextQ.id]
-        //  &&
-        // !allResponses.some((r) => r.questionId === nextQ.id)
-      ) {
-        return nextQ; // Trả về câu hỏi tiếp theo hợp lệ
-      }
-    }
-
-    return null; // Không tìm thấy câu tiếp theo
   }
 
   private async calculateQuestionVisibility(
@@ -569,16 +567,19 @@ export class SurveyFeedackFormService {
           sourceResponse,
         )
       ) {
-        if (condition.actionType === 'HIDE')
-          visibility[condition.questionId] = false;
-        if (condition.actionType === 'SHOW')
+        // Xử lý theo loại action
+        if (condition.actionType === 'HIDE') {
           visibility[condition.questionId] = true;
+        } else if (condition.actionType === 'SHOW') {
+          // SHOW thường được dùng khi câu hỏi mặc định là ẩn
+          visibility[condition.questionId] = false;
+        }
+        // JUMP không ảnh hưởng đến visibility
       }
     });
 
     return visibility;
   }
-
   private matchCondition(
     questionType: string,
     conditionLogic: any,
@@ -586,7 +587,8 @@ export class SurveyFeedackFormService {
   ): boolean {
     if (!conditionLogic || !responseDto) return false;
 
-    const { actionType, conditionValue } = conditionLogic;
+    const { conditionType, conditionValue } = conditionLogic;
+    console.log(conditionType, conditionValue, 'conditionType');
 
     // Hàm xử lý điều kiện ẩn từ câu hỏi nguồn
     const matchSourceQuestion = (sourceAnswerOptionId: any) =>
@@ -603,7 +605,7 @@ export class SurveyFeedackFormService {
 
         if (matchSourceQuestion(conditionValue.answerOptionId)) return true;
 
-        return actionType === 'EQUALS'
+        return conditionType === 'EQUALS'
           ? responseAnswerOptions.includes(conditionValue.answerOptionId)
           : false;
       },
@@ -622,7 +624,7 @@ export class SurveyFeedackFormService {
             !responseDto.answerOptionId.includes(conditionValue.answerOptionId),
         };
 
-        return (conditionHandlers[actionType] || (() => false))();
+        return (conditionHandlers[conditionType] || (() => false))();
       },
 
       RATING_SCALE: () => {
@@ -637,7 +639,7 @@ export class SurveyFeedackFormService {
             rating >= conditionValue.min && rating <= conditionValue.max,
         };
 
-        return (conditionHandlers[actionType] || (() => false))();
+        return (conditionHandlers[conditionType] || (() => false))();
       },
 
       INPUT_TEXT: () => {
@@ -649,7 +651,7 @@ export class SurveyFeedackFormService {
           CONTAINS: () => text.includes(conditionValue.value),
         };
 
-        return (conditionHandlers[actionType] || (() => false))();
+        return (conditionHandlers[conditionType] || (() => false))();
       },
     };
 
@@ -660,7 +662,7 @@ export class SurveyFeedackFormService {
     const surveyFeedback = await this.validateForm(id);
     if (!surveyFeedback) return null;
 
-    const allQuestions = await this.questionSerivce.getAllQuestion(id);
+    const allQuestions = surveyFeedback.questions;
     const ids = allQuestions.map((q) => q.id);
     const allConditions =
       await this.questionLogicService.findAllConditionsByQuestionIds(ids);
@@ -677,20 +679,10 @@ export class SurveyFeedackFormService {
     const sessionId = request?.headers?.['x-session-id'];
 
     const surveyData = await this.getSurveyData(id);
-    if (!surveyData) throw new NotFoundException('Khảo sát không tồn tại');
-
     const { surveyFeedback, allQuestions, allConditions } = surveyData;
 
-    const currentQuestion = surveyFeedback.questions.find(
-      (q) => q.id === currentQuestionId,
-    );
-    if (!currentQuestion) {
-      throw new NotFoundException(
-        this.i18n.translate('errors.QUESTIONNOTFOUND'),
-      );
-    }
-
-    const userResponses = await this.responseService.getPreviosResponse(
+    // Lấy lịch sử phản hồi
+    const userResponses = await this.responseService.getResponse(
       id,
       userId,
       sessionId,
@@ -700,62 +692,82 @@ export class SurveyFeedackFormService {
       (a, b) => a.createdAt - b.createdAt,
     );
 
-    const currentResponseIndex = responseHistory.findIndex(
-      (response) => response.questionId === currentQuestionId,
+    // Tính toán visibility của tất cả câu hỏi dựa trên các câu trả lời hiện tại
+    // const visibility = await this.calculateQuestionVisibility(
+    //   allQuestions,
+    //   allConditions,
+    //   userResponses.responseOnQuestions,
+    // );
+
+    // console.log(visibility, 'gfhfhgfghfhfjhgjhvisibility');
+    // // Tìm câu hỏi hiện tại
+    const currentQuestion = allQuestions.find(
+      (q) => q.id === currentQuestionId,
+    );
+    // if (!currentQuestion) throw new NotFoundException('Câu hỏi không tồn tại');
+
+    // // Kiểm tra xem có phải từ JUMP không
+    // const jumpCondition = allConditions.find(
+    //   (cond) =>
+    //     cond.actionType === 'JUMP' &&
+    //     cond.conditionValue.jumpToQuestionId === currentQuestionId,
+    // );
+
+    // let prevQuestion = null;
+
+    // if (jumpCondition) {
+    //   // Nếu đến từ JUMP, quay lại câu hỏi nguồn của JUMP
+    //   const sourceQuestion = allQuestions.find(
+    //     (q) => q.id === jumpCondition.conditionValue.sourceQuestionId,
+    //   );
+
+    //   // Kiểm tra nếu source question visible
+    //   if (sourceQuestion && visibility[sourceQuestion.id]) {
+    //     prevQuestion = sourceQuestion;
+    //   }
+    // }
+
+    // // Nếu không phải từ JUMP hoặc source question không visible
+    // if (!prevQuestion) {
+    //   // Tìm câu hỏi trước đó theo thứ tự mà visible
+    //   prevQuestion = this.getPreviousQuestion(
+    //     userResponses.responseOnQuestions,
+    //     currentQuestion,
+    //     visibility,
+    //   );
+    // }
+
+    // if (!prevQuestion) {
+    //   throw new BadRequestException('Không có câu hỏi trước đó');
+    // }
+
+    // Tìm câu trả lời trước đó nếu có
+    let prevQuestion = null;
+
+    // Lấy danh sách các câu trả lời trước đó
+    const responses = responseHistory;
+
+    // Tìm index của câu trả lời hiện tại
+    let index = responses.findIndex((q) => q.questionId === currentQuestionId);
+
+    // Nếu không tìm thấy, lấy index cuối cùng
+    if (index === -1) {
+      index = responses.length - 1;
+    } else {
+      index = Math.max(0, index - 1); // Đảm bảo index không bị âm
+    }
+
+    // Lấy câu hỏi trước đó nếu tồn tại
+    prevQuestion = responses[index] || null;
+
+    const data = allQuestions.find((q) => q.id === prevQuestion.questionId);
+
+    const previousResponse = userResponses.responseOnQuestions.find(
+      (response) => response.questionId === prevQuestion.questionId,
     );
 
-    let prevQuestion: any = null;
-    let previousResponse: any = null;
-
-    if (currentResponseIndex > 0) {
-      for (let i = currentResponseIndex - 1; i >= 0; i--) {
-        const response = responseHistory[i];
-        const question = surveyFeedback.questions.find(
-          (q) => q.id === response.questionId,
-        );
-        if (question) {
-          prevQuestion = question;
-          previousResponse = response;
-          break;
-        }
-      }
-    }
-
-    const allResponses =
-      await this.responseService.getAllResponsesByUserResponseId(
-        userResponses.id,
-      );
-
-    if (!prevQuestion) {
-      // Kiểm tra điều kiện nhảy
-      const sourceCondition = allConditions.find(
-        (cond) => cond.jumpToQuestionId === currentQuestionId,
-      );
-
-      if (sourceCondition) {
-        prevQuestion = surveyFeedback.questions.find(
-          (q) => q.id === sourceCondition.questionId,
-        );
-      }
-    }
-
-    if (!prevQuestion) {
-      prevQuestion = await this.getPreviousQuestion(
-        currentQuestionId,
-        allQuestions,
-        allConditions,
-        allResponses,
-      );
-    }
-
-    if (!prevQuestion) {
-      throw new BadRequestException(
-        this.i18n.translate('errors.NOPREVIOUSQUESTION'),
-      );
-    }
-
     const previousAnswer = previousResponse
-      ? this.formatPreviousAnswer(prevQuestion.questionType, previousResponse)
+      ? this.formatPreviousAnswer(data.questionType, previousResponse)
       : null;
 
     return {
@@ -763,17 +775,17 @@ export class SurveyFeedackFormService {
       surveyName: surveyFeedback.name,
       sessionId,
       currentQuestion: {
-        id: prevQuestion.id,
-        text: prevQuestion.headline,
-        type: prevQuestion.questionType,
-        index: prevQuestion.index,
-        media: prevQuestion.questionOnMedia?.media
+        id: data.id,
+        text: data.headline,
+        type: data.questionType,
+        index: data.index,
+        media: data.questionOnMedia?.media
           ? {
-              id: prevQuestion.questionOnMedia.media.id,
-              url: prevQuestion.questionOnMedia.media.url,
+              id: data.questionOnMedia.media.id,
+              url: data.questionOnMedia.media.url,
             }
           : null,
-        answerOptions: prevQuestion.answerOptions?.map((ao) => ({
+        answerOptions: data.answerOptions?.map((ao) => ({
           id: ao.id,
           label: ao.label,
           index: ao.index,
@@ -784,7 +796,7 @@ export class SurveyFeedackFormService {
               }
             : null,
         })),
-        setting: prevQuestion.questionConfiguration?.settings || {},
+        setting: data.questionConfiguration?.settings || {},
         previousAnswer: previousAnswer,
       },
       isLastQuestion: false,
@@ -792,43 +804,20 @@ export class SurveyFeedackFormService {
     };
   }
 
-  async getPreviousQuestion(
-    currentQuestionId: number,
-    allQuestions: any[],
-    allConditions: any[],
-    allResponses: any[],
-  ) {
-    const currentQuestion =
-      await this.questionSerivce.getQuestionById(currentQuestionId);
-    if (!currentQuestion) {
-      return null;
+  private getPreviousQuestion(
+    allResponse: any[],
+    currentQuestion: any,
+    visibility: Record<number, boolean>,
+  ): any | null {
+    const index = allResponse.findIndex((q) => q.id === currentQuestion.id);
+
+    for (let i = index - 1; i >= 0; i--) {
+      const prevQuestion = allResponse[i];
+
+      return prevQuestion;
     }
 
-    // Fix lỗi vòng lặp for
-    for (let i = 0; i < allQuestions.length; i++) {
-      console.log(allQuestions[i], `allQuestions[${i}]`);
-    }
-
-    const questionVisibility = await this.calculateQuestionVisibility(
-      allQuestions,
-      allConditions,
-      allResponses,
-    );
-    console.log(questionVisibility, 'questionVisibility');
-
-    const currentQuestionIndex = allQuestions.findIndex(
-      (q) => q.id === currentQuestion.id,
-    );
-
-    let previousQuestion = null;
-    for (let i = currentQuestionIndex - 1; i >= 0; i--) {
-      if (questionVisibility[allQuestions[i].id]) {
-        previousQuestion = allQuestions[i]; // Fix lỗi `await`
-        break;
-      }
-    }
-
-    return previousQuestion;
+    return null; // Không còn câu hỏi hợp lệ trước đó
   }
 
   // Hàm phụ trợ để định dạng câu trả lời trước đó theo loại câu hỏi
@@ -1092,16 +1081,16 @@ export class SurveyFeedackFormService {
             option.index,
           );
 
-        if (option.answerOptionOnMedia) {
-          const media = await this.mediaService.getMediaById(
-            option.answerOptionOnMedia.mediaId,
-          );
-          if (media) {
-            await this.answerOptionMediaService.createAnswerOptionOnMedia([
-              { mediaId: media.id, answerOptionId: newAnswerOption.id },
-            ]);
-          }
-        }
+        // if (option.answerOptionOnMedia) {
+        //   const media = await this.mediaService.getMediaById(
+        //     option.answerOptionOnMedia.mediaId,
+        //   );
+        //   if (media) {
+        //     await this.answerOptionMediaService.createAnswerOptionOnMedia([
+        //       { mediaId: media.id, answerOptionId: newAnswerOption.id },
+        //     ]);
+        //   }
+        // }
         return newAnswerOption;
       }),
     );
@@ -1202,7 +1191,6 @@ export class SurveyFeedackFormService {
     updateFormDto: UpdatesurveyFeedbackDto,
     updateQuestionDto: UpdateQuestionDto[],
   ) {
-    console.time('Execution Time');
     const form = await this.formRepository.getSurveyFeedbackById(formId);
     if (!form) {
       throw new NotFoundException(
@@ -1224,8 +1212,6 @@ export class SurveyFeedackFormService {
       form.id,
       updateQuestionDto,
     );
-
-    console.timeEnd('Execution Time');
 
     return {
       message: this.i18n.translate('errors.FORM_SAVED_SUCCESSFULLY'),

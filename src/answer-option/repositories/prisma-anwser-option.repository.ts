@@ -9,27 +9,32 @@ import { AnswerOption } from '../entities/AnswerOption';
 export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async bulkUpdateAnswerOptions(
-    updates: { id: number; data: AddAnswerOptionDto }[],
-  ): Promise<AnswerOption[]> {
-    const updatePromises = updates.map(({ id, data }) =>
+  async updateManyAnswerOptions(options: AddAnswerOptionDto[]) {
+    const updateQueries = options.map((opt) =>
       this.prisma.answerOption.update({
-        where: { id },
+        where: { id: opt.answerOptionId },
         data: {
-          label: data.label,
-          isActive: data.isActive,
-          description: data.description,
+          label: opt.label,
+          isActive: opt.isActive,
+          description: opt.description,
         },
       }),
     );
-
-    const updatedOptions = await Promise.all(updatePromises);
-    return updatedOptions.map((option) => new AnswerOption(option));
+    return Promise.all(updateQueries);
   }
-
-  async bulkDeleteAnswerOptions(ids: number[]): Promise<void> {
-    await this.prisma.answerOption.deleteMany({
-      where: { id: { in: ids } },
+  async createManyAnswerOptions(
+    questionId: number,
+    options: AddAnswerOptionDto[],
+    startIndex: number,
+  ) {
+    return this.prisma.answerOption.createMany({
+      data: options.map((opt, i) => ({
+        questionId,
+        label: opt.label,
+        isActive: opt.isActive,
+        description: opt.description,
+        index: startIndex + i,
+      })),
     });
   }
 
@@ -93,11 +98,19 @@ export class PrismaAnswerOptionRepository implements AnswerOptionRepository {
     });
   }
 
-  async deleteAnserOption(id: number, questionId: number) {
+  async deleteAnwserOption(id: number, questionId: number) {
     return this.prisma.answerOption.delete({
       where: {
         id: id,
         questionId: questionId,
+      },
+    });
+  }
+
+  async deleteManyAnwserOption(ids: number[]) {
+    return this.prisma.answerOption.deleteMany({
+      where: {
+        id: { in: ids },
       },
     });
   }

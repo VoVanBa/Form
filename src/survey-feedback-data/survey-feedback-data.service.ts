@@ -639,63 +639,35 @@ export class SurveyFeedbackDataService {
     return 'low';
   }
 
-  async createResponse(
+  async createOrUpdateResponse(
     formId: number,
     questionId: number,
     responseData: ResponseDto,
     userId?: number,
     sessionId?: string,
   ) {
-    // Find or create UserOnResponse
-    let userResponse;
-    if (userId) {
-      userResponse = await this.userResponseRepository.getUserResponseByUserId(
-        userId,
-        formId,
-      );
-    }
-    if (sessionId) {
-      userResponse =
-        await this.userResponseRepository.getUserResponseBySessionId(
-          sessionId,
-          formId,
-        );
-    }
+    const userResponse = await this.findOrCreateUserResponse(
+      formId,
+      userId,
+      sessionId,
+    );
 
-    const question = await this.questionService.getQuestionById(questionId);
-
-    // If not found, create a new UserOnResponse
-    if (!userResponse) {
-      const guestData = !userId && sessionId ? { sessionId } : null;
-      userResponse = await this.userResponseRepository.createUserOnResponse(
-        formId,
-        userId || null,
-        guestData,
-      );
-    }
-
-    const questionResponse =
+    // Tìm câu trả lời cũ
+    const existingResponse =
       await this.responseQuestionRepository.getResponseByUserResponseId(
         userResponse.id,
         questionId,
       );
 
-    if (questionResponse) {
-      await this.userResponseRepository.deleteExistingResponses(
-        questionResponse.id,
-        questionId,
-        formId,
-      );
-    }
-
+    // Nếu câu trả lời giống nhau -> Không cần cập nhật
     if (
-      (!responseData.answerOptionId &&
-        !responseData.answerText &&
-        !responseData.ratingValue &&
-        !responseData.otherAnswer) ||
-      (Array.isArray(responseData.answerOptionId) &&
-        responseData.answerOptionId.length === 0)
+      existingResponse &&
+      this.isSameResponse(existingResponse, responseData)
     ) {
+      return userResponse;
+    }
+    // Nếu không có dữ liệu hợp lệ thì đánh dấu "bỏ qua"
+    if (!this.hasValidResponse(responseData)) {
       await this.userResponseRepository.createResponseSkiped(
         userResponse.id,
         questionId,
@@ -705,22 +677,104 @@ export class SurveyFeedbackDataService {
       return userResponse;
     }
 
-    // Create answer data based on question type
+    // Nếu đã có câu trả lời cũ -> Xóa trước khi cập nhật
+    if (existingResponse) {
+      await this.userResponseRepository.deleteExistingResponses(
+        existingResponse.id,
+        questionId,
+        formId,
+      );
+
+      await this.saveResponseByType(
+        userResponse.id,
+        questionId,
+        formId,
+        responseData,
+        existingResponse.answeredAt,
+      );
+    } else {
+      // Lưu câu trả lời mới
+      await this.saveResponseByType(
+        userResponse.id,
+        questionId,
+        formId,
+        responseData,
+      );
+    }
+    return userResponse;
+  }
+
+  // ✅ Tìm hoặc tạo mới UserOnResponse
+  private async findOrCreateUserResponse(
+    formId: number,
+    userId?: number,
+    sessionId?: string,
+  ) {
+    let userResponse = null;
+    if (userId) {
+      userResponse = await this.userResponseRepository.getUserResponseByUserId(
+        userId,
+        formId,
+      );
+    }
+    if (!userResponse && sessionId) {
+      userResponse =
+        await this.userResponseRepository.getUserResponseBySessionId(
+          sessionId,
+          formId,
+        );
+    }
+    if (!userResponse) {
+      userResponse = await this.userResponseRepository.createUserOnResponse(
+        formId,
+        userId || null,
+        sessionId ? { sessionId } : null,
+      );
+    }
+    return userResponse;
+  }
+
+  private isSameResponse(existingResponse, newResponse: ResponseDto) {
+    if (!existingResponse) return false;
+    return JSON.stringify(existingResponse) === JSON.stringify(newResponse);
+  }
+
+  private hasValidResponse(responseData: ResponseDto) {
+    return (
+      responseData.answerOptionId ||
+      responseData.answerText ||
+      typeof responseData.ratingValue === 'number' ||
+      responseData.otherAnswer
+    );
+  }
+
+  // ✅ Lưu câu trả lời theo loại câu hỏi
+  private async saveResponseByType(
+    userResponseId: number,
+    questionId: number,
+    formId: number,
+    responseData: ResponseDto,
+    answeredAt?: any,
+  ) {
+    const question = await this.questionService.getQuestionById(questionId);
+
     switch (question.questionType) {
       case 'SINGLE_CHOICE':
         if (typeof responseData.answerOptionId === 'number') {
           await this.userResponseRepository.createSingleChoiceResponse(
-            userResponse.id,
+            userResponseId,
             questionId,
             formId,
             responseData.answerOptionId,
+            answeredAt,
           );
         } else if (responseData.otherAnswer) {
           await this.userResponseRepository.createOtherAnwserResponse(
-            userResponse.id,
+            userResponseId,
             questionId,
             formId,
             responseData.otherAnswer,
+            answeredAt,
           );
         }
         break;
@@ -731,19 +785,21 @@ export class SurveyFeedbackDataService {
           await Promise.all(
             responseData.answerOptionId.map((optionId) =>
               this.userResponseRepository.createMultiChoiceResponse(
-                userResponse.id,
+                userResponseId,
                 questionId,
                 formId,
                 optionId,
+                answeredAt,
               ),
             ),
           );
         } else if (responseData.otherAnswer) {
           await this.userResponseRepository.createOtherAnwserResponse(
-            userResponse.id,
+            userResponseId,
             questionId,
             formId,
             responseData.otherAnswer,
+            answeredAt,
           );
         }
         break;
@@ -751,10 +807,11 @@ export class SurveyFeedbackDataService {
       case 'INPUT_TEXT':
         if (responseData.answerText) {
           await this.userResponseRepository.createTextResponse(
-            userResponse.id,
+            userResponseId,
             questionId,
             formId,
             responseData.answerText,
+            answeredAt,
           );
         }
         break;
@@ -762,10 +819,11 @@ export class SurveyFeedbackDataService {
       case 'RATING_SCALE':
         if (typeof responseData.ratingValue === 'number') {
           await this.userResponseRepository.createRatingResponse(
-            userResponse.id,
+            userResponseId,
             questionId,
             formId,
             responseData.ratingValue,
+            answeredAt,
           );
         }
         break;
@@ -775,55 +833,9 @@ export class SurveyFeedbackDataService {
           `Unsupported question type: ${question.questionType}`,
         );
     }
-
-    return userResponse;
   }
 
-  // async removeResponseForQuestion(
-  //   surveyId: number,
-  //   questionId: number,
-  //   userId?: number,
-  //   sessionId?: string,
-  // ): Promise<void> {
-  //   // Xác định điều kiện tìm kiếm dựa trên user hoặc session
-  //   const whereCondition: any = {
-  //     formId: surveyId,
-  //     questionId: questionId,
-  //   };
-
-  //   if (userId) {
-  //     whereCondition.useronResponseId = {
-  //       userId: userId,
-  //     };
-  //   } else if (sessionId) {
-  //     // Lấy userOnResponseId từ sessionId
-  //     const userResponse = await this.prisma.userOnResponse.findFirst({
-  //       where: {
-  //         formId: surveyId,
-  //         guest: {
-  //           path: ['sessionId'],
-  //           equals: sessionId,
-  //         },
-  //       },
-  //       select: {
-  //         id: true,
-  //       },
-  //     });
-
-  //     if (userResponse) {
-  //       whereCondition.useronResponseId = userResponse.id;
-  //     } else {
-  //       return; // Không tìm thấy response để xóa
-  //     }
-  //   }
-
-  //   // Xóa response
-  //   await this.prisma.responseOnQuestion.deleteMany({
-  //     where: whereCondition,
-  //   });
-  // }
-
-  async getPreviosResponse(
+  async getResponse(
     formId: number,
     userId?: number | null,
     sessionId?: string,

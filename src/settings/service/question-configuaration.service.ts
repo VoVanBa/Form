@@ -101,7 +101,7 @@ export class QuestionConfigurationService {
     switch (questionType) {
       case 'SINGLE_CHOICE':
       case 'PICTURE_SELECTION': {
-        if (response.answerOptionId === null) {
+        if (response.answerOptionId === undefined) {
           throw new BadRequestException(
             this.i18n.translate('errors.INVALID_ANSWER_FORMAT', {
               args: { questionId: response.questionId },
@@ -111,10 +111,10 @@ export class QuestionConfigurationService {
 
         if (
           (!other &&
-            response.answerText !== null &&
+            response.answerText !== undefined &&
             response.answerText !== undefined) ||
-          response.ratingValue !== null ||
-          response.otherAnswer !== null
+          response.ratingValue !== undefined ||
+          response.otherAnswer !== undefined
         ) {
           invalidKeys.push('answerText', 'ratingValue', 'otherAnswer');
         }
@@ -126,7 +126,7 @@ export class QuestionConfigurationService {
         if (
           !Array.isArray(response.answerOptionId) ||
           response.answerOptionId.length === 0 ||
-          response.answerOptionId.includes(null)
+          response.answerOptionId.includes(undefined)
         ) {
           throw new BadRequestException(
             this.i18n.translate('errors.QUESTION_REQUIRES_SELECTION', {
@@ -137,9 +137,9 @@ export class QuestionConfigurationService {
 
         if (
           !other &&
-          (response.answerText != null ||
-            response.ratingValue != null ||
-            response.otherAnswer != null)
+          (response.answerText != undefined ||
+            response.ratingValue != undefined ||
+            response.otherAnswer != undefined)
         ) {
           invalidKeys.push('answerText', 'ratingValue', 'otherAnswer');
         }
@@ -157,10 +157,10 @@ export class QuestionConfigurationService {
 
         if (
           (Array.isArray(response.answerOptionId) &&
-            response.answerOptionId.some((v) => v !== null)) ||
+            response.answerOptionId.some((v) => v !== undefined)) ||
           (!Array.isArray(response.answerOptionId) &&
-            response.answerOptionId !== null) ||
-          response.ratingValue !== null
+            response.answerOptionId !== undefined) ||
+          response.ratingValue !== undefined
         ) {
           invalidKeys.push('answerOptionId', 'ratingValue');
         }
@@ -184,10 +184,10 @@ export class QuestionConfigurationService {
 
         if (
           (Array.isArray(response.answerOptionId) &&
-            response.answerOptionId.some((v) => v !== null)) ||
+            response.answerOptionId.some((v) => v !== undefined)) ||
           (!Array.isArray(response.answerOptionId) &&
-            response.answerOptionId !== null) ||
-          response.answerText !== null
+            response.answerOptionId !== undefined) ||
+          response.answerText !== undefined
         ) {
           invalidKeys.push('answerOptionId', 'ratingValue');
         }

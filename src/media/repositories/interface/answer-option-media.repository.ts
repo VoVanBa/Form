@@ -9,7 +9,7 @@ export interface AnswerOptionMediaRepository {
   getAnswerOptionByAnswerOptionId(
     answerOptionId: number,
   ): Promise<AnswerOptionOnMedia | null>;
-  createAnswerOptionOnMedia(
+  createManyAnswerOptionOnMedia(
     data: { mediaId: number; answerOptionId: number | null }[],
   ): Promise<AnswerOptionOnMedia[]>;
 }

@@ -55,13 +55,13 @@ export class QuestionService {
       );
     if (quantityAnserOption <= 2) {
       throw new BadRequestException(
-        this.i18n.translate('errors.ANSWEROPTIONSMUSTBEGREATERTHANTWO'),
+        this.i18n.translate('errors.ANSWER_OPTIONS_MUST_BE_GREATER_THAN_TWO'),
       );
     }
 
     await this.validateQuestion(questionId);
 
-    return this.answerOptionService.deleteAnserOption(
+    return this.answerOptionService.deleteAnwserOption(
       optionAnwerId,
       questionId,
     );
@@ -101,7 +101,7 @@ export class QuestionService {
           await this.prismaQuestionRepository.deleteQuestionById(questionId);
           return this.createQuestion(formId, dto, nextIndex++);
         } else {
-          return this.updateQuestion(questionId, formId, dto);
+          return this.updateQuestion(questionId, dto);
         }
       }
 
@@ -113,7 +113,6 @@ export class QuestionService {
 
   private async updateQuestion(
     questionId: number,
-    formId: number,
     updateQuestionDto: UpdateQuestionDto,
   ) {
     const question = await this.getQuestionById(questionId);
@@ -124,7 +123,7 @@ export class QuestionService {
       );
 
       if (
-        updateQuestionDto.imageId !== questionOnMedia?.id ||
+        updateQuestionDto?.imageId !== questionOnMedia?.id ||
         question.questionOnMedia === null
       ) {
         await this.updateQuestionImage(questionId, updateQuestionDto.imageId);
@@ -187,11 +186,11 @@ export class QuestionService {
         }),
       );
 
-      await this.deleteAnswerOptions(questionId, answerOptionsId);
+      await this.deleteManyAnswerOptions(questionId, answerOptionsId);
     }
   }
 
-  private async deleteAnswerOptions(
+  private async deleteManyAnswerOptions(
     questionId: number,
     answerOptionsId: number[],
   ) {
@@ -202,11 +201,7 @@ export class QuestionService {
       .map((option) => option.id);
 
     if (idsToDelete.length > 0) {
-      await Promise.all(
-        idsToDelete.map((id) =>
-          this.answerOptionService.deleteAnserOption(id, questionId),
-        ),
-      );
+      this.answerOptionService.deleteManyAnserOption(idsToDelete);
     }
   }
 
@@ -263,7 +258,7 @@ export class QuestionService {
       questionHeadlineMap[question.headline] = question.id;
 
       const mappedConditions = dto.conditions.map((condition) => {
-        let cv = { ...condition.conditionValue };
+        const cv = { ...condition.conditionValue };
 
         // Ánh xạ `answerOptionId` nếu có `sourceAnswerLabel`
         if (cv.sourceAnswerLabel) {
@@ -514,10 +509,9 @@ export class QuestionService {
     });
   }
 
-  async validateQuestions(questions: UpdateQuestionDto[]): Promise<{
-    isValid: boolean;
-    errors: string[];
-  }> {
+  async validateQuestions(
+    questions: UpdateQuestionDto[],
+  ): Promise<{ isValid: boolean; errors: string[] }> {
     if (!Array.isArray(questions) || questions.length === 0) {
       return {
         isValid: false,
@@ -526,108 +520,108 @@ export class QuestionService {
     }
 
     const errors: string[] = [];
-
-    // Kiểm tra trùng questionId
-    const questionIds = questions.map((q) => q.questionId).filter(Boolean);
-    if (new Set(questionIds).size !== questionIds.length) {
-      errors.push(this.i18n.translate('errors.DUPLICATE_QUESTION_IDS'));
-    }
-
     const validQuestionTypes = new Set(Object.values(QuestionType));
+    const seenQuestionIds = new Set<number>();
 
-    // Duyệt từng câu hỏi và kiểm tra lỗi
-    for (let index = 0; index < questions.length; index++) {
-      const question = questions[index];
+    for (const [index, question] of questions.entries()) {
       const questionIndex = index + 1;
 
+      // Kiểm tra trùng questionId
+      if (question.questionId) {
+        if (seenQuestionIds.has(question.questionId)) {
+          errors.push(this.translateError('errors.DUPLICATE_QUESTION_IDS'));
+        } else {
+          seenQuestionIds.add(question.questionId);
+        }
+      }
+
+      // Kiểm tra tiêu đề
       if (!question.headline) {
         errors.push(
-          this.i18n.translate('errors.MISSING_HEADLINE', {
-            args: { index: questionIndex },
+          this.translateError('errors.MISSING_HEADLINE', {
+            index: questionIndex,
           }),
         );
       }
 
-      if (
-        !question.questionType ||
-        !validQuestionTypes.has(question.questionType as QuestionType)
-      ) {
+      // Kiểm tra loại câu hỏi hợp lệ
+      if (!validQuestionTypes.has(question.questionType as QuestionType)) {
         errors.push(
-          this.i18n.translate('errors.INVALID_QUESTION_TYPE', {
-            args: { type: question.questionType, index: questionIndex },
+          this.translateError('errors.INVALID_QUESTION_TYPE', {
+            type: question.questionType,
+            index: questionIndex,
           }),
         );
       }
 
-      if (
-        ['SINGLE_CHOICE', 'MULTI_CHOICE', 'PICTURE_SELECTION'].includes(
-          question.questionType,
-        )
-      ) {
+      // Xử lý các loại câu hỏi đặc biệt
+      if (this.isChoiceQuestion(question.questionType)) {
         this.validateAnswerOptions(question, questionIndex, errors);
-      }
-
-      if (question.questionType === 'RATING_SCALE') {
+      } else if (question.questionType === 'RATING_SCALE') {
         this.validateRatingScale(question, questionIndex, errors);
-      }
-
-      if (question.conditions?.length) {
-        // this.validateConditions(question.conditions, questionIndex, errors);
       }
     }
 
     return { isValid: errors.length === 0, errors };
   }
 
-  validateAnswerOptions(
+  private isChoiceQuestion(type: string): boolean {
+    return (
+      type === 'SINGLE_CHOICE' ||
+      type === 'MULTI_CHOICE' ||
+      type === 'PICTURE_SELECTION'
+    );
+  }
+
+  private validateAnswerOptions(
     question: UpdateQuestionDto,
     index: number,
     errors: string[],
   ) {
-    if (
-      !Array.isArray(question.answerOptions) ||
-      question.answerOptions.length < 2
-    ) {
+    const { answerOptions } = question;
+    if (!Array.isArray(answerOptions) || answerOptions.length < 2) {
       errors.push(
-        this.i18n.translate('errors.MUSTHAVEATLEASTTWOCHOICES', {
-          args: { index },
-        }),
+        this.translateError('errors.MUSTHAVEATLEASTTWOCHOICES', { index }),
       );
       return;
     }
 
-    const optionIds = question.answerOptions
-      .map((opt) => opt.answerOptionId)
-      .filter(Boolean);
-    if (new Set(optionIds).size !== optionIds.length) {
-      errors.push(
-        this.i18n.translate('errors.DUPLICATE_OPTION_IDS', { args: { index } }),
-      );
-    }
+    const seenOptionIds = new Set<number>();
 
-    if (question.answerOptions.some((opt) => !opt.label)) {
-      errors.push(
-        this.i18n.translate('errors.MISSING_OPTION_LABELS', {
-          args: { index },
-        }),
-      );
+    for (const option of answerOptions) {
+      if (!option.label) {
+        errors.push(
+          this.translateError('errors.MISSING_OPTION_LABELS', { index }),
+        );
+      }
+
+      if (option.answerOptionId) {
+        if (seenOptionIds.has(option.answerOptionId)) {
+          errors.push(
+            this.translateError('errors.DUPLICATE_OPTION_IDS', { index }),
+          );
+        } else {
+          seenOptionIds.add(option.answerOptionId);
+        }
+      }
     }
   }
 
-  validateRatingScale(
+  private validateRatingScale(
     question: UpdateQuestionDto,
     index: number,
     errors: string[],
   ) {
-    if (
-      !question.settings?.range ||
-      question.settings.range < 2 ||
-      question.settings.range > 10
-    ) {
+    const range = question.settings?.range;
+    if (!range || range < 2 || range > 10) {
       errors.push(
-        this.i18n.translate('errors.INVALID_RATING_RANGE', { args: { index } }),
+        this.translateError('errors.INVALID_RATING_RANGE', { index }),
       );
     }
+  }
+
+  private translateError(key: string, args?: Record<string, any>): string {
+    return this.i18n.translate(key, { args });
   }
 
   async getAvailableConditionTypes(questionType: QuestionType) {

@@ -28,10 +28,10 @@ export class AnswerOptionMediaService {
     );
   }
 
-  async createAnswerOptionOnMedia(
+  async createManyAnswerOptionOnMedia(
     data: { mediaId: number; answerOptionId: number | null }[],
   ): Promise<AnswerOptionOnMedia[]> {
-    return this.answerOptionMediaRepository.createAnswerOptionOnMedia(data);
+    return this.answerOptionMediaRepository.createManyAnswerOptionOnMedia(data);
   }
   async bulkUpdateAnswerOptionOnMedia(
     updates: { mediaId: number; answerOptionId: number | null }[],
@@ -43,7 +43,7 @@ export class AnswerOptionMediaService {
 
   async createAnwerOptionMedia(image: Express.Multer.File[]) {
     const mediaIds = await this.mediaService.uploadImages(image);
-    await this.createAnswerOptionOnMedia(
+    await this.createManyAnswerOptionOnMedia(
       mediaIds.map((mediaId) => ({ mediaId, answerOptionId: null })),
     );
   }
